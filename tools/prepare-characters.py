@@ -178,18 +178,31 @@ def content_box(alpha):
 
 
 def prepare(path, output_path):
-    """Détoure, recadre et met à la taille finale. Renvoie un compte-rendu."""
-    source = pygame.image.load(path).convert_alpha()
-    rgb = pygame.surfarray.array3d(source).astype(np.int16)
+    """
+    Détoure si nécessaire, recadre et met à la taille finale.
 
-    mask = background_mask(rgb)
-    if REMOVE_ENCLOSED_POCKETS:
-        mask = remove_enclosed_pockets(mask, rgb)
+    Si l'image est DÉJÀ transparente, on ne la retouche pas : on se contente de
+    la recadrer et de la normaliser. Re-détourer une image déjà propre serait
+    au mieux inutile, au pire destructeur — les pixels devenus transparents
+    gardent une couleur arbitraire que l'algorithme interpréterait de travers.
+    """
+    source = pygame.image.load(path).convert_alpha()
+    existing_alpha = pygame.surfarray.array_alpha(source)
+    already_clean = float((existing_alpha == 0).mean()) > 0.05
+
     detoured = source.copy()
-    alpha = pygame.surfarray.pixels_alpha(detoured)
-    alpha[mask] = 0
-    kept = float((alpha > 0).mean())
-    del alpha  # libère le verrou posé sur la surface
+
+    if already_clean:
+        kept = float((existing_alpha > 0).mean())
+    else:
+        rgb = pygame.surfarray.array3d(source).astype(np.int16)
+        mask = background_mask(rgb)
+        if REMOVE_ENCLOSED_POCKETS:
+            mask = remove_enclosed_pockets(mask, rgb)
+        alpha = pygame.surfarray.pixels_alpha(detoured)
+        alpha[mask] = 0
+        kept = float((alpha > 0).mean())
+        del alpha  # libère le verrou posé sur la surface
 
     box = content_box(pygame.surfarray.array_alpha(detoured))
     if box is None:
@@ -208,7 +221,8 @@ def prepare(path, output_path):
     final = pygame.transform.smoothscale(canvas, (OUTPUT_SIZE, OUTPUT_SIZE))
     pygame.image.save(final, output_path)
 
-    return kept, f"{cropped_width}x{cropped_height} -> {OUTPUT_SIZE}x{OUTPUT_SIZE}, {kept*100:.0f} % conservé"
+    origin = "déjà transparent, recadré" if already_clean else f"détouré, {kept*100:.0f} % conservé"
+    return kept, f"{cropped_width}x{cropped_height} -> {OUTPUT_SIZE}x{OUTPUT_SIZE} · {origin}"
 
 
 # --- Programme --------------------------------------------------------------
@@ -256,7 +270,7 @@ def main():
 
         # Un personnage qui occupe presque toute l'image, ou presque rien,
         # signale un détourage douteux qu'il vaut mieux aller regarder.
-        if kept > 0.85:
+        if kept > 0.92:
             warnings.append(f"{name} : le fond n'a presque pas été enlevé — il n'est peut-être pas uni")
         elif kept < 0.06:
             warnings.append(f"{name} : presque tout a été effacé — vérifie le résultat")

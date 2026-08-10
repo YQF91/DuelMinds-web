@@ -15,15 +15,16 @@
  * personnage sans image reste parfaitement jouable, il est juste moins beau.
  *
  * ORIENTATION — comment les deux se font face
- * Les images sont toutes dessinées tournées vers la droite (ou de face). Le
- * duelliste de GAUCHE est donc retourné horizontalement à l'affichage :
+ * Un seul dessin par personnage suffit : le jeu en retourne un des deux pour
+ * que les duellistes se regardent.
  *
  *       ADVERSAIRE                              TOI
  *           🧍  ──────  se regardent  ──────  🧍
- *       (retourné)                        (tel quel)
  *
- * C'est la disposition d'un duel Fire Emblem, et elle rend le face-à-face
- * lisible sans avoir à dessiner deux versions de chaque personnage.
+ * Encore faut-il savoir de quel côté regarde le dessin d'origine. C'est le
+ * rôle de ART_FACING, plus bas : les personnages livrés regardent vers la
+ * GAUCHE, donc c'est celui de gauche qu'on retourne. Si tu redessines tout
+ * dans l'autre sens, une seule ligne est à changer.
  *
  * COMMENT LIRE UNE SILHOUETTE DE SECOURS
  * Une grille de 16 lignes de 16 caractères, une lettre par couleur :
@@ -45,6 +46,29 @@
   const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
   const GRID = 16;
   const ASSET_PATH = "assets/characters/";
+
+  /* ---------------------------------------------------------------------------
+   * DE QUEL CÔTÉ REGARDENT LES DESSINS ?
+   * ---------------------------------------------------------------------------
+   * "left"  -> les personnages sont dessinés tournés vers la gauche
+   * "right" -> vers la droite
+   *
+   * C'est LA valeur à corriger si les deux duellistes se tournent le dos.
+   * Elle décide lequel des deux est retourné à l'affichage, rien d'autre.
+   *
+   * Les personnages livrés (archer, cowboy, enchanteresse, gobelin…) visent
+   * tous vers la gauche : c'est donc celui placé À GAUCHE qu'on retourne, pour
+   * qu'il fasse face à son adversaire.
+   * ------------------------------------------------------------------------ */
+  const ART_FACING = "left";
+
+  /**
+   * Faut-il retourner ce duelliste ?
+   * @param {"left"|"right"} position  son côté de l'arène
+   */
+  function shouldFlip(position) {
+    return ART_FACING === "left" ? position === "left" : position === "right";
+  }
 
   /* ---------------------------------------------------------------------------
    * 1. CHARGEMENT DES IMAGES
@@ -131,8 +155,132 @@
     return row.length > x ? row[x] : ".";
   }
 
+
   /* ---------------------------------------------------------------------------
-   * 3. RENDU D'UN DUELLISTE
+   * 3. POSES — l'animation procédurale
+   * ---------------------------------------------------------------------------
+   * POURQUOI PAS DES IMAGES SUPPLÉMENTAIRES
+   * Chaque personnage n'a qu'UN dessin. Plutôt que d'exiger une planche
+   * d'animation par duelliste, on anime l'image existante en la DÉFORMANT :
+   * on la déplace, on l'incline, on l'écrase, on l'étire. C'est la technique
+   * classique des jeux à personnages chibi, et elle rend bien parce que ces
+   * silhouettes sont trapues et lisibles.
+   *
+   * Chaque pose est une fonction du temps : elle reçoit une progression de 0
+   * (début) à 1 (fin) et renvoie la déformation à appliquer.
+   *
+   *   dx, dy   déplacement, en fraction de la taille du sprite
+   *   scaleX   étirement horizontal   (1 = taille normale)
+   *   scaleY   étirement vertical
+   *   rotate   inclinaison, en radians
+   *   alpha    opacité
+   *
+   * `facing` vaut +1 quand le personnage regarde vers la droite, -1 sinon :
+   * multiplier les déplacements horizontaux par cette valeur suffit à ce que
+   * les deux camps s'animent en miroir sans écrire le code deux fois.
+   * ------------------------------------------------------------------------ */
+
+  /** Durée de chaque pose, en millisecondes. 0 = en boucle, sans fin. */
+  const POSE_DURATION = {
+    idle: 0,
+    shoot: 620,
+    super: 820,
+    defend: 700,
+    charge: 620,
+    hit: 900,
+  };
+
+  /* Courbes d'accélération : un mouvement linéaire paraît mécanique. */
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+  function easeIn(t) { return t * t; }
+
+  /**
+   * Déformation à appliquer pour une pose donnée.
+   *
+   * @param {string} pose      "idle" | "shoot" | "super" | "defend" | "charge" | "hit"
+   * @param {number} progress  0 au début de la pose, 1 à la fin
+   * @param {number} time      horodatage, pour les mouvements continus
+   * @param {number} facing    +1 vers la droite, -1 vers la gauche
+   */
+  function poseTransform(pose, progress, time, facing) {
+    const t = { dx: 0, dy: 0, scaleX: 1, scaleY: 1, rotate: 0, alpha: 1 };
+
+    if (!pose || pose === "idle") {
+      // RESPIRATION — le corps s'étire et s'écrase en conservant son volume,
+      // ce qui donne l'illusion du souffle plutôt qu'un simple va-et-vient.
+      const breath = Math.sin(time / 620);
+      t.dy = -breath * 0.012;
+      t.scaleY = 1 + breath * 0.018;
+      t.scaleX = 1 - breath * 0.012;
+      // Un très léger balancement : sans lui, la pose paraît figée.
+      t.rotate = Math.sin(time / 1450) * 0.012;
+      return t;
+    }
+
+    if (pose === "shoot" || pose === "super") {
+      const big = pose === "super";
+      // Trois temps : on se ramasse, on se détend, on encaisse le recul.
+      if (progress < 0.22) {
+        const k = easeIn(progress / 0.22);
+        t.dx = -0.055 * k * facing;
+        t.scaleX = 1 - 0.04 * k;
+        t.scaleY = 1 + 0.05 * k;
+        t.rotate = -0.05 * k * facing;
+      } else if (progress < 0.4) {
+        const k = easeOut((progress - 0.22) / 0.18);
+        t.dx = (-0.055 + 0.14 * k) * facing;
+        t.scaleX = 1 + 0.06 * k;
+        t.scaleY = 1 - 0.05 * k;
+        t.rotate = (-0.05 + 0.09 * k) * facing;
+      } else {
+        // Retour amorti : le corps oscille avant de se replacer.
+        const k = (progress - 0.4) / 0.6;
+        const damp = Math.exp(-k * 4) * Math.cos(k * (big ? 22 : 16));
+        t.dx = 0.085 * damp * facing;
+        t.rotate = 0.04 * damp * facing;
+        t.scaleY = 1 + 0.03 * damp;
+      }
+      if (big) { t.scaleX *= 1.05; t.scaleY *= 1.05; }
+      return t;
+    }
+
+    if (pose === "defend") {
+      // On se ramasse et on recule : le corps se met derrière lui-même.
+      const k = progress < 0.3 ? easeOut(progress / 0.3)
+              : progress < 0.75 ? 1
+              : 1 - easeIn((progress - 0.75) / 0.25);
+      t.dx = -0.05 * k * facing;
+      t.dy = 0.055 * k;
+      t.scaleY = 1 - 0.13 * k;
+      t.scaleX = 1 + 0.08 * k;
+      t.rotate = -0.06 * k * facing;
+      return t;
+    }
+
+    if (pose === "charge") {
+      // Une inspiration : le corps se gonfle puis retombe.
+      const k = Math.sin(progress * Math.PI);
+      t.scaleY = 1 + 0.09 * k;
+      t.scaleX = 1 + 0.03 * k;
+      t.dy = -0.05 * k;
+      return t;
+    }
+
+    if (pose === "hit") {
+      // Projeté en arrière, bascule au sol, et y reste.
+      const k = easeOut(Math.min(1, progress / 0.55));
+      t.dx = -0.16 * k * facing;
+      t.dy = 0.1 * k;
+      t.rotate = -1.15 * k * facing;
+      t.alpha = 1 - 0.25 * k;
+      return t;
+    }
+
+    return t;
+  }
+
+  /* ---------------------------------------------------------------------------
+   * 4. RENDU D'UN DUELLISTE
    * ------------------------------------------------------------------------ */
 
   /**
@@ -142,28 +290,43 @@
    * @param {object} options
    * @param {string}  options.character  clé du personnage (nom du PNG)
    * @param {"player"|"bot"} options.side  sert au repli et à l'orientation
-   * @param {boolean} options.faceLeft   retourne l'image (duelliste de gauche)
-   * @param {boolean} options.down       duelliste à terre
-   * @param {number}  options.bob        respiration, en pixels de grille
-   * @param {number}  options.flash      0 à 1 : éclat blanc d'impact
+   * @param {"left"|"right"} options.position  côté de l'arène occupé
+   * @param {string}  options.pose          pose en cours (voir poseTransform)
+   * @param {number}  options.poseProgress  0 à 1 dans la pose
+   * @param {number}  options.time          horodatage, pour la respiration
+   * @param {number}  options.flash         0 à 1 : éclat blanc d'impact
    */
   function drawDuelist(canvas, options) {
     const opts = options || {};
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = true;
 
     const entry = getImage(opts.character);
     const useImage = entry && entry.ready && !entry.failed;
 
-    ctx.save();
+    // Retourné ou non selon le côté qu'il occupe et le sens du dessin.
+    const flipped = shouldFlip(opts.position);
+    // `facing` sert aux animations : +1 quand le personnage regarde à droite.
+    const facing = flipped ? 1 : -1;
+    const transform = poseTransform(opts.pose, opts.poseProgress || 0, opts.time || 0, facing);
 
-    // Le retournement se fait sur le contexte entier : c'est ce qui permet de
-    // n'avoir qu'un seul dessin par personnage.
-    if (opts.faceLeft) {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
+    ctx.save();
+    ctx.globalAlpha = transform.alpha;
+
+    /* Tout se joue autour d'un point d'ancrage placé aux PIEDS du personnage :
+     * c'est ce qui fait qu'un étirement le grandit vers le haut au lieu de le
+     * faire flotter, et qu'une rotation le fait basculer plutôt que tourner
+     * sur lui-même. */
+    const anchorX = canvas.width / 2;
+    const anchorY = canvas.height * 0.96;
+
+    ctx.translate(anchorX + transform.dx * canvas.width,
+                  anchorY + transform.dy * canvas.height);
+    if (flipped) ctx.scale(-1, 1);
+    ctx.rotate(transform.rotate);
+    ctx.scale(transform.scaleX, transform.scaleY);
+    ctx.translate(-anchorX, -anchorY);
 
     if (useImage) {
       drawImageContained(ctx, entry.image, canvas, opts);
@@ -191,41 +354,27 @@
    * l'image n'est pas carrée.
    */
   function drawImageContained(ctx, image, canvas, opts) {
-    const bobPixels = (opts.bob || 0) * (canvas.height / GRID);
+    // Contenue sans déformation, calée en bas : les pieds restent au sol quelle
+    // que soit la proportion de l'image d'origine.
     const ratio = Math.min(canvas.width / image.width, canvas.height / image.height);
     const width = image.width * ratio;
     const height = image.height * ratio;
-    const x = (canvas.width - width) / 2;
-    const y = canvas.height - height + bobPixels;
-
-    if (opts.down) {
-      // À terre : on couche le personnage plutôt que de demander un second
-      // dessin. Rotation d'un quart de tour, calée en bas.
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height * 0.82);
-      ctx.rotate(-Math.PI / 2);
-      ctx.globalAlpha = 0.75;
-      ctx.drawImage(image, -height / 2, -width / 2, height, width);
-      ctx.restore();
-      return;
-    }
-
-    ctx.drawImage(image, x, y, width, height);
+    ctx.drawImage(image, (canvas.width - width) / 2, canvas.height - height, width, height);
   }
 
   /** Silhouette en pixel art, quand aucune image n'est disponible. */
   function drawPixelFallback(ctx, canvas, opts) {
-    const grid = opts.down ? ART.down : ART.stand;
+    const grid = opts.pose === "hit" ? ART.down : ART.stand;
     const palette = PALETTES[opts.side] || PALETTES.player;
-    const scale = Math.floor(canvas.width / GRID);
-    const bob = opts.bob || 0;
+    const scale = canvas.width / GRID;
 
     for (let y = 0; y < GRID; y++) {
       for (let x = 0; x < GRID; x++) {
         const ch = cellAt(grid, x, y);
         if (ch === "." || ch === " ") continue;
         ctx.fillStyle = palette[ch] || MISSING_COLOR;
-        ctx.fillRect(x * scale, (y + bob) * scale, scale, scale);
+        // +1 pour éviter les fentes entre carrés quand l'échelle n'est pas ronde
+        ctx.fillRect(x * scale, y * scale, scale + 1, scale + 1);
       }
     }
   }
@@ -237,7 +386,7 @@
   }
 
   /* ---------------------------------------------------------------------------
-   * 4. EFFETS D'ACTION
+   * 5. EFFETS D'ACTION
    * ---------------------------------------------------------------------------
    * Dessinés dans un canvas qui couvre toute la scène. Les duellistes se font
    * face HORIZONTALEMENT : les projectiles vont donc de gauche à droite ou
@@ -340,5 +489,7 @@
     ctx.restore();
   }
 
-  DUELMINDS.sprites = { ART, PALETTES, GRID, drawDuelist, drawEffect, preload, hasImage };
+  DUELMINDS.sprites = { ART, PALETTES, GRID, POSE_DURATION, ART_FACING,
+                        poseTransform, shouldFlip, drawDuelist, drawEffect,
+                        preload, hasImage };
 })(typeof globalThis !== "undefined" ? globalThis : window);

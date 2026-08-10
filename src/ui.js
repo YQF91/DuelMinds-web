@@ -59,6 +59,13 @@
     effect: null,    // { kind, from, until }
     flash: { player: 0, bot: 0 },
 
+    /* Pose de chaque duelliste. Chacune retourne d'elle-même au repos quand sa
+     * durée est écoulée — sauf « hit », qui laisse le perdant au sol. */
+    pose: {
+      player: { kind: "idle", start: 0 },
+      bot: { kind: "idle", start: 0 },
+    },
+
     // Compteurs de la PARTIE en cours, pour la remontée
     log: null,
   };
@@ -233,6 +240,8 @@
     state.effect = null;
     state.flash.player = 0;
     state.flash.bot = 0;
+    setPose("player", "idle");
+    setPose("bot", "idle");
 
     stats.recordSessionStart(state.mode, state.difficulty);
 
@@ -359,6 +368,7 @@
     stats.recordTurn(action, turn);
 
     showReveal(turn);
+    applyPoses(turn);
     playTurnSound(turn);
     renderDuel();
     setLog(describeTurn(turn));
@@ -412,6 +422,37 @@
     state.effect = { kind, from, until: performance.now() + EFFECT_MS };
   }
 
+  /**
+   * Met un duelliste dans une pose. Elle joue une fois puis revient au repos ;
+   * seule « hit » reste, parce qu'un duelliste à terre ne se relève pas avant
+   * la manche suivante.
+   */
+  function setPose(who, kind) {
+    state.pose[who] = { kind, start: performance.now() };
+  }
+
+  /**
+   * Donne à chaque duelliste la pose correspondant à son action.
+   * Le perdant passe en « hit », quelle qu'ait été son action : c'est le
+   * dernier mot du tour.
+   */
+  function applyPoses(turn) {
+    const poseFor = (action, result) => {
+      if (result === "super_shot") return "super";
+      if (action === "shoot") return "shoot";
+      if (action === "defend") return "defend";
+      return "charge";
+    };
+
+    setPose("player", poseFor(turn.actionA, turn.resultA));
+    setPose("bot", poseFor(turn.actionB, turn.resultB));
+
+    // Le perdant s'effondre. Un court délai laisse voir son geste avant qu'il
+    // ne tombe : sans ça, on ne comprend pas ce qui vient de se passer.
+    if (turn.winner === "a") window.setTimeout(() => setPose("bot", "hit"), 260);
+    if (turn.winner === "b") window.setTimeout(() => setPose("player", "hit"), 260);
+  }
+
   function playTurnSound(turn) {
     if (turn.resultA === "clash" && turn.resultB === "clash") {
       audio.play("clash"); audio.vibrate(25); return;
@@ -459,6 +500,8 @@
         "Manche " + (s.mancheNumber),
         () => {
           DUELMINDS.match.startManche(s);
+          setPose("player", "idle");
+          setPose("bot", "idle");
           state.phase = "choosing";
           renderDuel();
           showScreen("screen-duel");
@@ -481,6 +524,8 @@
         "Duel " + (s.streak + 1),
         () => {
           DUELMINDS.match.startNextDuel(s);
+          setPose("player", "idle");
+          setPose("bot", "idle");
           state.phase = "choosing";
           renderDuel();
           showScreen("screen-duel");
@@ -665,22 +710,41 @@
    * jongler avec des minuteurs, et reste fluide sur téléphone.
    * ====================================================================== */
 
+  /** Dessine un duelliste dans sa pose du moment. */
+  function drawPose(who, canvas, character, position, timestamp) {
+    const pose = state.pose[who];
+    const duration = DUELMINDS.sprites.POSE_DURATION[pose.kind] || 0;
+
+    let kind = pose.kind;
+    let progress = 0;
+
+    if (duration > 0) {
+      progress = (performance.now() - pose.start) / duration;
+      if (progress >= 1) {
+        // « hit » ne se termine pas : le duelliste reste au sol.
+        if (kind === "hit") progress = 1;
+        else { kind = "idle"; state.pose[who] = { kind: "idle", start: 0 }; }
+      }
+    }
+
+    drawDuelist(canvas, {
+      character, side: who === "player" ? "player" : "bot",
+      position, pose: kind, poseProgress: Math.min(1, progress),
+      time: timestamp, flash: state.flash[who],
+    });
+  }
+
   function loop(timestamp) {
     if ($("screen-duel").classList.contains("on") && state.session) {
       const s = state.session;
 
       // Respiration : un pixel de haut en bas, en opposition entre les deux
-      const bob = Math.sin(timestamp / 520) > 0 ? 0 : 1;
-
-      // Le duelliste de GAUCHE est retourné pour que les deux se regardent.
-      drawDuelist($("bot-sprite"), {
-        character: state.botCharacter, side: "bot", faceLeft: false,
-        bob: 1 - bob, flash: state.flash.bot, down: state.flash.bot > 0.85,
-      });
-      drawDuelist($("me-sprite"), {
-        character: state.character, side: "player", faceLeft: true,
-        bob, flash: state.flash.player, down: state.flash.player > 0.85,
-      });
+      /* Chaque duelliste joue sa pose, puis revient au repos de lui-même.
+       * On décale légèrement l'horloge de l'adversaire pour que les deux ne
+       * respirent pas exactement en même temps — sinon la scène paraît
+       * mécanique. */
+      drawPose("bot", $("bot-sprite"), state.botCharacter, "left", timestamp + 800);
+      drawPose("player", $("me-sprite"), state.character, "right", timestamp);
 
       // L'éclat s'estompe tout seul
       state.flash.player = Math.max(0, state.flash.player - 0.02);

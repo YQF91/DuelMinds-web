@@ -145,18 +145,12 @@
    * on peut donc jouer avant d'avoir tous les dessins.
    * ------------------------------------------------------------------------ */
   const CHARACTERS = [
-    { key: "ingenieur",     name: "Ingénieure",    blurb: "Lunettes de soudeur, bras mécanique." },
-    { key: "cowboy",        name: "Cowboy",        blurb: "Chapeau brun, revolver, foulard." },
-    { key: "capitaine",     name: "Capitaine",     blurb: "Bicorne à tête de mort, crinière rouge." },
-    { key: "mecano",        name: "Mécano",        blurb: "Réacteur dorsal et lunettes vertes." },
-    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au côté." },
-    { key: "bourreau",      name: "Bourreau",      blurb: "Armure sombre, deux haches." },
-    { key: "plombier",      name: "Plombier",      blurb: "Casquette rouge, salopette." },
-    { key: "corsaire",      name: "Corsaire",      blurb: "Sabre au clair, cape brune." },
-    { key: "pyromancienne", name: "Pyromancienne", blurb: "Cheveux de flammes, fouet ardent." },
-    { key: "ange",          name: "Ange",          blurb: "Ailes blanches, robe claire." },
     { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu." },
-    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, mauvais." },
+    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience." },
+    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé." },
+    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent." },
+    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues." },
+    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos." },
   ];
 
   DUELMINDS.RULES = RULES;

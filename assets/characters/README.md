@@ -41,15 +41,19 @@ fichiers une fois pour toutes.
 grand évite le flou sur les écrans à forte densité. Carré de préférence : les
 images non carrées sont recadrées au centre.
 
-**Orientation** — dessine tous les personnages **tournés vers la droite**, ou
-de face. Le jeu retourne automatiquement celui de gauche pour que les deux se
-regardent, comme dans un duel Fire Emblem :
+**Orientation** — dessine tous les personnages **dans le même sens**. Peu
+importe lequel, mais il doit être le même pour tous : le jeu retourne
+automatiquement l'un des deux pour qu'ils se regardent.
 
 ```
    ADVERSAIRE                              TOI
        🧍  ────────  se font face  ──────  🧍
-   (retourné)                          (tel quel)
 ```
+
+Les personnages livrés regardent vers la **gauche**. C'est ce qu'indique
+`ART_FACING` dans `src/sprites.js`. Si tu redessines tout dans l'autre sens,
+passe cette constante à `"right"` — **c'est la seule ligne à changer**. Si un
+jour les deux duellistes se tournent le dos, c'est là qu'il faut regarder.
 
 ---
 
