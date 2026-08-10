@@ -212,6 +212,30 @@ conventions sont dans [`assets/characters/README.md`](assets/characters/README.m
 **Fond transparent obligatoire**, sinon un rectangle blanc entoure le
 personnage. Vise 512 × 512, carré de préférence.
 
+### Tes images sont en JPG, ou sur fond blanc ?
+
+Le JPEG ne gère pas la transparence : il y a donc toujours un fond. Pas de
+problème, un outil s'en charge :
+
+```bash
+# 1. dépose tes images brutes (n'importe quel format) dans :
+#    assets/characters/source/
+# 2. puis :
+python tools/prepare-characters.py
+```
+
+Il détoure, recadre sur le personnage, met au carré en 512 × 512 et écrit les
+PNG transparents au bon endroit.
+
+Le détourage ne se contente pas d'« effacer le blanc » — ça trouerait les ailes
+de l'ange, les cheveux de l'ingénieure et la chemise du samouraï. Il part des
+**bords de l'image** et progresse de proche en proche : le blanc enfermé à
+l'intérieur du dessin, protégé par le trait noir, n'est jamais atteint. Les
+petites poches coincées entre les jambes sont traitées à part.
+
+Vérifié sur les sprites cowboy du projet Python : détourage propre, et un crâne
+crème sur fond blanc reste intact.
+
 **Dessine tout le monde tourné vers la droite** (ou de face) : le jeu retourne
 automatiquement le duelliste de gauche pour que les deux se regardent.
 
