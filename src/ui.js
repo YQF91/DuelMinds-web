@@ -51,7 +51,7 @@
     mode: null,
     difficulty: null,
     character: null,    // clé du personnage choisi par le joueur
-    botCharacter: null, // tiré au sort, toujours différent du tien
+    botCharacter: null, // retiré au sort à chaque duel — voir pickBotCharacter
     session: null,
     phase: "home",   // "home" | "choosing" | "revealing" | "announce"
 
@@ -248,13 +248,46 @@
    * LE DUEL
    * ====================================================================== */
 
+  /** Le nom affiché d'un personnage, à partir de sa clé. */
+  function characterName(key) {
+    const character = DUELMINDS.CHARACTERS.find((c) => c.key === key);
+    return character ? character.name : "Duelliste";
+  }
+
+  /* ---------------------------------------------------------------------------
+   * L'APPARENCE DE L'ADVERSAIRE
+   * ---------------------------------------------------------------------------
+   * Tirée au sort À CHAQUE DUEL, pas une seule fois pour toute la série.
+   * Le cerveau derrière est peut-être identique — c'est voulu, c'est ce qui
+   * rend les scores comparables — mais enchaîner trois fois la même silhouette
+   * donne l'impression de rejouer le même adversaire. Le joueur ne voit pas
+   * les probabilités de l'IA ; il voit qui lui fait face.
+   *
+   * Deux exclusions :
+   *   - TON personnage, sinon deux silhouettes identiques se font face et le
+   *     duel devient illisible ;
+   *   - le PRÉCÉDENT adversaire, pour qu'aucun ne revienne deux fois de suite.
+   *     Sans cette exclusion, le hasard pur en recollerait deux d'affilée une
+   *     fois sur cinq — et un joueur lit toujours ça comme un bug, jamais
+   *     comme une coïncidence.
+   *
+   * Les six images sont préchargées au démarrage (voir `preload`), le
+   * changement se fait donc sans clignotement.
+   * ------------------------------------------------------------------------ */
+  function pickBotCharacter(avoid) {
+    const all = DUELMINDS.CHARACTERS;
+    /* Replis successifs : si les exclusions ne laissent personne — cas
+     * impossible avec six personnages, mais on n'écrit pas du code qui casse
+     * si demain il n'en reste que deux — on relâche la plus faible d'abord. */
+    let pool = all.filter((c) => c.key !== state.character && c.key !== avoid);
+    if (!pool.length) pool = all.filter((c) => c.key !== state.character);
+    if (!pool.length) pool = all;
+    return pool[Math.floor(Math.random() * pool.length)].key;
+  }
+
   function startSession() {
-    // L'adversaire prend un autre personnage que le tien : deux silhouettes
-    // identiques face à face rendraient le duel illisible.
-    const others = DUELMINDS.CHARACTERS.filter((c) => c.key !== state.character);
-    state.botCharacter = others.length
-      ? others[Math.floor(Math.random() * others.length)].key
-      : state.character;
+    // Début de série : aucun adversaire précédent à éviter.
+    state.botCharacter = pickBotCharacter(null);
 
     state.session = DUELMINDS.match.createSession(state.mode, state.difficulty);
     DUELMINDS.match.startManche(state.session);
@@ -300,12 +333,8 @@
 
     $("manche-number").textContent = s.mancheNumber;
 
-    const nameOf = (key) => {
-      const character = DUELMINDS.CHARACTERS.find((c) => c.key === key);
-      return character ? character.name : "Duelliste";
-    };
-    $("me-name").textContent = nameOf(state.character);
-    $("bot-name").textContent = nameOf(state.botCharacter);
+    $("me-name").textContent = characterName(state.character);
+    $("bot-name").textContent = characterName(state.botCharacter);
     renderScore($("score-me"), s.player.manchesWon);
     renderScore($("score-bot"), s.bot.manchesWon);
 
@@ -601,13 +630,20 @@
     if (!result.sessionOver) {
       // Arcade : la série continue
       const beaten = DUELMINDS.ai.personalityOf(s.brain);
+      /* On tire le prochain adversaire MAINTENANT, pour pouvoir l'annoncer par
+       * son nom : savoir qui arrive donne envie d'enchaîner. Il n'est appliqué
+       * qu'au moment où le joueur lance le duel suivant, pour ne pas changer
+       * la silhouette encore affichée derrière l'annonce. */
+      const nextCharacter = pickBotCharacter(state.botCharacter);
       announce(
         "Duel remporté",
         "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") +
         ". Tu viens de battre un adversaire « " + beaten.name.toLowerCase() +
-        " » — il " + beaten.tell + ". Le suivant arrive.",
+        " » — il " + beaten.tell + ". " + characterName(nextCharacter) +
+        " prend sa place.",
         "Duel " + (s.streak + 1),
         () => {
+          state.botCharacter = nextCharacter;
           DUELMINDS.match.startNextDuel(s);
           setPose("player", "idle");
           setPose("bot", "idle");
