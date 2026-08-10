@@ -76,11 +76,20 @@
     session.turn = 1;
   }
 
-  /** Remet tout à neuf pour un nouveau duel (mode arcade). */
+  /**
+   * Remet tout à neuf pour un nouveau duel dans une série.
+   *
+   * Le nouvel adversaire tire un CARACTÈRE au sort : même difficulté, même
+   * logique, mais des inclinaisons différentes. C'est ce qui empêche le joueur
+   * de réciter une recette d'un duel à l'autre, sans rendre les scores
+   * incomparables — les caractères sont réglés pour se valoir.
+   */
   function startNextDuel(session) {
     session.player.manchesWon = 0;
     session.bot.manchesWon = 0;
     session.mancheNumber = 1;
+    session.brain = makeBrain(session.brain.difficulty, session.brain.blind,
+                              DUELMINDS.ai.randomPersonality());
     startManche(session);
   }
 

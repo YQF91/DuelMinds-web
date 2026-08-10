@@ -26,6 +26,12 @@
  *              représente, elle se force à jouer autre chose. Puis elle
  *              cherche activement la faille avec `analyzeBestMove`.
  *
+ * LES CARACTÈRES
+ * Par-dessus la difficulté, chaque adversaire d'une série tire un CARACTÈRE :
+ * méthodique, impatient, prudent ou parieur. Même logique, même force, mais
+ * des inclinaisons différentes — de quoi empêcher le joueur de réciter une
+ * recette sans pour autant rendre les scores incomparables. Voir PERSONALITIES.
+ *
  * DÉPENDANCES : rules.js, combat.js
  * ========================================================================== */
 
@@ -46,6 +52,89 @@
   };
 
   /* ---------------------------------------------------------------------------
+   * CARACTÈRES
+   * ---------------------------------------------------------------------------
+   * LE PROBLÈME QU'ILS RÉSOLVENT
+   * En mode série, on affronte des dizaines d'adversaires de suite. Si tous se
+   * comportent exactement pareil, le joueur finit par trouver UNE ligne de jeu
+   * qui marche et la répète : le score ne mesure plus la lecture de
+   * l'adversaire, mais la mémoire d'une recette.
+   *
+   * Rendre l'IA plus aléatoire réglerait ça, mais détruirait la comparabilité
+   * des scores : on ne saurait plus qui joue bien de qui a eu de la chance.
+   *
+   * LA SOLUTION : PLUSIEURS CARACTÈRES DE FORCE ÉQUIVALENTE
+   * Chaque adversaire d'une série tire un caractère au sort. Tous suivent la
+   * MÊME logique de décision et gardent la MÊME difficulté ; seules leurs
+   * inclinaisons changent. Le joueur ne peut donc pas réciter une séquence —
+   * il doit deviner à qui il a affaire, ce qui est exactement la compétence
+   * que le jeu cherche à mesurer.
+   *
+   * Les valeurs sont des MULTIPLICATEURS appliqués aux tendances ci-dessus.
+   *
+   * ELLES SONT MESURÉES, PAS DEVINÉES. `node tools/verify-personalities.mjs`
+   * fait jouer chaque caractère contre tous les autres et vérifie deux choses
+   * à la fois :
+   *
+   *   FORCE       resserrée — 8,6 points entre le plus fort et le plus faible.
+   *               Sans ça, une série deviendrait une loterie : tomber sur le
+   *               caractère faible vaudrait un bon score.
+   *   COMPORTEMENT écarté — 13,6 points. Sans ça, les caractères ne serviraient
+   *               à rien et le joueur pourrait réciter une recette.
+   *
+   * Le premier réglage essayé donnait 48 points d'écart de force : le prudent
+   * ne gagnait que 19 % de ses duels. La cause n'était pas les multiplicateurs
+   * mais une règle binaire qui le faisait se protéger dès la première charge
+   * observée. Leçon retenue et appliquée ici : un caractère se joue sur les
+   * PROBABILITÉS, jamais sur les règles.
+   * ------------------------------------------------------------------------ */
+  const PERSONALITIES = [
+    {
+      key: "neutre",
+      name: "Méthodique",
+      tell: "joue au livre, sans excès",
+      shoot: 1.0, defend: 1.0, patience: 1.0,
+    },
+    {
+      key: "agressif",
+      name: "Impatient",
+      tell: "tire dès qu'il peut, se protège peu",
+      shoot: 1.15, defend: 0.6, patience: 0.8,
+    },
+    {
+      key: "prudent",
+      name: "Prudent",
+      tell: "se protège beaucoup, attend son heure",
+      shoot: 0.85, defend: 1.6, patience: 1.25,
+    },
+    {
+      key: "joueur",
+      name: "Parieur",
+      tell: "accumule pour le super tir, quitte à se découvrir",
+      shoot: 0.8, defend: 0.85, patience: 1.6,
+    },
+  ];
+
+  /** Tire un caractère au hasard. */
+  function randomPersonality() {
+    return PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
+  }
+
+  /** Le caractère d'un cerveau, avec repli sur le neutre. */
+  function personalityOf(brain) {
+    return (brain && brain.personality) || PERSONALITIES[0];
+  }
+
+  /**
+   * Applique le caractère à une probabilité de base.
+   * Bornée à 0,95 : même l'adversaire le plus impatient doit rester capable
+   * de surprendre en ne tirant pas.
+   */
+  function tuned(brain, base, trait) {
+    return Math.min(0.95, base * personalityOf(brain)[trait]);
+  }
+
+  /* ---------------------------------------------------------------------------
    * MÉMOIRE DE L'IA
    * ---------------------------------------------------------------------------
    * Le niveau extrême a besoin de se souvenir d'une manche à l'autre. Plutôt
@@ -56,10 +145,13 @@
    * @param {boolean} blind  si vrai, l'IA n'a pas accès au barillet du joueur
    *                         et doit l'estimer, comme le joueur le fait d'elle
    */
-  function makeBrain(difficulty, blind) {
+  function makeBrain(difficulty, blind, personality) {
     return {
       difficulty,
       blind: !!blind,
+      /* Sans caractère précisé, on prend le méthodique : c'est le
+       * comportement d'origine, celui du code Python. */
+      personality: personality || PERSONALITIES[0],
       opponentHistory: [], // copie de l'historique du joueur
       usedPatterns: [],    // empreintes de situations déjà rencontrées
       turnCount: 0,        // numéro du tour dans la manche
@@ -144,6 +236,11 @@
     if (history.length >= 2) {
       const lastTwo = history.slice(-2);
 
+      /* Deux charges d'affilée : l'adversaire s'arme, on se protège.
+       * Ce seuil est le MÊME pour tous les caractères. Le faire descendre à 1
+       * pour les prudents avait été essayé : ils se protégeaient alors en
+       * permanence et ne gagnaient plus que 19 % de leurs duels. Le caractère
+       * se joue sur les probabilités, pas sur les règles. */
       if (count(lastTwo, "charge") >= 2 && canDo(self, "defend")) return "defend";
 
       if (opponent.isDefending) return "charge";
@@ -153,7 +250,7 @@
 
     if (!canDo(self, "shoot")) return "charge";
 
-    if (!opponent.isDefending && Math.random() < TENDENCY.HARD_SHOOT) return "shoot";
+    if (!opponent.isDefending && Math.random() < tuned(brain, TENDENCY.HARD_SHOOT, "shoot")) return "shoot";
 
     const fallback = ["charge"];
     if (canDo(self, "defend")) fallback.push("defend");
@@ -264,7 +361,7 @@
 
     // 2. Un joueur qui n'a pas encore tiré ne s'attend pas à être attaqué.
     if (brain.turnCount <= 2 && !history.includes("shoot") &&
-        canDo(self, "shoot") && Math.random() < TENDENCY.EXTREME_EARLY_SHOOT) {
+        canDo(self, "shoot") && Math.random() < tuned(brain, TENDENCY.EXTREME_EARLY_SHOOT, "shoot")) {
       return "shoot";
     }
 
@@ -293,13 +390,18 @@
      * Et en duel direct, Extrême passe de 26 % à 61 % de victoires contre
      * Difficile. C'est indispensable au mode arcade, dont le score n'a de sens
      * que si les niveaux sont réellement de plus en plus durs. */
-    if (self.bullets >= 1 && !opponent.isDefending && Math.random() < TENDENCY.EXTREME_SHOOT) {
+    /* Un caractère « parieur » retient son tir tant qu'il n'a pas de quoi
+     * traverser une protection : il vise le super tir. */
+    const hoarding = personalityOf(brain).patience >= 1.5 &&
+                     self.bullets < RULES.SUPER_SHOT_BULLETS;
+    if (!hoarding && self.bullets >= 1 && !opponent.isDefending &&
+        Math.random() < tuned(brain, TENDENCY.EXTREME_SHOOT, "shoot")) {
       return "shoot";
     }
 
     if (!canDo(self, "shoot")) return "charge";
 
-    if (canDo(self, "defend") && Math.random() < TENDENCY.EXTREME_DEFEND) return "defend";
+    if (canDo(self, "defend") && Math.random() < tuned(brain, TENDENCY.EXTREME_DEFEND, "defend")) return "defend";
     return "charge";
   }
 
@@ -323,5 +425,6 @@
     return n;
   }
 
-  DUELMINDS.ai = { makeBrain, resetBrainForManche, chooseAction, estimateBullets, TENDENCY };
+  DUELMINDS.ai = { makeBrain, resetBrainForManche, chooseAction, estimateBullets,
+                   TENDENCY, PERSONALITIES, randomPersonality, personalityOf };
 })(typeof globalThis !== "undefined" ? globalThis : window);

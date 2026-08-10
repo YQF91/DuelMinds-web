@@ -147,9 +147,9 @@
       timed: true,
     },
     {
-      key: "classe",
-      label: "Classé",
-      blurb: "Les balles adverses sont cachées, quel que soit l'adversaire. Le vrai duel.",
+      key: "aveugle",
+      label: "Aveugle",
+      blurb: "Tu ne vois plus les balles adverses : compte-les de tête. Duels enchaînés.",
       isStreak: true,
       hidesBullets: true,
     },

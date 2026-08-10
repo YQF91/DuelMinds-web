@@ -600,9 +600,12 @@
 
     if (!result.sessionOver) {
       // Arcade : la série continue
+      const beaten = DUELMINDS.ai.personalityOf(s.brain);
       announce(
         "Duel remporté",
-        "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") + ". L'adversaire suivant arrive.",
+        "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") +
+        ". Tu viens de battre un adversaire « " + beaten.name.toLowerCase() +
+        " » — il " + beaten.tell + ". Le suivant arrive.",
         "Duel " + (s.streak + 1),
         () => {
           DUELMINDS.match.startNextDuel(s);
@@ -652,6 +655,14 @@
       detail = s.lastReason;
     }
 
+    /* On révèle le caractère de l'adversaire à la fin : pendant le duel il
+     * faut le deviner — c'est la compétence mesurée — mais sans retour, on
+     * n'apprend jamais à les reconnaître. */
+    if (isStreakMode()) {
+      const last = DUELMINDS.ai.personalityOf(s.brain);
+      detail += " Le dernier adversaire était « " + last.name.toLowerCase() + " » : il " + last.tell + ".";
+    }
+
     $("end-title").textContent = title;
     $("end-detail").textContent = detail;
 
@@ -691,6 +702,7 @@
       streak: isStreakMode() ? s.streak : "",
       timedOut: state.timedOut,
       hiddenBullets: bulletsHidden() ? 1 : 0,
+      lastPersonality: DUELMINDS.ai.personalityOf(s.brain).key,
       duels: state.log.duels,
       manches: state.log.manches,
       turns: state.log.turns,
