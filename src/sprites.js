@@ -183,11 +183,11 @@
   /** Durée de chaque pose, en millisecondes. 0 = en boucle, sans fin. */
   const POSE_DURATION = {
     idle: 0,
-    shoot: 620,
-    super: 820,
-    defend: 700,
-    charge: 620,
-    hit: 900,
+    shoot: 700,
+    super: 900,
+    defend: 760,
+    charge: 700,
+    hit: 950,
   };
 
   /* Courbes d'accélération : un mouvement linéaire paraît mécanique. */
@@ -208,12 +208,13 @@
     if (!pose || pose === "idle") {
       // RESPIRATION — le corps s'étire et s'écrase en conservant son volume,
       // ce qui donne l'illusion du souffle plutôt qu'un simple va-et-vient.
-      const breath = Math.sin(time / 620);
-      t.dy = -breath * 0.012;
-      t.scaleY = 1 + breath * 0.018;
-      t.scaleX = 1 - breath * 0.012;
-      // Un très léger balancement : sans lui, la pose paraît figée.
-      t.rotate = Math.sin(time / 1450) * 0.012;
+      const breath = Math.sin(time / 560);
+      t.dy = -breath * 0.028;
+      t.scaleY = 1 + breath * 0.042;
+      t.scaleX = 1 - breath * 0.030;
+      // Balancement lent, sur un autre rythme que le souffle : les deux
+      // mouvements se décalent en permanence, ce qui évite l'effet mécanique.
+      t.rotate = Math.sin(time / 1450) * 0.028;
       return t;
     }
 
@@ -221,26 +222,30 @@
       const big = pose === "super";
       // Trois temps : on se ramasse, on se détend, on encaisse le recul.
       if (progress < 0.22) {
+        // On se ramasse : recul, tassement, épaule qui rentre.
         const k = easeIn(progress / 0.22);
-        t.dx = -0.055 * k * facing;
-        t.scaleX = 1 - 0.04 * k;
-        t.scaleY = 1 + 0.05 * k;
-        t.rotate = -0.05 * k * facing;
+        t.dx = -0.13 * k * facing;
+        t.scaleX = 1 - 0.10 * k;
+        t.scaleY = 1 + 0.12 * k;
+        t.rotate = -0.14 * k * facing;
       } else if (progress < 0.4) {
+        // Détente : le corps part vers l'avant et s'étire dans le sens du tir.
         const k = easeOut((progress - 0.22) / 0.18);
-        t.dx = (-0.055 + 0.14 * k) * facing;
-        t.scaleX = 1 + 0.06 * k;
-        t.scaleY = 1 - 0.05 * k;
-        t.rotate = (-0.05 + 0.09 * k) * facing;
+        t.dx = (-0.13 + 0.34 * k) * facing;
+        t.scaleX = 1 + 0.16 * k;
+        t.scaleY = 1 - 0.12 * k;
+        t.rotate = (-0.14 + 0.30 * k) * facing;
+        t.dy = -0.05 * k;
       } else {
         // Retour amorti : le corps oscille avant de se replacer.
         const k = (progress - 0.4) / 0.6;
-        const damp = Math.exp(-k * 4) * Math.cos(k * (big ? 22 : 16));
-        t.dx = 0.085 * damp * facing;
-        t.rotate = 0.04 * damp * facing;
-        t.scaleY = 1 + 0.03 * damp;
+        const damp = Math.exp(-k * 3.4) * Math.cos(k * (big ? 20 : 15));
+        t.dx = 0.21 * damp * facing;
+        t.rotate = 0.13 * damp * facing;
+        t.scaleY = 1 + 0.09 * damp;
+        t.scaleX = 1 - 0.05 * damp;
       }
-      if (big) { t.scaleX *= 1.05; t.scaleY *= 1.05; }
+      if (big) { t.scaleX *= 1.12; t.scaleY *= 1.12; }
       return t;
     }
 
@@ -249,30 +254,37 @@
       const k = progress < 0.3 ? easeOut(progress / 0.3)
               : progress < 0.75 ? 1
               : 1 - easeIn((progress - 0.75) / 0.25);
-      t.dx = -0.05 * k * facing;
-      t.dy = 0.055 * k;
-      t.scaleY = 1 - 0.13 * k;
-      t.scaleX = 1 + 0.08 * k;
-      t.rotate = -0.06 * k * facing;
+      t.dx = -0.12 * k * facing;
+      t.dy = 0.075 * k;
+      t.scaleY = 1 - 0.24 * k;
+      t.scaleX = 1 + 0.17 * k;
+      t.rotate = -0.16 * k * facing;
       return t;
     }
 
     if (pose === "charge") {
       // Une inspiration : le corps se gonfle puis retombe.
-      const k = Math.sin(progress * Math.PI);
-      t.scaleY = 1 + 0.09 * k;
-      t.scaleX = 1 + 0.03 * k;
-      t.dy = -0.05 * k;
+      // Un ressort : on s'écrase, puis on jaillit vers le haut.
+      const squash = Math.sin(Math.min(1, progress / 0.3) * Math.PI / 2);
+      const jump = progress < 0.3 ? 0 : Math.sin(((progress - 0.3) / 0.7) * Math.PI);
+      t.scaleY = 1 - 0.14 * squash * (1 - jump) + 0.20 * jump;
+      t.scaleX = 1 + 0.12 * squash * (1 - jump) - 0.08 * jump;
+      t.dy = 0.05 * squash * (1 - jump) - 0.14 * jump;
+      t.rotate = Math.sin(progress * Math.PI * 2) * 0.05 * facing;
       return t;
     }
 
     if (pose === "hit") {
       // Projeté en arrière, bascule au sol, et y reste.
       const k = easeOut(Math.min(1, progress / 0.55));
-      t.dx = -0.16 * k * facing;
-      t.dy = 0.1 * k;
-      t.rotate = -1.15 * k * facing;
-      t.alpha = 1 - 0.25 * k;
+      t.dx = -0.30 * k * facing;
+      t.dy = 0.13 * k;
+      t.rotate = -1.45 * k * facing;
+      t.alpha = 1 - 0.3 * k;
+      // Un petit rebond au moment où le corps touche le sol.
+      if (progress > 0.5 && progress < 0.8) {
+        t.dy -= Math.sin((progress - 0.5) / 0.3 * Math.PI) * 0.035;
+      }
       return t;
     }
 

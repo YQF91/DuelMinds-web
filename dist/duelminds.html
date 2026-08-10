@@ -322,8 +322,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    personnages ne bougent jamais, seuls les effets traversent l'espace. */
 .arena {
   position: relative;
-  flex: 1;
-  min-height: 230px;
+  /* BORNÉE en hauteur, volontairement. Laissée libre (`flex: 1`), elle
+     s'étirait sur toute la place disponible : sur un téléphone haut, les
+     duellistes se retrouvaient minuscules au fond d'un grand vide. On la
+     contraint donc, et l'espace en trop va au journal et aux boutons. */
+  flex: 0 1 auto;
+  height: min(46vh, 330px);
+  min-height: 210px;
   border-radius: var(--radius) var(--radius) 0 0;
   border: 1px solid var(--line);
   border-bottom: none;
@@ -380,8 +385,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 /* Les duellistes : posés au sol, à gauche et à droite */
 .fighter {
   position: absolute;
-  bottom: 14px;
-  width: 42%;
+  bottom: 10px;
+  width: 46%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -392,14 +397,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 .sprite {
   display: block;
   width: 100%;
-  max-width: 140px;
+  /* Assez grands pour qu'on lise l'expression du personnage, assez petits
+     pour que les deux tiennent côte à côte sur un téléphone étroit. */
+  max-width: 168px;
   aspect-ratio: 1;
-  image-rendering: pixelated;   /* sans effet sur les PNG haute résolution */
 }
 
 /* La plateforme donne le sol et sépare les deux camps du regard */
 .platform {
-  width: 78%;
+  width: 70%;
   height: 10px;
   margin-top: -4px;
   border-radius: 50%;
@@ -418,7 +424,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 /* --- La révélation : les deux choix, au centre de l'arène --- */
 .reveal {
   position: absolute;
-  left: 50%; top: 50%;
+  left: 50%; top: 42%;
   transform: translate(-50%, -50%);
   width: 100%;
   display: flex;
@@ -2029,11 +2035,11 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   /** Durée de chaque pose, en millisecondes. 0 = en boucle, sans fin. */
   const POSE_DURATION = {
     idle: 0,
-    shoot: 620,
-    super: 820,
-    defend: 700,
-    charge: 620,
-    hit: 900,
+    shoot: 700,
+    super: 900,
+    defend: 760,
+    charge: 700,
+    hit: 950,
   };
 
   /* Courbes d'accélération : un mouvement linéaire paraît mécanique. */
@@ -2054,12 +2060,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     if (!pose || pose === "idle") {
       // RESPIRATION — le corps s'étire et s'écrase en conservant son volume,
       // ce qui donne l'illusion du souffle plutôt qu'un simple va-et-vient.
-      const breath = Math.sin(time / 620);
-      t.dy = -breath * 0.012;
-      t.scaleY = 1 + breath * 0.018;
-      t.scaleX = 1 - breath * 0.012;
-      // Un très léger balancement : sans lui, la pose paraît figée.
-      t.rotate = Math.sin(time / 1450) * 0.012;
+      const breath = Math.sin(time / 560);
+      t.dy = -breath * 0.028;
+      t.scaleY = 1 + breath * 0.042;
+      t.scaleX = 1 - breath * 0.030;
+      // Balancement lent, sur un autre rythme que le souffle : les deux
+      // mouvements se décalent en permanence, ce qui évite l'effet mécanique.
+      t.rotate = Math.sin(time / 1450) * 0.028;
       return t;
     }
 
@@ -2067,26 +2074,30 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       const big = pose === "super";
       // Trois temps : on se ramasse, on se détend, on encaisse le recul.
       if (progress < 0.22) {
+        // On se ramasse : recul, tassement, épaule qui rentre.
         const k = easeIn(progress / 0.22);
-        t.dx = -0.055 * k * facing;
-        t.scaleX = 1 - 0.04 * k;
-        t.scaleY = 1 + 0.05 * k;
-        t.rotate = -0.05 * k * facing;
+        t.dx = -0.13 * k * facing;
+        t.scaleX = 1 - 0.10 * k;
+        t.scaleY = 1 + 0.12 * k;
+        t.rotate = -0.14 * k * facing;
       } else if (progress < 0.4) {
+        // Détente : le corps part vers l'avant et s'étire dans le sens du tir.
         const k = easeOut((progress - 0.22) / 0.18);
-        t.dx = (-0.055 + 0.14 * k) * facing;
-        t.scaleX = 1 + 0.06 * k;
-        t.scaleY = 1 - 0.05 * k;
-        t.rotate = (-0.05 + 0.09 * k) * facing;
+        t.dx = (-0.13 + 0.34 * k) * facing;
+        t.scaleX = 1 + 0.16 * k;
+        t.scaleY = 1 - 0.12 * k;
+        t.rotate = (-0.14 + 0.30 * k) * facing;
+        t.dy = -0.05 * k;
       } else {
         // Retour amorti : le corps oscille avant de se replacer.
         const k = (progress - 0.4) / 0.6;
-        const damp = Math.exp(-k * 4) * Math.cos(k * (big ? 22 : 16));
-        t.dx = 0.085 * damp * facing;
-        t.rotate = 0.04 * damp * facing;
-        t.scaleY = 1 + 0.03 * damp;
+        const damp = Math.exp(-k * 3.4) * Math.cos(k * (big ? 20 : 15));
+        t.dx = 0.21 * damp * facing;
+        t.rotate = 0.13 * damp * facing;
+        t.scaleY = 1 + 0.09 * damp;
+        t.scaleX = 1 - 0.05 * damp;
       }
-      if (big) { t.scaleX *= 1.05; t.scaleY *= 1.05; }
+      if (big) { t.scaleX *= 1.12; t.scaleY *= 1.12; }
       return t;
     }
 
@@ -2095,30 +2106,37 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       const k = progress < 0.3 ? easeOut(progress / 0.3)
               : progress < 0.75 ? 1
               : 1 - easeIn((progress - 0.75) / 0.25);
-      t.dx = -0.05 * k * facing;
-      t.dy = 0.055 * k;
-      t.scaleY = 1 - 0.13 * k;
-      t.scaleX = 1 + 0.08 * k;
-      t.rotate = -0.06 * k * facing;
+      t.dx = -0.12 * k * facing;
+      t.dy = 0.075 * k;
+      t.scaleY = 1 - 0.24 * k;
+      t.scaleX = 1 + 0.17 * k;
+      t.rotate = -0.16 * k * facing;
       return t;
     }
 
     if (pose === "charge") {
       // Une inspiration : le corps se gonfle puis retombe.
-      const k = Math.sin(progress * Math.PI);
-      t.scaleY = 1 + 0.09 * k;
-      t.scaleX = 1 + 0.03 * k;
-      t.dy = -0.05 * k;
+      // Un ressort : on s'écrase, puis on jaillit vers le haut.
+      const squash = Math.sin(Math.min(1, progress / 0.3) * Math.PI / 2);
+      const jump = progress < 0.3 ? 0 : Math.sin(((progress - 0.3) / 0.7) * Math.PI);
+      t.scaleY = 1 - 0.14 * squash * (1 - jump) + 0.20 * jump;
+      t.scaleX = 1 + 0.12 * squash * (1 - jump) - 0.08 * jump;
+      t.dy = 0.05 * squash * (1 - jump) - 0.14 * jump;
+      t.rotate = Math.sin(progress * Math.PI * 2) * 0.05 * facing;
       return t;
     }
 
     if (pose === "hit") {
       // Projeté en arrière, bascule au sol, et y reste.
       const k = easeOut(Math.min(1, progress / 0.55));
-      t.dx = -0.16 * k * facing;
-      t.dy = 0.1 * k;
-      t.rotate = -1.15 * k * facing;
-      t.alpha = 1 - 0.25 * k;
+      t.dx = -0.30 * k * facing;
+      t.dy = 0.13 * k;
+      t.rotate = -1.45 * k * facing;
+      t.alpha = 1 - 0.3 * k;
+      // Un petit rebond au moment où le corps touche le sol.
+      if (progress > 0.5 && progress < 0.8) {
+        t.dy -= Math.sin((progress - 0.5) / 0.3 * Math.PI) * 0.035;
+      }
       return t;
     }
 
@@ -2360,8 +2378,20 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
  * iOS et Android refusent de jouer un son tant que l'utilisateur n'a pas
  * touché l'écran. Le contexte audio n'est donc créé qu'au premier appui.
  *
+ * DEUX SOURCES DE SON
+ *
+ *   1. DES FICHIERS, dans `assets/sounds/` — les bruitages du jeu Python,
+ *      réutilisés ici : coup de revolver, boule d'énergie, esquive, chute.
+ *   2. À DÉFAUT, la SYNTHÈSE ci-dessous.
+ *
+ * L'ARME DÉPEND DU PERSONNAGE
+ * Le coup de revolver n'a de sens que pour le cowboy. Chaque duelliste a donc
+ * son propre bruit d'attaque : la boule d'énergie pour l'enchanteresse, une
+ * corde d'arc pour l'archer, une lame pour le samouraï et le gobelin, un
+ * impact lourd pour le berserker. Voir ATTACK_BY_CHARACTER.
+ *
  * RÈGLE : le son n'est jamais indispensable. Toute erreur est avalée — un
- * navigateur sans Web Audio doit rester parfaitement jouable.
+ * navigateur sans Web Audio, ou sans les fichiers, doit rester jouable.
  *
  * DÉPENDANCES : aucune
  * ========================================================================== */
@@ -2373,6 +2403,72 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
   let ctx = null;
   let enabled = true;
+
+  /* ---------------------------------------------------------------------------
+   * FICHIERS SONORES
+   * ---------------------------------------------------------------------------
+   * On garde un élément audio par bruitage, cloné à chaque lecture : sans le
+   * clonage, deux tirs rapprochés se couperaient l'un l'autre.
+   * ------------------------------------------------------------------------ */
+  const SOUND_PATH = "assets/sounds/";
+  const FILES = {
+    revolver: "tir-revolver.mp3",   // coup de feu — cowboy uniquement
+    magie: "tir-magie.mp3",         // boule d'énergie — enchanteresse
+    protection: "protection.mp3",   // esquive
+    chute: "chute.mp3",             // duelliste à terre
+    clash: "clash.mp3",             // deux balles qui se percutent
+  };
+
+  const players = {};
+  let filesReady = false;
+
+  /** Prépare les fichiers. Appelé une fois au démarrage. */
+  function loadFiles() {
+    if (filesReady) return;
+    filesReady = true;
+    for (const [key, file] of Object.entries(FILES)) {
+      try {
+        const element = new Audio(SOUND_PATH + file);
+        element.preload = "auto";
+        players[key] = element;
+      } catch (e) { /* un fichier manquant n'empêche rien */ }
+    }
+  }
+
+  /** Joue un fichier. Renvoie false s'il n'est pas disponible. */
+  function playFile(key, volume) {
+    const element = players[key];
+    if (!element) return false;
+    try {
+      // Un clone par lecture : deux sons peuvent alors se superposer.
+      const copy = element.cloneNode();
+      copy.volume = volume === undefined ? 0.7 : volume;
+      const promise = copy.play();
+      if (promise && promise.catch) promise.catch(() => {});
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+   * QUELLE ARME POUR QUEL PERSONNAGE
+   * ---------------------------------------------------------------------------
+   * Le coup de revolver ne convient qu'au cowboy : entendre une détonation
+   * quand le samouraï dégaine casserait tout. Chaque duelliste a donc son
+   * bruit d'attaque, fichier ou synthèse.
+   *
+   * Pour ajouter un personnage : une ligne ici. Sans entrée, il retombe sur la
+   * lame, qui est le son le plus neutre.
+   * ------------------------------------------------------------------------ */
+  const ATTACK_BY_CHARACTER = {
+    cowboy: "revolver",         // fichier : le vrai coup de feu
+    enchanteresse: "magie",     // fichier : la boule d'énergie
+    archer: "arc",              // synthèse : corde qui claque puis flèche
+    samourai: "lame",           // synthèse : acier qui siffle
+    gobelin: "lame",
+    berserker: "impact",        // synthèse : hache lourde
+  };
 
   function ensureContext() {
     if (!enabled) return null;
@@ -2430,6 +2526,26 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * Une recette par événement. Pour retoucher un bruitage, c'est ici.
    * ------------------------------------------------------------------------ */
   const RECIPES = {
+    // --- Attaques synthétisées, pour les personnages sans fichier ---
+
+    // Corde qui claque, puis sifflement de la flèche qui part
+    arc: (ac) => {
+      tone(ac, { type: "triangle", from: 260, to: 90, gain: 0.16, duration: 0.09 });
+      noise(ac, { gain: 0.07, duration: 0.05 });
+      tone(ac, { type: "sine", from: 1500, to: 700, gain: 0.06, duration: 0.28, delay: 0.05 });
+    },
+    // Acier tiré et fendant l'air
+    lame: (ac) => {
+      tone(ac, { type: "sawtooth", from: 1800, to: 420, gain: 0.10, duration: 0.16 });
+      noise(ac, { gain: 0.09, duration: 0.12, delay: 0.02 });
+      tone(ac, { type: "triangle", from: 900, to: 1600, gain: 0.06, duration: 0.1, delay: 0.1 });
+    },
+    // Masse lourde : souffle puis choc grave
+    impact: (ac) => {
+      noise(ac, { gain: 0.10, duration: 0.14 });
+      tone(ac, { type: "square", from: 120, to: 38, gain: 0.24, duration: 0.3, delay: 0.08 });
+    },
+
     // Coup de feu : détonation sèche plus une résonance grave
     shoot: (ac) => {
       noise(ac, { gain: 0.28, duration: 0.18 });
@@ -2470,11 +2586,34 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     click: (ac) => tone(ac, { type: "square", from: 620, to: 620, gain: 0.05, duration: 0.04 }),
   };
 
-  /** Joue un bruitage. Ne lève jamais d'erreur. */
-  function play(name) {
+  /**
+   * Joue un bruitage : le fichier s'il existe, la synthèse sinon.
+   * Ne lève jamais d'erreur.
+   */
+  function play(name, volume) {
+    if (playFile(name, volume)) return;
     const ac = ensureContext();
     if (!ac || !RECIPES[name]) return;
     try { RECIPES[name](ac); } catch (e) { /* le son reste facultatif */ }
+  }
+
+  /**
+   * Joue l'attaque du personnage indiqué.
+   * @param {string} characterKey  clé du duelliste qui attaque
+   * @param {boolean} superShot    un super tir sonne plus lourd
+   */
+  function playAttack(characterKey, superShot) {
+    const weapon = ATTACK_BY_CHARACTER[characterKey] || "lame";
+    play(weapon, superShot ? 1 : 0.75);
+    // Le super tir se distingue par une seconde couche grave, quelle que soit
+    // l'arme : c'est le coup qui traverse une protection, il doit s'entendre.
+    if (superShot) {
+      const ac = ensureContext();
+      if (ac) {
+        try { tone(ac, { type: "sawtooth", from: 150, to: 34, gain: 0.22, duration: 0.6, delay: 0.05 }); }
+        catch (e) { /* facultatif */ }
+      }
+    }
   }
 
   /** Vibration du téléphone. Ignorée là où ce n'est pas géré. */
@@ -2483,7 +2622,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     try { root.navigator.vibrate(pattern); } catch (e) { /* facultatif */ }
   }
 
-  DUELMINDS.audio = { play, vibrate };
+  DUELMINDS.audio = { play, playAttack, vibrate, loadFiles, ATTACK_BY_CHARACTER };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
 /* ---------- src/stats.js ---------- */
@@ -3302,17 +3441,28 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     if (turn.winner === "b") window.setTimeout(() => setPose("player", "hit"), 260);
   }
 
+  /**
+   * Un seul son marquant par tour, choisi selon ce qui s'est passé.
+   * L'arme dépend du PERSONNAGE qui attaque : un coup de revolver quand le
+   * samouraï dégaine casserait tout (voir ATTACK_BY_CHARACTER dans audio.js).
+   */
   function playTurnSound(turn) {
     if (turn.resultA === "clash" && turn.resultB === "clash") {
       audio.play("clash"); audio.vibrate(25); return;
     }
-    if (turn.resultA === "super_shot" || turn.resultB === "super_shot") {
-      audio.play("super"); audio.vibrate([40, 40, 80]); return;
-    }
+
+    const superShot = turn.resultA === "super_shot" || turn.resultB === "super_shot";
+
     if (turn.actionA === "shoot" || turn.actionB === "shoot") {
-      audio.play("shoot"); audio.vibrate(20); return;
+      // Si les deux tirent sans clash, on entend celui qui a porté le coup.
+      const shooterIsPlayer = turn.actionA === "shoot" &&
+        (turn.actionB !== "shoot" || turn.winner === "a");
+      audio.playAttack(shooterIsPlayer ? state.character : state.botCharacter, superShot);
+      audio.vibrate(superShot ? [40, 40, 80] : 20);
+      return;
     }
-    if (turn.actionA === "defend" || turn.actionB === "defend") { audio.play("defend"); return; }
+
+    if (turn.actionA === "defend" || turn.actionB === "defend") { audio.play("protection"); return; }
     audio.play("charge");
   }
 
@@ -3339,7 +3489,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     state.log.manches += 1;
     const playerWonManche = result.turn.winner === "a";
     stats.recordManche(s.difficulty, playerWonManche);
-    audio.play(playerWonManche ? "win" : "down");
+    audio.play(playerWonManche ? "win" : "chute");
 
     if (!result.duelOver) {
       // Manche suivante du même duel
@@ -3616,6 +3766,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * DÉMARRAGE
    * ====================================================================== */
   function init() {
+    audio.loadFiles();
     buildHome();
     buildRules();
 

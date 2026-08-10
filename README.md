@@ -178,6 +178,34 @@ Il mesure le taux de victoire de chaque IA contre chaque autre, vérifie que la
 difficulté est bien croissante, et donne le rythme des manches : durée, part de
 clashs, fréquence des super tirs.
 
+### L'IA lit-elle vraiment l'historique du joueur ?
+
+```bash
+node tools/verify-ai.mjs
+```
+
+Oui, et c'est mesuré. Le script confronte chaque IA à des adversaires au
+comportement connu et regarde si sa réponse change. Part de chaque action,
+selon ce que fait le joueur en face :
+
+| Niveau | Face à un joueur qui... | Charger | Tirer | Protéger |
+|---|---|---:|---:|---:|
+| **Facile** | charge sans arrêt | 50 % | 25 % | 25 % |
+| | se protège sans arrêt | 52 % | 22 % | 26 % |
+| **Difficile** | charge sans arrêt | 17 % | 39 % | **44 %** |
+| | se protège sans arrêt | **90 %** | 6 % | 4 % |
+| | tire dès qu'il peut | 20 % | **60 %** | 20 % |
+| **Extrême** | charge sans arrêt | 20 % | **63 %** | 17 % |
+| | se protège sans arrêt | 49 % | 50 % | **1 %** |
+
+Écart maximal entre deux situations : **2,7 points** au niveau facile,
+**72,8** au niveau difficile, **32,3** au niveau extrême.
+
+Autrement dit : le niveau facile joue au hasard et ignore tout de toi, c'est
+voulu. Les deux autres t'observent vraiment. Face à quelqu'un qui campe en
+protection, l'IA difficile charge 9 fois sur 10 ; face à quelqu'un qui
+accumule, elle se protège en prévision du tir.
+
 **Une observation à garder en tête** : le jeu n'impose aucune limite de tours à
 une manche. Deux adversaires prudents peuvent donc tourner en rond
 indéfiniment — le simulateur mesure environ 9 % de manches enlisées entre deux
@@ -187,10 +215,35 @@ solution la plus simple.
 
 ---
 
-## 8. Vérifier avant de livrer
+## 8. Les sons
+
+Deux sources, dans cet ordre : un **fichier** dans `assets/sounds/` s'il
+existe, la **synthèse** sinon.
+
+**L'arme dépend du personnage.** Un coup de revolver quand le samouraï dégaine
+casserait tout. La correspondance est dans `ATTACK_BY_CHARACTER`
+(`src/audio.js`) — une ligne par duelliste :
+
+| Personnage | Son d'attaque | Source |
+|---|---|---|
+| Cowboy | coup de revolver | fichier, repris du jeu Python |
+| Enchanteresse | boule d'énergie | fichier, repris du jeu Python |
+| Archer | corde qui claque, flèche qui siffle | synthèse |
+| Samouraï, Gobelin | acier qui fend l'air | synthèse |
+| Berserker | souffle puis choc grave | synthèse |
+
+Un personnage sans entrée retombe sur la lame, le son le plus neutre.
+
+Le **super tir** ajoute une couche grave par-dessus, quelle que soit l'arme :
+c'est le coup qui traverse une protection, il doit s'entendre.
+
+---
+
+## 9. Vérifier avant de livrer
 
 ```bash
-node tools/check.mjs
+node tools/check.mjs        # cohérence du projet
+node tools/verify-ai.mjs    # l'IA lit-elle vraiment l'historique ?
 ```
 
 Attrape les pannes silencieuses d'un projet sans compilation : un `id` renommé
@@ -201,7 +254,7 @@ cyrillique glissé dans une grille, ce qui est déjà arrivé. Rejoue aussi
 
 ---
 
-## 9. Les personnages
+## 10. Les personnages
 
 ### Déposer les images
 
@@ -274,7 +327,7 @@ dresse du côté de l'adversaire.
 
 ---
 
-## 10. Choix techniques, et pourquoi
+## 11. Choix techniques, et pourquoi
 
 **Une page web plutôt qu'une application.** Le prototype doit être testable par
 des collègues, sur leur téléphone, sans installation. Un lien suffit.

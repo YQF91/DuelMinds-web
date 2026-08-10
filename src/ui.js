@@ -453,17 +453,28 @@
     if (turn.winner === "b") window.setTimeout(() => setPose("player", "hit"), 260);
   }
 
+  /**
+   * Un seul son marquant par tour, choisi selon ce qui s'est passé.
+   * L'arme dépend du PERSONNAGE qui attaque : un coup de revolver quand le
+   * samouraï dégaine casserait tout (voir ATTACK_BY_CHARACTER dans audio.js).
+   */
   function playTurnSound(turn) {
     if (turn.resultA === "clash" && turn.resultB === "clash") {
       audio.play("clash"); audio.vibrate(25); return;
     }
-    if (turn.resultA === "super_shot" || turn.resultB === "super_shot") {
-      audio.play("super"); audio.vibrate([40, 40, 80]); return;
-    }
+
+    const superShot = turn.resultA === "super_shot" || turn.resultB === "super_shot";
+
     if (turn.actionA === "shoot" || turn.actionB === "shoot") {
-      audio.play("shoot"); audio.vibrate(20); return;
+      // Si les deux tirent sans clash, on entend celui qui a porté le coup.
+      const shooterIsPlayer = turn.actionA === "shoot" &&
+        (turn.actionB !== "shoot" || turn.winner === "a");
+      audio.playAttack(shooterIsPlayer ? state.character : state.botCharacter, superShot);
+      audio.vibrate(superShot ? [40, 40, 80] : 20);
+      return;
     }
-    if (turn.actionA === "defend" || turn.actionB === "defend") { audio.play("defend"); return; }
+
+    if (turn.actionA === "defend" || turn.actionB === "defend") { audio.play("protection"); return; }
     audio.play("charge");
   }
 
@@ -490,7 +501,7 @@
     state.log.manches += 1;
     const playerWonManche = result.turn.winner === "a";
     stats.recordManche(s.difficulty, playerWonManche);
-    audio.play(playerWonManche ? "win" : "down");
+    audio.play(playerWonManche ? "win" : "chute");
 
     if (!result.duelOver) {
       // Manche suivante du même duel
@@ -767,6 +778,7 @@
    * DÉMARRAGE
    * ====================================================================== */
   function init() {
+    audio.loadFiles();
     buildHome();
     buildRules();
 
