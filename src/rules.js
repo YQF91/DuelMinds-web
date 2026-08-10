@@ -77,9 +77,13 @@
     ARCADE_MILESTONE: 10,
 
     /* --- Mode blitz ---
-     * Secondes pour choisir. Passé ce délai, une action est jouée au hasard
-     * parmi celles qui sont permises : ne rien décider est aussi une décision,
-     * et elle se paie. */
+     * Secondes pour choisir, quand la difficulté n'en impose pas d'autre.
+     * Passé ce délai, une action est jouée au hasard parmi celles qui sont
+     * permises : ne rien décider est aussi une décision, et elle se paie.
+     *
+     * Le vrai délai vient de la difficulté (`blitzSeconds` plus bas) : 5 s en
+     * facile, 3 s en difficile, 2 s en extrême. Cette valeur ne sert que de
+     * repli si une difficulté oubliait de le préciser. */
     BLITZ_SECONDS: 5,
   };
 
@@ -95,24 +99,32 @@
    * Les clés sont celles du code Python (`facile`, `difficile`, `extreme`) :
    * il ne faut pas les renommer sans changer aussi ai.js.
    * ------------------------------------------------------------------------ */
+  /* En mode blitz, la difficulté serre aussi le CHRONOMÈTRE (`blitzSeconds`).
+   * Ce n'est pas qu'un habillage : à 5 secondes on a le temps de recompter les
+   * balles adverses, à 2 secondes il faut les avoir suivies au fur et à mesure.
+   * Le temps de réflexion est donc une vraie dimension de difficulté, au même
+   * titre que l'intelligence de l'IA. */
   const DIFFICULTIES = [
     {
       key: "facile",
       label: "Facile",
       accent: "--easy",
       blurb: "Joue au hasard, avec un penchant pour la charge. Idéal pour comprendre le jeu.",
+      blitzSeconds: 5,
     },
     {
       key: "difficile",
       label: "Difficile",
       accent: "--medium",
       blurb: "Lit ton historique, estime tes balles et se protège quand tu deviens dangereux.",
+      blitzSeconds: 3,
     },
     {
       key: "extreme",
       label: "Extrême",
       accent: "--hard",
       blurb: "Cherche la faille, punit la moindre habitude — et tu ne vois plus ses balles.",
+      blitzSeconds: 2,
       /* À ce niveau, le compteur de l'adversaire disparaît : il faut suivre
        * ses balles de tête. C'est la préparation du futur mode classé, où
        * personne ne verra le barillet d'en face. */
@@ -140,7 +152,7 @@
     {
       key: "blitz",
       label: "Blitz",
-      blurb: "Cinq secondes pour choisir, sinon le hasard décide à ta place. Duels enchaînés.",
+      blurb: "Le chrono tourne : 5 s en facile, 3 s en difficile, 2 s en extrême. Sinon le hasard décide.",
       /* Le blitz est une série, comme l'arcade : c'est le nombre de duels
        * enchaînés qui fait le score. */
       isStreak: true,

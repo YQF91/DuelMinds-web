@@ -939,18 +939,21 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
         <li><b>Arcade</b> — les duels s'enchaînent. Chaque victoire prolonge ta
             série, la première défaite y met fin. Ton meilleur score est
             conservé par niveau de difficulté.</li>
-        <li><b>Blitz</b> — arcade, mais avec <b>5 secondes</b> pour choisir.
-            Passé le délai, une action permise est jouée au hasard : ne pas
-            décider est aussi une décision, et elle se paie.</li>
-        <li><b>Classé</b> — arcade, mais <b>tu ne vois plus les balles de
-            l'adversaire</b>. Il faut les suivre de tête. C'est le mode qui
-            préfigure le PVP.</li>
+        <li><b>Blitz</b> — arcade, mais le chronomètre tourne, et la difficulté
+            le serre : <b>5 secondes</b> en facile, <b>3</b> en difficile,
+            <b>2</b> en extrême. Passé le délai, une action permise est jouée au
+            hasard : ne pas décider est aussi une décision, et elle se paie.</li>
+        <li><b>Aveugle</b> — arcade, mais <b>tu ne vois plus les balles de
+            l'adversaire</b>, quel que soit le niveau. Il faut les suivre de
+            tête. C'est le mode qui préfigure le PVP.</li>
       </ul>
 
       <h3>L'information cachée</h3>
       <p>
-        En <b>Classé</b>, et face à l'adversaire <b>Extrême</b>, le barillet
-        d'en face est remplacé par des points d'interrogation. À toi de compter :
+        En mode <b>Aveugle</b>, et face à l'adversaire <b>Extrême</b> quel que
+        soit le mode — donc aussi en <b>Blitz extrême</b>, où il faut compter en
+        2 secondes —, le barillet d'en face est remplacé par des points
+        d'interrogation. À toi de suivre :
         il commence à 1 balle, en gagne une à chaque charge, en dépense une à
         chaque tir, et une de plus à partir de sa 3<sup>e</sup> protection
         d'affilée.
@@ -1084,9 +1087,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     ARCADE_MILESTONE: 10,
 
     /* --- Mode blitz ---
-     * Secondes pour choisir. Passé ce délai, une action est jouée au hasard
-     * parmi celles qui sont permises : ne rien décider est aussi une décision,
-     * et elle se paie. */
+     * Secondes pour choisir, quand la difficulté n'en impose pas d'autre.
+     * Passé ce délai, une action est jouée au hasard parmi celles qui sont
+     * permises : ne rien décider est aussi une décision, et elle se paie.
+     *
+     * Le vrai délai vient de la difficulté (`blitzSeconds` plus bas) : 5 s en
+     * facile, 3 s en difficile, 2 s en extrême. Cette valeur ne sert que de
+     * repli si une difficulté oubliait de le préciser. */
     BLITZ_SECONDS: 5,
   };
 
@@ -1102,24 +1109,32 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * Les clés sont celles du code Python (`facile`, `difficile`, `extreme`) :
    * il ne faut pas les renommer sans changer aussi ai.js.
    * ------------------------------------------------------------------------ */
+  /* En mode blitz, la difficulté serre aussi le CHRONOMÈTRE (`blitzSeconds`).
+   * Ce n'est pas qu'un habillage : à 5 secondes on a le temps de recompter les
+   * balles adverses, à 2 secondes il faut les avoir suivies au fur et à mesure.
+   * Le temps de réflexion est donc une vraie dimension de difficulté, au même
+   * titre que l'intelligence de l'IA. */
   const DIFFICULTIES = [
     {
       key: "facile",
       label: "Facile",
       accent: "--easy",
       blurb: "Joue au hasard, avec un penchant pour la charge. Idéal pour comprendre le jeu.",
+      blitzSeconds: 5,
     },
     {
       key: "difficile",
       label: "Difficile",
       accent: "--medium",
       blurb: "Lit ton historique, estime tes balles et se protège quand tu deviens dangereux.",
+      blitzSeconds: 3,
     },
     {
       key: "extreme",
       label: "Extrême",
       accent: "--hard",
       blurb: "Cherche la faille, punit la moindre habitude — et tu ne vois plus ses balles.",
+      blitzSeconds: 2,
       /* À ce niveau, le compteur de l'adversaire disparaît : il faut suivre
        * ses balles de tête. C'est la préparation du futur mode classé, où
        * personne ne verra le barillet d'en face. */
@@ -1147,7 +1162,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     {
       key: "blitz",
       label: "Blitz",
-      blurb: "Cinq secondes pour choisir, sinon le hasard décide à ta place. Duels enchaînés.",
+      blurb: "Le chrono tourne : 5 s en facile, 3 s en difficile, 2 s en extrême. Sinon le hasard décide.",
       /* Le blitz est une série, comme l'arcade : c'est le nombre de duels
        * enchaînés qui fait le score. */
       isStreak: true,
@@ -3294,6 +3309,16 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     return !!(mode && mode.timed);
   }
 
+  /**
+   * Secondes pour choisir en mode blitz — c'est la DIFFICULTÉ qui les fixe :
+   * 5 s en facile, 3 s en difficile, 2 s en extrême. Repli sur la valeur
+   * générale si une difficulté ne le précisait pas.
+   */
+  function blitzSeconds() {
+    const difficulty = DIFFICULTIES.find((d) => d.key === state.difficulty);
+    return (difficulty && difficulty.blitzSeconds) || RULES.BLITZ_SECONDS;
+  }
+
   /** Le mode enchaîne-t-il les duels ? */
   function isStreakMode() {
     const mode = MODES.find((m) => m.key === state.mode);
@@ -3511,7 +3536,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     const intro = [];
     if (isStreakMode()) intro.push("Chaque duel gagné prolonge la série.");
     else intro.push("Premier à " + RULES.MANCHES_TO_WIN + " manches remporte le duel.");
-    if (isTimed()) intro.push(RULES.BLITZ_SECONDS + " secondes pour choisir.");
+    if (isTimed()) intro.push(blitzSeconds() + " secondes pour choisir.");
     if (bulletsHidden()) intro.push("Les balles adverses sont cachées : compte-les.");
     setLog(intro.join(" "));
 
@@ -3580,7 +3605,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     slot.classList.remove("hidden-count");
 
     /* Le barillet de l'ADVERSAIRE peut être masqué : c'est tout l'intérêt des
-     * modes Classé et Extrême. On n'affiche pas un vide — on affiche des points
+     * mode Aveugle et difficulté Extrême. On n'affiche pas un vide — des points
      * d'interrogation, pour que le joueur sache qu'il y a une information à
      * suivre plutôt que de croire à un bogue. */
     if (side === "bot" && bulletsHidden()) {
@@ -3630,7 +3655,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   function startTimer() {
     if (!isTimed()) { $("timer").hidden = true; state.deadline = null; return; }
     $("timer").hidden = false;
-    state.deadline = performance.now() + RULES.BLITZ_SECONDS * 1000;
+    state.deadline = performance.now() + blitzSeconds() * 1000;
   }
 
   function stopTimer() {
@@ -4080,9 +4105,12 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       // Chronomètre du blitz : la barre se vide, puis le hasard tranche.
       if (state.deadline && state.phase === "choosing") {
         const left = state.deadline - timestamp;
-        const ratio = Math.max(0, left / (RULES.BLITZ_SECONDS * 1000));
+        const ratio = Math.max(0, left / (blitzSeconds() * 1000));
         $("timer-bar").style.transform = "scaleX(" + ratio + ")";
-        $("timer-bar").classList.toggle("urgent", ratio < 0.25);
+        /* L'alerte se déclenche sur un TEMPS restant, pas sur une proportion.
+         * En proportion, un chrono de 2 s n'aurait alerté que pendant une
+         * demi-seconde — trop court pour être vu. Une seconde partout. */
+        $("timer-bar").classList.toggle("urgent", left < 1000);
         if (left <= 0) { state.deadline = null; onTimeout(); }
       }
 

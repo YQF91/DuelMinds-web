@@ -87,6 +87,16 @@
     return !!(mode && mode.timed);
   }
 
+  /**
+   * Secondes pour choisir en mode blitz — c'est la DIFFICULTÉ qui les fixe :
+   * 5 s en facile, 3 s en difficile, 2 s en extrême. Repli sur la valeur
+   * générale si une difficulté ne le précisait pas.
+   */
+  function blitzSeconds() {
+    const difficulty = DIFFICULTIES.find((d) => d.key === state.difficulty);
+    return (difficulty && difficulty.blitzSeconds) || RULES.BLITZ_SECONDS;
+  }
+
   /** Le mode enchaîne-t-il les duels ? */
   function isStreakMode() {
     const mode = MODES.find((m) => m.key === state.mode);
@@ -304,7 +314,7 @@
     const intro = [];
     if (isStreakMode()) intro.push("Chaque duel gagné prolonge la série.");
     else intro.push("Premier à " + RULES.MANCHES_TO_WIN + " manches remporte le duel.");
-    if (isTimed()) intro.push(RULES.BLITZ_SECONDS + " secondes pour choisir.");
+    if (isTimed()) intro.push(blitzSeconds() + " secondes pour choisir.");
     if (bulletsHidden()) intro.push("Les balles adverses sont cachées : compte-les.");
     setLog(intro.join(" "));
 
@@ -373,7 +383,7 @@
     slot.classList.remove("hidden-count");
 
     /* Le barillet de l'ADVERSAIRE peut être masqué : c'est tout l'intérêt des
-     * modes Classé et Extrême. On n'affiche pas un vide — on affiche des points
+     * mode Aveugle et difficulté Extrême. On n'affiche pas un vide — des points
      * d'interrogation, pour que le joueur sache qu'il y a une information à
      * suivre plutôt que de croire à un bogue. */
     if (side === "bot" && bulletsHidden()) {
@@ -423,7 +433,7 @@
   function startTimer() {
     if (!isTimed()) { $("timer").hidden = true; state.deadline = null; return; }
     $("timer").hidden = false;
-    state.deadline = performance.now() + RULES.BLITZ_SECONDS * 1000;
+    state.deadline = performance.now() + blitzSeconds() * 1000;
   }
 
   function stopTimer() {
@@ -873,9 +883,12 @@
       // Chronomètre du blitz : la barre se vide, puis le hasard tranche.
       if (state.deadline && state.phase === "choosing") {
         const left = state.deadline - timestamp;
-        const ratio = Math.max(0, left / (RULES.BLITZ_SECONDS * 1000));
+        const ratio = Math.max(0, left / (blitzSeconds() * 1000));
         $("timer-bar").style.transform = "scaleX(" + ratio + ")";
-        $("timer-bar").classList.toggle("urgent", ratio < 0.25);
+        /* L'alerte se déclenche sur un TEMPS restant, pas sur une proportion.
+         * En proportion, un chrono de 2 s n'aurait alerté que pendant une
+         * demi-seconde — trop court pour être vu. Une seconde partout. */
+        $("timer-bar").classList.toggle("urgent", left < 1000);
         if (left <= 0) { state.deadline = null; onTimeout(); }
       }
 
