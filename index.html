@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="DuelMinds — duel tactique à actions simultanées. Charge, tire, protège-toi.">
+<title>DuelMinds — duel tactique</title>
+<link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+<!--
+  =============================================================================
+  DUELMINDS — VERSION WEB
+  =============================================================================
+  Ce fichier ne contient que la STRUCTURE. Les styles sont dans styles/, la
+  logique dans src/. Les zones qui changent en cours de partie sont remplies
+  par src/ui.js et repérées par leur `id`.
+
+  Les écrans coexistent dans la page ; un seul porte la classe `on`. C'est plus
+  simple et plus rapide qu'une navigation entre pages, et ça garde le jeu
+  utilisable hors ligne.
+
+  Pour comprendre le projet, lire dans cet ordre :
+     README.md  ->  src/rules.js  ->  src/combat.js  ->  src/ui.js
+  =============================================================================
+-->
+<div class="app">
+
+  <!-- ======================================================================
+       ÉCRAN 1 — ACCUEIL : choix du mode puis de la difficulté
+       ==================================================================== -->
+  <section id="screen-home" class="screen on" aria-label="Accueil">
+    <header class="title">
+      <p class="eyebrow">Duel tactique · actions simultanées</p>
+      <h1>DuelMinds</h1>
+      <p class="tagline">
+        Vous choisissez en même temps. Une balle suffit.
+      </p>
+    </header>
+
+    <div>
+      <p class="section-label">Mode de jeu</p>
+      <div class="choices" id="modes"></div>
+    </div>
+
+    <div>
+      <p class="section-label">Adversaire</p>
+      <div class="choices" id="difficulties"></div>
+    </div>
+
+    <div class="row">
+      <button class="btn" id="btn-rules" type="button">Règles</button>
+      <button class="btn" id="btn-stats" type="button">Stats</button>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btn-start" type="button" disabled>Commencer</button>
+    </div>
+
+    <!-- Affiché uniquement si un point de collecte est configuré (telemetry.js) -->
+    <p class="footnote" id="privacy-note" hidden>
+      Phase de test : le résultat de tes parties est envoyé de façon anonyme
+      pour aider à équilibrer le jeu. Aucune donnée personnelle.
+    </p>
+  </section>
+
+  <!-- ======================================================================
+       ÉCRAN 2 — LE DUEL
+       Adversaire en haut, joueur en bas, révélation au centre, actions sous
+       le pouce.
+       ==================================================================== -->
+  <section id="screen-duel" class="screen" aria-label="Duel en cours">
+
+    <!-- Bandeau d'état -->
+    <div class="hud">
+      <div class="hud-left">
+        <span class="tag" id="hud-mode">—</span>
+        <span class="tag accent" id="hud-difficulty">—</span>
+      </div>
+      <div class="hud-right" id="hud-streak" hidden>
+        <span class="streak-label">Série</span>
+        <b class="num" id="streak-value">0</b>
+        <span class="streak-best">record <b class="num" id="streak-best">0</b></span>
+      </div>
+    </div>
+
+    <!-- La scène : les deux duellistes et les effets par-dessus -->
+    <div class="scene">
+      <!-- ADVERSAIRE -->
+      <div class="fighter bot">
+        <canvas class="sprite" id="bot-sprite" width="128" height="128" aria-hidden="true"></canvas>
+        <div class="fighter-info">
+          <span class="fighter-name">Adversaire</span>
+          <span class="bullets" id="bot-bullets" title="Balles"></span>
+          <span class="guard" id="bot-guard"></span>
+        </div>
+      </div>
+
+      <!-- LA RÉVÉLATION — les deux choix simultanés apparaissent ici -->
+      <div class="reveal" id="reveal" aria-live="polite">
+        <p class="hint">Vous choisissez en même temps.<br>L'adversaire ne voit pas ton coup.</p>
+      </div>
+
+      <!-- JOUEUR -->
+      <div class="fighter me">
+        <div class="fighter-info">
+          <span class="fighter-name">Toi</span>
+          <span class="bullets" id="me-bullets" title="Balles"></span>
+          <span class="guard" id="me-guard"></span>
+        </div>
+        <canvas class="sprite" id="me-sprite" width="128" height="128" aria-hidden="true"></canvas>
+      </div>
+
+      <!-- Effets (balles, protections, clashs) : couvre toute la scène -->
+      <canvas class="effects" id="effects" aria-hidden="true"></canvas>
+
+      <!-- Score de manches, en surimpression -->
+      <div class="manche-badge">
+        <span class="score" id="score-bot"></span>
+        <span class="manche-label">Manche <b class="num" id="manche-number">1</b></span>
+        <span class="score" id="score-me"></span>
+      </div>
+    </div>
+
+    <!-- LES ACTIONS. `data-action` fait le lien avec le moteur : les valeurs
+         doivent rester celles de DUELMINDS.ACTIONS dans rules.js. -->
+    <div class="actions">
+      <button class="action" data-action="charge" type="button">
+        Charger<small>+ 1 balle</small>
+      </button>
+      <button class="action" id="btn-shoot" data-action="shoot" type="button">
+        Tirer<small id="shoot-note">coûte 1 balle</small>
+      </button>
+      <button class="action" data-action="defend" type="button">
+        Protéger<small id="defend-note">gratuit</small>
+      </button>
+    </div>
+
+    <p class="log" id="log" aria-live="polite">La manche commence.</p>
+
+    <div class="row">
+      <button class="btn ghost" id="btn-quit" type="button">Abandonner</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       ÉCRAN 3 — ANNONCE entre deux manches ou deux duels
+       ==================================================================== -->
+  <section id="screen-announce" class="screen" aria-label="Résultat de la manche">
+    <div class="center">
+      <div class="banner">
+        <p class="banner-title" id="announce-title">—</p>
+        <p class="banner-detail" id="announce-detail">—</p>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btn-announce" type="button">Continuer</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       ÉCRAN 4 — FIN DE PARTIE
+       ==================================================================== -->
+  <section id="screen-end" class="screen" aria-label="Fin de partie">
+    <div class="center">
+      <div class="banner">
+        <p class="banner-title" id="end-title">—</p>
+        <p class="banner-detail" id="end-detail">—</p>
+      </div>
+      <div class="summary" id="end-summary"></div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btn-again" type="button">Rejouer</button>
+      <button class="btn" id="btn-home" type="button">Accueil</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       ÉCRAN 5 — RÈGLES
+       Les valeurs chiffrées marquées d'un `id` sont injectées depuis
+       rules.js : la page ne peut donc pas mentir sur les règles appliquées.
+       ==================================================================== -->
+  <section id="screen-rules" class="screen" aria-label="Règles du jeu">
+    <h2>Règles</h2>
+    <div class="doc">
+      <h3>Le principe</h3>
+      <p>
+        Deux duellistes face à face. À chaque tour, vous choisissez
+        <b>en même temps</b>, sans voir le coup de l'autre.
+        <b>Il n'y a pas de points de vie</b> : un tir qui touche met fin à la
+        manche immédiatement.
+      </p>
+
+      <h3>Les trois actions</h3>
+      <ul>
+        <li><b>Charger</b> — gagne 1 balle. Toujours possible, mais te laisse
+            sans défense pendant ce tour.</li>
+        <li><b>Tirer</b> — coûte 1 balle. Tue si l'adversaire ne s'est pas
+            protégé. Impossible sans balle.</li>
+        <li><b>Protéger</b> — immunise contre un tir ordinaire. Les
+            <b><span id="rules-free">2</span> premières d'affilée</b> sont
+            gratuites ; ensuite chacune coûte 1 balle. Charger ou tirer remet
+            le compteur à zéro.</li>
+      </ul>
+
+      <h3>Les deux coups spéciaux</h3>
+      <ul>
+        <li><b>Super tir</b> — tirer avec <b><span id="rules-super">4</span> balles
+            ou plus</b> traverse la protection. C'est la récompense de qui prend
+            le risque d'accumuler.</li>
+        <li><b>Clash</b> — si vous tirez tous les deux au même tour, les balles
+            se percutent en vol. Personne ne tombe, mais vous avez chacun
+            dépensé une balle.</li>
+      </ul>
+
+      <h3>Mourir bêtement</h3>
+      <p>
+        Tenter une action impossible — tirer sans balle, se protéger sans
+        pouvoir payer — fait perdre la manche sur-le-champ. Le jeu t'en empêche
+        en désactivant les boutons concernés, mais la règle existe.
+      </p>
+
+      <h3>Gagner</h3>
+      <p>
+        Chaque manche commence avec <b><span id="rules-start">1</span> balle</b>.
+        Le premier à <b><span id="rules-manches">2</span> manches</b> remporte le duel.
+      </p>
+
+      <h3>Les modes</h3>
+      <ul>
+        <li><b>Duel</b> — un affrontement, puis retour à l'accueil.</li>
+        <li><b>Arcade</b> — les duels s'enchaînent. Chaque victoire prolonge ta
+            série, la première défaite y met fin. Ton meilleur score est
+            conservé par niveau de difficulté.</li>
+      </ul>
+    </div>
+    <div class="row">
+      <button class="btn" id="btn-rules-back" type="button">Retour</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       ÉCRAN 6 — STATISTIQUES
+       Comptées sur cet appareil uniquement (voir src/stats.js).
+       ==================================================================== -->
+  <section id="screen-stats" class="screen" aria-label="Statistiques">
+    <h2>Statistiques</h2>
+    <div class="doc" id="stats-body"></div>
+    <div class="row">
+      <button class="btn" id="btn-stats-copy" type="button">Copier</button>
+      <button class="btn" id="btn-stats-reset" type="button">Remettre à zéro</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="btn-stats-back" type="button">Retour</button>
+    </div>
+  </section>
+
+</div>
+
+<!--
+  Ordre de chargement IMPOSÉ : chaque fichier utilise ceux d'avant.
+    rules      données et constantes, ne dépend de rien
+    combat     moteur d'un tour, a besoin de rules
+    ai         les trois adversaires, a besoin de combat
+    match      manches, duels et séries, a besoin de combat et ai
+    sprites    dessin des duellistes et des effets (indépendant)
+    audio      bruitages synthétisés (indépendant)
+    stats      compteurs et records, a besoin de rules
+    telemetry  remontée optionnelle, a besoin de rules
+    ui         interface, a besoin de tout le reste
+    main       démarrage
+-->
+<script src="src/rules.js"></script>
+<script src="src/combat.js"></script>
+<script src="src/ai.js"></script>
+<script src="src/match.js"></script>
+<script src="src/sprites.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/stats.js"></script>
+<script src="src/telemetry.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>

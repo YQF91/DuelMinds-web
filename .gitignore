@@ -1,0 +1,17 @@
+# Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+
+# Node — le projet n'a aucune dépendance, mais au cas où un outil en ajoute
+node_modules/
+package-lock.json
+
+# NOTE : dist/duelminds.html est VOLONTAIREMENT versionné.
+# C'est le fichier qu'on met en ligne et qu'on envoie aux testeurs ; il doit
+# être disponible sans avoir à installer Node pour le régénérer.

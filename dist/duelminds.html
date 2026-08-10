@@ -1,0 +1,3173 @@
+<!DOCTYPE html>
+<!--
+  FICHIER GÉNÉRÉ — NE PAS MODIFIER À LA MAIN.
+  Produit par tools/build.mjs à partir de index.html, styles/ et src/.
+  Pour changer quoi que ce soit : modifie les sources, puis relance
+      node tools/build.mjs
+-->
+
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="DuelMinds — duel tactique à actions simultanées. Charge, tire, protège-toi.">
+<title>DuelMinds — duel tactique</title>
+<style>
+/* =============================================================================
+ * DUELMINDS — FEUILLE DE STYLE
+ * =============================================================================
+ *
+ * PARTI PRIS VISUEL
+ * Un duel au soleil couchant : fonds bruns poussiéreux, encre parchemin,
+ * laiton pour tout ce qui touche aux balles. Thème unique assumé — le jeu ne
+ * suit pas le réglage clair/sombre du téléphone, c'est un choix et non un
+ * oubli. Toutes les couleurs sont peintes explicitement pour que la page
+ * tienne quel que soit le fond de l'hôte qui l'affiche.
+ *
+ * ORGANISATION
+ *   1. Jetons                les seules couleurs et polices du projet
+ *   2. Base et coquille
+ *   3. Typographie
+ *   4. Boutons et blocs communs
+ *   5. Écran d'accueil
+ *   6. Écran de duel
+ *   7. Annonces et fin de partie
+ *   8. Documents (règles, stats)
+ *   9. Accessibilité
+ *
+ * RÈGLE : aucune couleur en dur hors de la section 1.
+ * ========================================================================== */
+
+/* =============================================================================
+ * 1. JETONS
+ * ========================================================================== */
+:root {
+  /* Fonds — bruns désaturés, du plus profond au plus clair */
+  --ground:   #171310;
+  --panel:    #221c18;
+  --panel-2:  #2c2420;
+  --line:     #3d332c;
+
+  /* Encres */
+  --ink:      #f0e6d8;
+  --muted:    #a2917c;
+  --dim:      #6f6053;
+
+  /* Laiton : tout ce qui touche aux balles et aux ressources */
+  --brass:    #e0a13c;
+  /* Rouille : le danger, la perte */
+  --rust:     #d1573f;
+  /* Acier : la protection */
+  --steel:    #6fa8c9;
+
+  /* Niveaux de difficulté */
+  --easy:     #7aa86b;
+  --medium:   #e0a13c;
+  --hard:     #d1573f;
+
+  --font-display: "Oswald", "Avenir Next Condensed", "Roboto Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body:    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:    ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  --radius: 10px;
+  --gap: 10px;
+}
+
+/* =============================================================================
+ * 2. BASE ET COQUILLE
+ * ========================================================================== */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overscroll-behavior: none;   /* pas de rebond élastique sur mobile */
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* La coquille occupe la hauteur de l'écran et ne défile jamais latéralement.
+   `dvh` suit la barre d'adresse mobile quand elle se rétracte. */
+.app {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: 12px 12px 16px;
+}
+
+.screen { display: none; flex-direction: column; gap: var(--gap); flex: 1; }
+.screen.on { display: flex; }
+
+.row { display: flex; gap: 8px; }
+.center { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
+
+/* =============================================================================
+ * 3. TYPOGRAPHIE
+ * ========================================================================== */
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; margin: 0; text-wrap: balance; }
+h1 { font-size: 38px; letter-spacing: .14em; text-transform: uppercase; }
+h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
+
+.eyebrow {
+  margin: 0 0 2px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.title { text-align: center; padding: 6px 0 2px; }
+.tagline { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+
+.section-label {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* Partout où des chiffres changent sans devoir faire sautiller la mise en page */
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.footnote { margin: 0; font-size: 11px; line-height: 1.5; color: var(--dim); text-align: center; }
+
+/* =============================================================================
+ * 4. BOUTONS ET BLOCS COMMUNS
+ * ========================================================================== */
+.btn {
+  flex: 1;
+  appearance: none;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  padding: 14px 10px;
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  touch-action: manipulation;   /* supprime le délai de 300 ms sur mobile */
+}
+.btn.primary { background: var(--brass); color: #1a1206; border-color: var(--brass); font-weight: 700; }
+.btn.ghost { background: transparent; color: var(--muted); font-size: 13px; padding: 10px; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+
+.log {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  min-height: 3em;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+
+/* =============================================================================
+ * 5. ÉCRAN D'ACCUEIL
+ * ========================================================================== */
+.choices { display: grid; gap: 8px; }
+
+.choice {
+  display: grid;
+  gap: 2px;
+  padding: 11px 13px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent, var(--line));
+  border-radius: var(--radius);
+  transition: background .15s ease, border-color .15s ease;
+  touch-action: manipulation;
+  position: relative;
+}
+.choice:hover { background: var(--panel-2); }
+.choice.selected {
+  border-color: var(--accent, var(--brass));
+  border-left-color: var(--accent, var(--brass));
+  background: color-mix(in srgb, var(--accent, var(--brass)) 14%, var(--panel));
+}
+/* La coche dit la sélection sans dépendre uniquement de la couleur */
+.choice.selected::after {
+  content: "✓";
+  position: absolute;
+  top: 10px; right: 12px;
+  font-size: 14px;
+  color: var(--accent, var(--brass));
+}
+.choice-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--accent, var(--ink));
+}
+.choice-desc { font-size: 12px; line-height: 1.45; color: var(--muted); }
+.choice-record {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--brass);
+  letter-spacing: .04em;
+}
+
+/* =============================================================================
+ * 6. ÉCRAN DE DUEL
+ * ========================================================================== */
+
+/* --- Bandeau d'état --- */
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 11px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.hud-left { display: flex; gap: 6px; }
+.hud-right { display: flex; align-items: baseline; gap: 6px; }
+
+.tag {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.tag.accent {
+  color: var(--accent, var(--brass));
+  border-color: var(--accent, var(--brass));
+  background: color-mix(in srgb, var(--accent, var(--brass)) 14%, transparent);
+}
+
+.streak-label { font-family: var(--font-display); font-size: 10px; letter-spacing: .16em;
+                text-transform: uppercase; color: var(--dim); }
+#streak-value { font-size: 22px; font-weight: 700; color: var(--brass); }
+.streak-best { font-size: 10px; color: var(--dim); }
+
+/* --- La scène --- */
+.scene {
+  position: relative;
+  flex: 1;
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  /* Un ciel de fin de journée : le duel a lieu au crépuscule */
+  background:
+    radial-gradient(120% 70% at 50% 0%, #3a2a1e 0%, transparent 60%),
+    linear-gradient(180deg, var(--panel) 0%, #1b1512 100%);
+  overflow: hidden;
+}
+
+.fighter { display: flex; align-items: center; gap: 12px; }
+.fighter.bot { justify-content: flex-start; }
+.fighter.me { justify-content: flex-end; }
+
+.sprite { display: block; width: 84px; height: 84px; image-rendering: pixelated; }
+
+.fighter-info { display: grid; gap: 4px; }
+.fighter.me .fighter-info { text-align: right; justify-items: end; }
+.fighter-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Barillet : une pastille par balle. Se lit d'un coup d'œil, contrairement
+   à un nombre qu'il faut interpréter. */
+.bullets { display: flex; gap: 4px; }
+.bullet {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: transparent;
+}
+.bullet.loaded { background: var(--brass); border-color: var(--brass); }
+/* Le 4e emplacement est marqué : c'est le seuil du super tir. */
+.bullet.threshold { border-color: var(--rust); }
+.bullet.threshold.loaded { background: var(--rust); border-color: var(--rust); }
+
+.guard {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--steel);
+  min-height: 1em;
+}
+
+/* --- La révélation : le moment fort de chaque tour --- */
+.reveal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 4px;
+}
+.hint { margin: 0; font-size: 12px; line-height: 1.5; color: var(--dim); }
+
+.reveal-card {
+  min-width: 130px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel-2) 80%, transparent);
+  display: grid;
+  gap: 1px;
+}
+.reveal-who {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.reveal-action {
+  font-family: var(--font-display);
+  font-size: 17px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.reveal-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--rust);
+}
+.reveal-card.super { border-color: var(--rust); background: color-mix(in srgb, var(--rust) 18%, var(--panel-2)); }
+.reveal-card.clash { border-color: var(--brass); }
+
+/* Les deux cartes arrivent des deux bords opposés et se rejoignent au centre */
+.from-top    { animation: drop-in .3s cubic-bezier(.2,.9,.3,1.3); }
+.from-bottom { animation: rise-in .3s cubic-bezier(.2,.9,.3,1.3); }
+@keyframes drop-in { from { transform: translateY(-26px); opacity: 0; } }
+@keyframes rise-in { from { transform: translateY(26px);  opacity: 0; } }
+
+/* Le canvas d'effets couvre toute la scène, sans intercepter les appuis */
+.effects {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Score de manches, en surimpression discrète */
+.manche-badge {
+  position: absolute;
+  top: 8px; left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ground) 70%, transparent);
+  border: 1px solid var(--line);
+}
+.manche-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.score { display: flex; gap: 3px; }
+.pip {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+}
+.pip.won { background: var(--brass); border-color: var(--brass); }
+
+/* --- Les trois actions --- */
+.actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+.action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 6px 12px;
+  appearance: none;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .08s ease, background .15s ease, border-color .15s ease;
+}
+.action small {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+.action:not(:disabled):hover { background: #362c26; border-color: #4d4038; }
+.action:active:not(:disabled) { transform: scale(.96); }
+.action:disabled { opacity: .32; cursor: not-allowed; }
+
+/* Le bouton de tir s'embrase quand le coup traversera la protection : c'est
+   l'information la plus décisive du jeu, elle ne doit pas se rater. */
+.action.super {
+  color: var(--rust);
+  border-color: var(--rust);
+  background: color-mix(in srgb, var(--rust) 16%, var(--panel-2));
+  animation: throb 1.1s ease-in-out infinite;
+}
+.action.super small { color: var(--rust); }
+@keyframes throb { 50% { border-color: color-mix(in srgb, var(--rust) 45%, transparent); } }
+
+/* =============================================================================
+ * 7. ANNONCES ET FIN DE PARTIE
+ * ========================================================================== */
+.banner {
+  padding: 20px 16px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.banner-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.banner-detail { margin: 8px 0 0; font-size: 13px; line-height: 1.55; color: var(--muted); }
+
+.summary {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 12px;
+  background: var(--panel);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.summary-row b { color: var(--ink); font-size: 14px; }
+
+/* =============================================================================
+ * 8. DOCUMENTS (règles, statistiques)
+ * ========================================================================== */
+.doc { flex: 1; overflow-y: auto; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.doc h3 {
+  margin: 16px 0 5px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: .14em;
+  color: var(--ink);
+}
+.doc h3:first-child { margin-top: 0; }
+.doc p { margin: 6px 0; }
+.doc ul { margin: 0; padding-left: 18px; }
+.doc li { margin: 4px 0; }
+.doc b { color: var(--ink); font-weight: 600; }
+
+/* Un tableau ne doit jamais faire défiler la page : il défile dans sa boîte. */
+.table-wrap { overflow-x: auto; }
+.doc table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; margin-top: 6px; }
+.doc th, .doc td { padding: 5px 6px; text-align: left; border-bottom: 1px solid var(--line); }
+.doc th { font-weight: 400; letter-spacing: .06em; color: var(--dim); }
+.doc td.n { text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* =============================================================================
+ * 9. ACCESSIBILITÉ
+ * ========================================================================== */
+
+/* Le focus clavier doit toujours se voir : on ne supprime jamais l'anneau
+   sans en fournir un autre. */
+.btn:focus-visible,
+.action:focus-visible,
+.choice:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+/* Rien d'important n'est porté par le mouvement : on peut tout couper sans
+   rendre le jeu incompréhensible. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+</style>
+</head>
+<body>
+<!--
+  =============================================================================
+  DUELMINDS — VERSION WEB
+  =============================================================================
+  Ce fichier ne contient que la STRUCTURE. Les styles sont dans styles/, la
+  logique dans src/. Les zones qui changent en cours de partie sont remplies
+  par src/ui.js et repérées par leur `id`.
+
+  Les écrans coexistent dans la page ; un seul porte la classe `on`. C'est plus
+  simple et plus rapide qu'une navigation entre pages, et ça garde le jeu
+  utilisable hors ligne.
+
+  Pour comprendre le projet, lire dans cet ordre :
+     README.md  ->  src/rules.js  ->  src/combat.js  ->  src/ui.js
+  =============================================================================
+-->
+<div class="app">
+
+  <!-- ======================================================================
+       ÉCRAN 1 — ACCUEIL : choix du mode puis de la difficulté
+       ==================================================================== -->
+  <section id="screen-home" class="screen on" aria-label="Accueil">
+    <header class="title">
+      <p class="eyebrow">Duel tactique · actions simultanées</p>
+      <h1>DuelMinds</h1>
+      <p class="tagline">
+        Vous choisissez en même temps. Une balle suffit.
+      </p>
+    </header>
+
+    <div>
+      <p class="section-label">Mode de jeu</p>
+      <div class="choices" id="modes"></div>
+    </div>
+
+    <div>
+      <p class="section-label">Adversaire</p>
+      <div class="choices" id="difficulties"></div>
+    </div>
+
+    <div class="row">
+      <button class="btn" id="btn-rules" type="button">Règles</button>
+      <button class="btn" id="btn-stats" type="button">Stats</button>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btn-start" type="button" disabled>Commencer</button>
+    </div>
+
+    <!-- Affiché uniquement si un point de collecte est configuré (telemetry.js) -->
+    <p class="footnote" id="privacy-note" hidden>
+      Phase de test : le résultat de tes parties est envoyé de façon anonyme
+      pour aider à équilibrer le jeu. Aucune donnée personnelle.
+    </p>
+  </section>
+
+  <!-- ======================================================================
+       ÉCRAN 2 — LE DUEL
+       Adversaire en haut, joueur en bas, révélation au centre, actions sous
+       le pouce.
+       ==================================================================== -->
+  <section id="screen-duel" class="screen" aria-label="Duel en cours">
+
+    <!-- Bandeau d'état -->
+    <div class="hud">
+      <div class="hud-left">
+        <span class="tag" id="hud-mode">—</span>
+        <span class="tag accent" id="hud-difficulty">—</span>
+      </div>
+      <div class="hud-right" id="hud-streak" hidden>
+        <span class="streak-label">Série</span>
+        <b class="num" id="streak-value">0</b>
+        <span class="streak-best">record <b class="num" id="streak-best">0</b></span>
+      </div>
+    </div>
+
+    <!-- La scène : les deux duellistes et les effets par-dessus -->
+    <div class="scene">
+      <!-- ADVERSAIRE -->
+      <div class="fighter bot">
+        <canvas class="sprite" id="bot-sprite" width="128" height="128" aria-hidden="true"></canvas>
+        <div class="fighter-info">
+          <span class="fighter-name">Adversaire</span>
+          <span class="bullets" id="bot-bullets" title="Balles"></span>
+          <span class="guard" id="bot-guard"></span>
+        </div>
+      </div>
+
+      <!-- LA RÉVÉLATION — les deux choix simultanés apparaissent ici -->
+      <div class="reveal" id="reveal" aria-live="polite">
+        <p class="hint">Vous choisissez en même temps.<br>L'adversaire ne voit pas ton coup.</p>
+      </div>
+
+      <!-- JOUEUR -->
+      <div class="fighter me">
+        <div class="fighter-info">
+          <span class="fighter-name">Toi</span>
+          <span class="bullets" id="me-bullets" title="Balles"></span>
+          <span class="guard" id="me-guard"></span>
+        </div>
+        <canvas class="sprite" id="me-sprite" width="128" height="128" aria-hidden="true"></canvas>
+      </div>
+
+      <!-- Effets (balles, protections, clashs) : couvre toute la scène -->
+      <canvas class="effects" id="effects" aria-hidden="true"></canvas>
+
+      <!-- Score de manches, en surimpression -->
+      <div class="manche-badge">
+        <span class="score" id="score-bot"></span>
+        <span class="manche-label">Manche <b class="num" id="manche-number">1</b></span>
+        <span class="score" id="score-me"></span>
+      </div>
+    </div>
+
+    <!-- LES ACTIONS. `data-action` fait le lien avec le moteur : les valeurs
+         doivent rester celles de DUELMINDS.ACTIONS dans rules.js. -->
+    <div class="actions">
+      <button class="action" data-action="charge" type="button">
+        Charger<small>+ 1 balle</small>
+      </button>
+      <button class="action" id="btn-shoot" data-action="shoot" type="button">
+        Tirer<small id="shoot-note">coûte 1 balle</small>
+      </button>
+      <button class="action" data-action="defend" type="button">
+        Protéger<small id="defend-note">gratuit</small>
+      </button>
+    </div>
+
+    <p class="log" id="log" aria-live="polite">La manche commence.</p>
+
+    <div class="row">
+      <button class="btn ghost" id="btn-quit" type="button">Abandonner</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       ÉCRAN 3 — ANNONCE entre deux manches ou deux duels
+       ==================================================================== -->
+  <section id="screen-announce" class="screen" aria-label="Résultat de la manche">
+    <div class="center">
+      <div class="banner">
+        <p class="banner-title" id="announce-title">—</p>
+        <p class="banner-detail" id="announce-detail">—</p>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btn-announce" type="button">Continuer</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       ÉCRAN 4 — FIN DE PARTIE
+       ==================================================================== -->
+  <section id="screen-end" class="screen" aria-label="Fin de partie">
+    <div class="center">
+      <div class="banner">
+        <p class="banner-title" id="end-title">—</p>
+        <p class="banner-detail" id="end-detail">—</p>
+      </div>
+      <div class="summary" id="end-summary"></div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="btn-again" type="button">Rejouer</button>
+      <button class="btn" id="btn-home" type="button">Accueil</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       ÉCRAN 5 — RÈGLES
+       Les valeurs chiffrées marquées d'un `id` sont injectées depuis
+       rules.js : la page ne peut donc pas mentir sur les règles appliquées.
+       ==================================================================== -->
+  <section id="screen-rules" class="screen" aria-label="Règles du jeu">
+    <h2>Règles</h2>
+    <div class="doc">
+      <h3>Le principe</h3>
+      <p>
+        Deux duellistes face à face. À chaque tour, vous choisissez
+        <b>en même temps</b>, sans voir le coup de l'autre.
+        <b>Il n'y a pas de points de vie</b> : un tir qui touche met fin à la
+        manche immédiatement.
+      </p>
+
+      <h3>Les trois actions</h3>
+      <ul>
+        <li><b>Charger</b> — gagne 1 balle. Toujours possible, mais te laisse
+            sans défense pendant ce tour.</li>
+        <li><b>Tirer</b> — coûte 1 balle. Tue si l'adversaire ne s'est pas
+            protégé. Impossible sans balle.</li>
+        <li><b>Protéger</b> — immunise contre un tir ordinaire. Les
+            <b><span id="rules-free">2</span> premières d'affilée</b> sont
+            gratuites ; ensuite chacune coûte 1 balle. Charger ou tirer remet
+            le compteur à zéro.</li>
+      </ul>
+
+      <h3>Les deux coups spéciaux</h3>
+      <ul>
+        <li><b>Super tir</b> — tirer avec <b><span id="rules-super">4</span> balles
+            ou plus</b> traverse la protection. C'est la récompense de qui prend
+            le risque d'accumuler.</li>
+        <li><b>Clash</b> — si vous tirez tous les deux au même tour, les balles
+            se percutent en vol. Personne ne tombe, mais vous avez chacun
+            dépensé une balle.</li>
+      </ul>
+
+      <h3>Mourir bêtement</h3>
+      <p>
+        Tenter une action impossible — tirer sans balle, se protéger sans
+        pouvoir payer — fait perdre la manche sur-le-champ. Le jeu t'en empêche
+        en désactivant les boutons concernés, mais la règle existe.
+      </p>
+
+      <h3>Gagner</h3>
+      <p>
+        Chaque manche commence avec <b><span id="rules-start">1</span> balle</b>.
+        Le premier à <b><span id="rules-manches">2</span> manches</b> remporte le duel.
+      </p>
+
+      <h3>Les modes</h3>
+      <ul>
+        <li><b>Duel</b> — un affrontement, puis retour à l'accueil.</li>
+        <li><b>Arcade</b> — les duels s'enchaînent. Chaque victoire prolonge ta
+            série, la première défaite y met fin. Ton meilleur score est
+            conservé par niveau de difficulté.</li>
+      </ul>
+    </div>
+    <div class="row">
+      <button class="btn" id="btn-rules-back" type="button">Retour</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       ÉCRAN 6 — STATISTIQUES
+       Comptées sur cet appareil uniquement (voir src/stats.js).
+       ==================================================================== -->
+  <section id="screen-stats" class="screen" aria-label="Statistiques">
+    <h2>Statistiques</h2>
+    <div class="doc" id="stats-body"></div>
+    <div class="row">
+      <button class="btn" id="btn-stats-copy" type="button">Copier</button>
+      <button class="btn" id="btn-stats-reset" type="button">Remettre à zéro</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="btn-stats-back" type="button">Retour</button>
+    </div>
+  </section>
+
+</div>
+
+<!--
+  Ordre de chargement IMPOSÉ : chaque fichier utilise ceux d'avant.
+    rules      données et constantes, ne dépend de rien
+    combat     moteur d'un tour, a besoin de rules
+    ai         les trois adversaires, a besoin de combat
+    match      manches, duels et séries, a besoin de combat et ai
+    sprites    dessin des duellistes et des effets (indépendant)
+    audio      bruitages synthétisés (indépendant)
+    stats      compteurs et records, a besoin de rules
+    telemetry  remontée optionnelle, a besoin de rules
+    ui         interface, a besoin de tout le reste
+    main       démarrage
+-->
+<script>
+/* ---------- src/rules.js ---------- */
+/* =============================================================================
+ * DUELMINDS — RÈGLES ET ÉQUILIBRAGE
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * La traduction en JavaScript des règles du jeu Python (`game/player.py`,
+ * `game/bot.py`, `game/engine.py`). C'est le SEUL endroit où se trouvent des
+ * valeurs d'équilibrage : aucun autre fichier ne doit contenir de nombre lié
+ * aux règles.
+ *
+ * LE JEU EN DEUX PHRASES
+ * Deux duellistes choisissent EN MÊME TEMPS entre charger, tirer et se
+ * protéger. Il n'y a pas de points de vie : un tir qui touche tue sur le coup.
+ *
+ * DEUX MODES
+ *   DUEL    — un affrontement, au meilleur des 3 manches.
+ *   ARCADE  — des duels enchaînés : on compte combien on en gagne d'affilée
+ *             avant de tomber. C'est le mode de score.
+ *
+ * DIFFÉRENCE AVEC LA VERSION PYTHON — À LIRE
+ * Le code Python fait payer les défenses différemment au joueur et à l'IA :
+ *   Player.can_defend()  ->  gratuite tant que consecutive_defends <= 1
+ *   Bot.can_defend()     ->  gratuite seulement si consecutive_defends == 0
+ * L'IA est donc plus contrainte que le joueur, ce qui n'a pas l'air voulu.
+ * Cette version applique LA MÊME RÈGLE AUX DEUX (celle du joueur). Pour
+ * revenir au comportement d'origine, voir FREE_DEFENCES_BOT plus bas.
+ *
+ * DÉPENDANCES : aucune. Ce fichier doit rester chargeable en premier.
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+
+  /* ---------------------------------------------------------------------------
+   * 1. RÈGLES DU DUEL
+   * ------------------------------------------------------------------------ */
+  const RULES = {
+    // --- Structure ---
+    MANCHES_TO_WIN: 2,     // premier à 2 manches remporte le duel
+    START_BULLETS: 1,      // chaque manche commence avec 1 balle
+
+    // --- Coûts ---
+    SHOOT_COST: 1,
+
+    /* Défense : les premières d'affilée sont gratuites, ensuite elles coûtent
+     * une balle. Le compteur repart à zéro dès qu'on charge ou qu'on tire.
+     * C'est ce qui empêche de camper indéfiniment derrière sa protection.
+     *
+     * Attention à la subtilité du code d'origine, reproduite ici : le DROIT de
+     * se défendre et le COÛT de la défense n'utilisent pas le même seuil.
+     *   - droit  : gratuit tant que defenses_enchainees <= 1
+     *   - coût   : nul     tant que defenses_enchainees <= 2
+     * Résultat : à la 3e défense d'affilée il faut POSSÉDER une balle, mais
+     * elle n'est pas facturée. La 4e, elle, se paie vraiment. */
+    FREE_DEFENCE_RIGHT: 1, // seuil du droit de se défendre gratuitement
+    FREE_DEFENCE_COST: 2,  // seuil au-delà duquel la défense se paie
+    DEFENCE_COST: 1,
+
+    /* Mets 0 ici pour retrouver l'asymétrie du Python, où l'IA payait dès sa
+     * 2e défense enchaînée. `null` = l'IA suit exactement la règle du joueur. */
+    FREE_DEFENCES_BOT: null,
+
+    // --- Super tir ---
+    /* À partir de ce nombre de balles, le tir TRAVERSE la protection adverse.
+     * C'est la récompense de qui prend le risque d'accumuler au lieu de tirer,
+     * et le principal levier d'équilibrage du jeu. */
+    SUPER_SHOT_BULLETS: 4,
+
+    // --- Mémoire ---
+    HISTORY_LENGTH: 10,    // nombre d'actions conservées pour l'analyse de l'IA
+
+    /* --- Mode arcade ---
+     * Nombre de duels à enchaîner avant que le compteur ne s'affole. Purement
+     * indicatif : il n'y a pas de limite réelle, on joue jusqu'à la défaite. */
+    ARCADE_MILESTONE: 10,
+  };
+
+  /* ---------------------------------------------------------------------------
+   * 2. LES TROIS ACTIONS
+   * ------------------------------------------------------------------------ */
+  const ACTIONS = ["charge", "shoot", "defend"];
+  const ACTION_LABEL = { charge: "Charger", shoot: "Tirer", defend: "Protéger" };
+
+  /* ---------------------------------------------------------------------------
+   * 3. NIVEAUX DE DIFFICULTÉ
+   * ---------------------------------------------------------------------------
+   * Les clés sont celles du code Python (`facile`, `difficile`, `extreme`) :
+   * il ne faut pas les renommer sans changer aussi ai.js.
+   * ------------------------------------------------------------------------ */
+  const DIFFICULTIES = [
+    {
+      key: "facile",
+      label: "Facile",
+      accent: "--easy",
+      blurb: "Joue au hasard, avec un penchant pour la charge. Idéal pour comprendre le jeu.",
+    },
+    {
+      key: "difficile",
+      label: "Difficile",
+      accent: "--medium",
+      blurb: "Lit ton historique, estime tes balles et se protège quand tu deviens dangereux.",
+    },
+    {
+      key: "extreme",
+      label: "Extrême",
+      accent: "--hard",
+      blurb: "Cherche la faille, refuse de se répéter et punit la moindre habitude.",
+    },
+  ];
+
+  /* ---------------------------------------------------------------------------
+   * 4. MODES DE JEU
+   * ---------------------------------------------------------------------------
+   * La clé `key` est ce qui part dans la colonne « mode » des statistiques :
+   * ne la change pas sans prévenir la feuille de collecte.
+   * ------------------------------------------------------------------------ */
+  const MODES = [
+    {
+      key: "duel",
+      label: "Duel",
+      blurb: "Un affrontement au meilleur des 3 manches.",
+    },
+    {
+      key: "arcade",
+      label: "Arcade",
+      blurb: "Enchaîne les duels. Combien en gagnes-tu d'affilée avant de tomber ?",
+    },
+  ];
+
+  DUELMINDS.RULES = RULES;
+  DUELMINDS.ACTIONS = ACTIONS;
+  DUELMINDS.ACTION_LABEL = ACTION_LABEL;
+  DUELMINDS.DIFFICULTIES = DIFFICULTIES;
+  DUELMINDS.MODES = MODES;
+  DUELMINDS.VERSION = "web-1.0";
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/combat.js ---------- */
+/* =============================================================================
+ * DUELMINDS — MOTEUR DE COMBAT
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * La mécanique d'un tour, et rien d'autre. Ce fichier ne connaît ni l'écran,
+ * ni le son, ni le joueur : il prend deux duellistes et deux actions, et
+ * renvoie ce qui s'est passé.
+ *
+ * Portage direct de `game/player.py` et de `_resolve_simultaneous_actions()`
+ * dans `game/engine.py`.
+ *
+ * POURQUOI CETTE SÉPARATION
+ * Un moteur sans interface est testable. C'est ce qui permet à
+ * `tools/simulate.mjs` de rejouer des dizaines de milliers de duels en
+ * quelques secondes en réutilisant EXACTEMENT le code du jeu — pas une copie
+ * qui finirait par diverger.
+ *
+ * LE POINT LE PLUS IMPORTANT À COMPRENDRE
+ * Il n'y a PAS de points de vie. Un tir qui touche tue immédiatement. Toute la
+ * tension vient de là : chaque tour peut être le dernier, et comme les deux
+ * camps choisissent en même temps, on joue autant contre l'adversaire que
+ * contre ce qu'on croit qu'il va faire.
+ *
+ * DÉPENDANCES : rules.js
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+  const { RULES } = DUELMINDS;
+
+  /* ---------------------------------------------------------------------------
+   * 1. UN DUELLISTE
+   * ------------------------------------------------------------------------ */
+
+  /**
+   * Crée un duelliste prêt à combattre.
+   * @param {string} name  nom affiché
+   * @param {boolean} isBot  change le seuil de défense gratuite si
+   *                         RULES.FREE_DEFENCES_BOT est renseigné
+   */
+  function makeDuelist(name, isBot) {
+    return {
+      name,
+      isBot: !!isBot,
+
+      bullets: RULES.START_BULLETS,
+
+      /* Défenses ENCHAÎNÉES. Remis à zéro dès qu'on charge ou qu'on tire :
+       * c'est le mécanisme qui rend le camping défensif coûteux. */
+      consecutiveDefends: 0,
+
+      /* Vrai seulement pendant le tour où l'on s'est protégé. C'est cette
+       * valeur que consulte la résolution pour savoir si un tir touche. */
+      isDefending: false,
+
+      /* Les dernières actions jouées, dans l'ordre. Sert à l'IA adverse pour
+       * deviner les habitudes. Tronqué à RULES.HISTORY_LENGTH. */
+      history: [],
+
+      // Statistiques de la partie en cours
+      manchesWon: 0,
+      totalShots: 0,
+      totalCharges: 0,
+      totalDefends: 0,
+    };
+  }
+
+  /** Remet un duelliste à neuf pour une nouvelle manche. */
+  function resetForManche(duelist) {
+    duelist.bullets = RULES.START_BULLETS;
+    duelist.consecutiveDefends = 0;
+    duelist.isDefending = false;
+    duelist.history.length = 0;
+  }
+
+  /* ---------------------------------------------------------------------------
+   * 2. CE QU'UN DUELLISTE PEUT FAIRE MAINTENANT
+   * ------------------------------------------------------------------------ */
+
+  /** Seuil de défenses gratuites applicable à ce duelliste. */
+  function freeDefenceRight(duelist) {
+    if (duelist.isBot && RULES.FREE_DEFENCES_BOT !== null) {
+      return RULES.FREE_DEFENCES_BOT;
+    }
+    return RULES.FREE_DEFENCE_RIGHT;
+  }
+
+  /**
+   * Coût en balles de la PROCHAINE défense.
+   *
+   * Attention : ce seuil n'est volontairement pas le même que celui du droit
+   * de se défendre (voir freeDefenceRight). C'est reproduit du code d'origine
+   * et documenté dans rules.js.
+   */
+  function defenceCost(duelist) {
+    return duelist.consecutiveDefends <= RULES.FREE_DEFENCE_COST ? 0 : RULES.DEFENCE_COST;
+  }
+
+  /** Le prochain tir traversera-t-il la protection adverse ? */
+  function isSuperShot(duelist) {
+    return duelist.bullets >= RULES.SUPER_SHOT_BULLETS;
+  }
+
+  /** Une action est-elle légale dans l'état actuel ? */
+  function canDo(duelist, action) {
+    switch (action) {
+      case "charge":
+        return true; // toujours possible
+      case "shoot":
+        return duelist.bullets >= RULES.SHOOT_COST;
+      case "defend":
+        // Gratuit tant qu'on est sous le seuil ; au-delà il faut de quoi payer.
+        if (duelist.consecutiveDefends <= freeDefenceRight(duelist)) return true;
+        return duelist.bullets >= RULES.DEFENCE_COST;
+      default:
+        return false;
+    }
+  }
+
+  /** Les actions actuellement jouables. Jamais vide : charger l'est toujours. */
+  function legalActions(duelist) {
+    return DUELMINDS.ACTIONS.filter((a) => canDo(duelist, a));
+  }
+
+  /** Ajoute une action à l'historique en gardant celui-ci borné. */
+  function remember(duelist, action) {
+    duelist.history.push(action);
+    if (duelist.history.length > RULES.HISTORY_LENGTH) duelist.history.shift();
+  }
+
+  /* ---------------------------------------------------------------------------
+   * 3. EXÉCUTION D'UNE ACTION
+   * ---------------------------------------------------------------------------
+   * Renvoie un RÉSULTAT qui pilote toute la suite :
+   *   "success"     action ordinaire
+   *   "clash"       les deux ont tiré : les balles s'annulent en vol
+   *   "super_shot"  tir à 4 balles ou plus : traverse la protection
+   *   "death"       l'action était impossible : mort immédiate
+   * ------------------------------------------------------------------------ */
+  function executeAction(duelist, action, opponentAction) {
+    if (!canDo(duelist, action)) return "death";
+
+    if (action === "charge") {
+      duelist.bullets += 1;
+      duelist.consecutiveDefends = 0; // charger casse la série de défenses
+      duelist.isDefending = false;
+      duelist.totalCharges += 1;
+      remember(duelist, "charge");
+      return "success";
+    }
+
+    if (action === "shoot") {
+      // Le statut de super tir se juge AVANT de dépenser la balle.
+      const superShot = isSuperShot(duelist);
+      duelist.bullets -= RULES.SHOOT_COST;
+      duelist.consecutiveDefends = 0;
+      duelist.isDefending = false;
+      duelist.totalShots += 1;
+      remember(duelist, "shoot");
+
+      // Deux tirs au même tour : les balles se percutent, personne ne meurt,
+      // mais les deux ont dépensé une balle.
+      if (opponentAction === "shoot") return "clash";
+      return superShot ? "super_shot" : "success";
+    }
+
+    if (action === "defend") {
+      const cost = defenceCost(duelist);
+      if (duelist.bullets < cost) return "death"; // incapable de payer
+      duelist.bullets -= cost;
+      duelist.consecutiveDefends += 1;
+      duelist.isDefending = true;
+      duelist.totalDefends += 1;
+      remember(duelist, "defend");
+      return "success";
+    }
+
+    return "success";
+  }
+
+  /* ---------------------------------------------------------------------------
+   * 4. RÉSOLUTION D'UN TOUR
+   * ---------------------------------------------------------------------------
+   * Les deux camps choisissent sans voir le coup de l'autre. On exécute les
+   * deux actions en passant à chacune l'action adverse — c'est comme ça que le
+   * CLASH est détecté — puis on applique les règles de victoire.
+   * ------------------------------------------------------------------------ */
+
+  /**
+   * Joue un tour complet. MODIFIE les deux duellistes.
+   *
+   * @returns {{resultA:string, resultB:string, winner:null|"a"|"b", reason:string}}
+   *          `winner` vaut null si la manche continue.
+   */
+  function resolveTurn(a, b, actionA, actionB) {
+    const resultA = executeAction(a, actionA, actionB);
+    const resultB = executeAction(b, actionB, actionA);
+
+    const verdict = judge(a, b, actionA, actionB, resultA, resultB);
+
+    return { actionA, actionB, resultA, resultB, winner: verdict.winner, reason: verdict.reason };
+  }
+
+  /**
+   * Applique les règles de victoire d'une manche.
+   *
+   * L'ORDRE DES TESTS EST LA RÈGLE DU JEU : le premier cas qui correspond
+   * l'emporte. Le réordonner change le jeu.
+   *
+   *   1. mort par action impossible   (priorité absolue)
+   *   2. clash                        (annule tout, la manche continue)
+   *   3. super tir                    (traverse la protection)
+   *   4. tir ordinaire sur cible non protégée
+   */
+  function judge(a, b, actionA, actionB, resultA, resultB) {
+    // 1. Celui qui a tenté l'impossible perd sur-le-champ
+    if (resultA === "death") return { winner: "b", reason: a.name + " tente l'impossible et s'effondre." };
+    if (resultB === "death") return { winner: "a", reason: b.name + " tente l'impossible et s'effondre." };
+
+    // 2. Les deux ont tiré : les balles se percutent en vol
+    if (resultA === "clash" && resultB === "clash") {
+      return { winner: null, reason: "Les balles se percutent en plein vol." };
+    }
+
+    // 3. Super tir : la protection ne sert à rien
+    if (resultA === "super_shot") return { winner: "a", reason: a.name + " traverse la protection." };
+    if (resultB === "super_shot") return { winner: "b", reason: b.name + " traverse la protection." };
+
+    // 4. Tir ordinaire : ne touche que si la cible ne s'est pas protégée.
+    //    `isDefending` vient d'être mis à jour par executeAction, il reflète
+    //    donc bien l'action de CE tour.
+    if (actionA === "shoot" && !b.isDefending) return { winner: "a", reason: b.name + " est touché." };
+    if (actionB === "shoot" && !a.isDefending) return { winner: "b", reason: a.name + " est touché." };
+
+    return { winner: null, reason: "" };
+  }
+
+  DUELMINDS.combat = {
+    makeDuelist,
+    resetForManche,
+    defenceCost,
+    freeDefenceRight,
+    isSuperShot,
+    canDo,
+    legalActions,
+    executeAction,
+    resolveTurn,
+    judge,
+  };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/ai.js ---------- */
+/* =============================================================================
+ * DUELMINDS — LES TROIS ADVERSAIRES
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * Choisir l'action de l'ordinateur. Portage fidèle de `game/bot.py` : mêmes
+ * cascades de décision, mêmes probabilités, mêmes seuils.
+ *
+ * CE QUE L'IA A LE DROIT DE SAVOIR
+ * Ce qui est affiché à l'écran, et l'historique des coups PASSÉS du joueur.
+ * Elle ne connaît PAS le coup en cours : les actions sont simultanées, elle
+ * tricherait. Les valeurs qu'elle lit (`bullets`, `isDefending`) datent du
+ * tour précédent, exactement comme dans la version Python.
+ *
+ * LES TROIS NIVEAUX
+ *
+ *   FACILE     Tirage au sort parmi les actions légales, avec un poids double
+ *              sur « charger ». Ne lit rien, ne retient rien.
+ *
+ *   DIFFICILE  Lit l'historique : se protège si tu as chargé deux fois de
+ *              suite, charge si tu es en protection, et surtout ESTIME tes
+ *              balles pour savoir quand tu deviens dangereux.
+ *
+ *   EXTRÊME    Ajoute une mémoire anti-répétition. Elle enregistre une
+ *              empreinte de chaque situation rencontrée ; si la même se
+ *              représente, elle se force à jouer autre chose. Puis elle
+ *              cherche activement la faille avec `analyzeBestMove`.
+ *
+ * DÉPENDANCES : rules.js, combat.js
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+  const { RULES } = DUELMINDS;
+  const { canDo, legalActions } = DUELMINDS.combat;
+
+  /* Probabilités du code d'origine, regroupées pour pouvoir régler le
+   * caractère des IA sans relire la logique. */
+  const TENDENCY = {
+    HARD_SHOOT: 0.6,          // difficile : tire quand la cible est à découvert
+    EXTREME_EARLY_SHOOT: 0.3, // extrême : tir surprise en début de manche
+    EXTREME_SHOOT: 0.7,       // extrême : tire quand elle a l'avantage
+    EXTREME_DEFEND: 0.4,      // extrême : se protège par défaut
+  };
+
+  /* ---------------------------------------------------------------------------
+   * MÉMOIRE DE L'IA
+   * ---------------------------------------------------------------------------
+   * Le niveau extrême a besoin de se souvenir d'une manche à l'autre. Plutôt
+   * que d'alourdir le duelliste, on lui attache une mémoire à part.
+   * ------------------------------------------------------------------------ */
+  function makeBrain(difficulty) {
+    return {
+      difficulty,
+      opponentHistory: [], // copie de l'historique du joueur
+      usedPatterns: [],    // empreintes de situations déjà rencontrées
+      turnCount: 0,        // numéro du tour dans la manche
+    };
+  }
+
+  function resetBrainForManche(brain) {
+    brain.opponentHistory.length = 0;
+    brain.usedPatterns.length = 0;
+    brain.turnCount = 0;
+  }
+
+  /* ---------------------------------------------------------------------------
+   * POINT D'ENTRÉE
+   * ------------------------------------------------------------------------ */
+
+  /**
+   * Choisit l'action de l'ordinateur pour ce tour.
+   *
+   * @param {object} brain     mémoire de l'IA (voir makeBrain)
+   * @param {object} self      le duelliste piloté par l'ordinateur
+   * @param {object} opponent  le duelliste du joueur, en LECTURE SEULE
+   */
+  function chooseAction(brain, self, opponent) {
+    // On recopie l'historique du joueur pour pouvoir l'analyser. Le test de
+    // longueur évite de l'écraser par une version plus courte, l'historique
+    // étant tronqué au-delà de RULES.HISTORY_LENGTH.
+    if (opponent.history.length > brain.opponentHistory.length) {
+      brain.opponentHistory = opponent.history.slice();
+    }
+
+    brain.turnCount += 1;
+
+    switch (brain.difficulty) {
+      case "difficile": return decideHard(brain, self, opponent);
+      case "extreme":   return decideExtreme(brain, self, opponent);
+      default:          return decideEasy(self);
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+   * FACILE — le hasard, avec un penchant pour la prudence
+   * ------------------------------------------------------------------------ */
+  function decideEasy(self) {
+    const options = legalActions(self);
+
+    // Charger compte double : l'IA facile accumule plutôt que de foncer, ce
+    // qui la rend inoffensive mais pas complètement absurde.
+    const bag = [];
+    for (const action of options) {
+      bag.push(action);
+      if (action === "charge") bag.push(action);
+    }
+    return bag[Math.floor(Math.random() * bag.length)];
+  }
+
+  /* ---------------------------------------------------------------------------
+   * DIFFICILE — lit les habitudes
+   * ---------------------------------------------------------------------------
+   * Cascade évaluée DANS L'ORDRE, la première règle qui s'applique gagne :
+   *   1. le joueur a chargé deux fois de suite     -> se protéger
+   *   2. le joueur est en protection               -> charger, c'est gratuit
+   *   3. le joueur semble avoir 3 balles ou plus   -> se protéger
+   *   4. je n'ai plus de balle                     -> charger
+   *   5. j'ai une balle et il est à découvert      -> tirer (60 % du temps)
+   *   6. sinon                                     -> charger ou se protéger
+   * ------------------------------------------------------------------------ */
+  function decideHard(brain, self, opponent) {
+    const history = brain.opponentHistory;
+
+    // Les règles de lecture ne s'activent qu'à partir de deux coups observés.
+    if (history.length >= 2) {
+      const lastTwo = history.slice(-2);
+
+      if (count(lastTwo, "charge") >= 2 && canDo(self, "defend")) return "defend";
+
+      if (opponent.isDefending) return "charge";
+
+      if (estimateBullets(history) >= 3 && canDo(self, "defend")) return "defend";
+    }
+
+    if (!canDo(self, "shoot")) return "charge";
+
+    if (!opponent.isDefending && Math.random() < TENDENCY.HARD_SHOOT) return "shoot";
+
+    const fallback = ["charge"];
+    if (canDo(self, "defend")) fallback.push("defend");
+    return fallback[Math.floor(Math.random() * fallback.length)];
+  }
+
+  /* ---------------------------------------------------------------------------
+   * EXTRÊME — cherche la faille, puis refuse de se répéter
+   * ---------------------------------------------------------------------------
+   * CORRECTION PAR RAPPORT AU PYTHON — mesurée, pas supposée.
+   *
+   * Dans `game/bot.py`, la mémoire anti-répétition passe AVANT l'analyse
+   * tactique : dès qu'une situation se represente, l'IA joue « autre chose »
+   * sans même regarder quel serait le bon coup. Elle sabote donc son propre
+   * jeu. Le simulateur est formel : avec cet ordre, DIFFICILE battait EXTRÊME
+   * dans 75 % des duels — le niveau censé être le plus dur était le plus
+   * faible des trois.
+   *
+   * Ici l'ordre est inversé : on calcule d'abord le meilleur coup, et on ne
+   * varie QUE s'il a déjà été joué dans la même situation. L'imprévisibilité
+   * est conservée, la compétence aussi.
+   *
+   * Deux garde-fous : on ne renonce jamais à une occasion de tuer, et on ne
+   * varie que vers une action légale.
+   *
+   * Pour revenir au comportement d'origine, mets ANTI_REPEAT_BEFORE_ANALYSIS
+   * à true ci-dessous.
+   * ------------------------------------------------------------------------ */
+  const ANTI_REPEAT_BEFORE_ANALYSIS = false;
+
+  function decideExtreme(brain, self, opponent) {
+    const situation = describeSituation(brain, self);
+
+    // --- Comportement d'origine, conservé pour comparaison ---
+    if (ANTI_REPEAT_BEFORE_ANALYSIS && brain.usedPatterns.includes(situation)) {
+      for (const action of DUELMINDS.ACTIONS) {
+        const variant = situation + "_" + action;
+        if (!brain.usedPatterns.includes(variant) && canDo(self, action)) {
+          brain.usedPatterns.push(variant);
+          return action;
+        }
+      }
+    }
+
+    const best = analyzeBestMove(brain, self, opponent);
+    const signature = situation + "_" + best;
+
+    // Coup jamais joué dans cette situation : on le garde tel quel.
+    if (!brain.usedPatterns.includes(signature)) {
+      brain.usedPatterns.push(signature);
+      return best;
+    }
+
+    // Occasion de tuer : on ne varie sous aucun prétexte.
+    if (canFinish(self, opponent)) return "shoot";
+
+    // Sinon on cherche une variante encore inédite, pour rester illisible.
+    for (const action of DUELMINDS.ACTIONS) {
+      if (action === best || !canDo(self, action)) continue;
+      const variant = situation + "_" + action;
+      if (!brain.usedPatterns.includes(variant)) {
+        brain.usedPatterns.push(variant);
+        return action;
+      }
+    }
+
+    // Tout a déjà été tenté ici : on s'en tient au meilleur coup.
+    return best;
+  }
+
+  /**
+   * L'adversaire est-il hors d'état de se protéger ?
+   * Il vient de se protéger et n'a presque plus de balles : sa prochaine
+   * protection lui est interdite ou impayable.
+   */
+  function canFinish(self, opponent) {
+    return opponent.consecutiveDefends >= 1 && opponent.bullets <= 1 && canDo(self, "shoot");
+  }
+
+  /**
+   * Empreinte d'une situation : balles, défenses enchaînées, numéro de tour et
+   * trois derniers coups. Deux tours identiques produisent la même empreinte,
+   * ce qui permet de détecter qu'on tourne en rond.
+   */
+  function describeSituation(brain, self) {
+    const recent = self.history.length >= 3 ? self.history.slice(-3).join("") : "start";
+    return "b" + self.bullets + "_d" + self.consecutiveDefends + "_t" + brain.turnCount + "_" + recent;
+  }
+
+  /**
+   * Cherche le meilleur coup, par ordre d'opportunité :
+   *   1. l'adversaire est à sec (s'est protégé et n'a presque plus de balles)
+   *      -> tirer, il ne pourra pas se protéger une fois de plus
+   *   2. début de manche et il n'a jamais tiré -> tir surprise (30 %)
+   *   3. il vient d'enchaîner des charges      -> se protéger
+   *   4. il me distance en balles              -> charger pour suivre
+   *   5. j'ai l'avantage et il est à découvert -> tirer (70 %)
+   *   6. sinon : charger, ou se protéger (40 %)
+   */
+  function analyzeBestMove(brain, self, opponent) {
+    const history = brain.opponentHistory;
+
+    // 1. La faille classique : qui vient de se protéger et n'a plus de balle
+    //    ne pourra pas payer la protection suivante.
+    if (opponent.consecutiveDefends >= 1 && opponent.bullets <= 1 && canDo(self, "shoot")) {
+      return "shoot";
+    }
+
+    // 2. Un joueur qui n'a pas encore tiré ne s'attend pas à être attaqué.
+    if (brain.turnCount <= 2 && !history.includes("shoot") &&
+        canDo(self, "shoot") && Math.random() < TENDENCY.EXTREME_EARLY_SHOOT) {
+      return "shoot";
+    }
+
+    // 3. Deux charges sur les trois derniers coups : un tir se prépare.
+    if (history.length >= 3 && count(history.slice(-3), "charge") >= 2 && canDo(self, "defend")) {
+      return "defend";
+    }
+
+    // 4. Course à l'armement : ne pas se laisser distancer.
+    if (estimateBullets(history) > self.bullets + 1) return "charge";
+
+    /* 5. Cible à découvert : on en profite.
+     *
+     * CORRECTION PAR RAPPORT AU PYTHON — mesurée, pas supposée.
+     * `game/bot.py` exige ici `bullets >= 2`. L'IA extrême refusait donc de
+     * tirer avec une seule balle, c'est-à-dire pendant presque tout le début
+     * de chaque manche : elle chargeait et se protégeait pendant que le niveau
+     * difficile, lui, tirait dès la première balle.
+     *
+     * Ce seul caractère renversait l'échelle de difficulté. Victoires contre
+     * FACILE, mesurées sur 2 500 duels :
+     *
+     *     avec >= 2 :  Facile 50 %  ·  Difficile 66 %  ·  Extrême 61 %   <- inversé
+     *     avec >= 1 :  Facile 50 %  ·  Difficile 64 %  ·  Extrême 87 %   <- correct
+     *
+     * Et en duel direct, Extrême passe de 26 % à 61 % de victoires contre
+     * Difficile. C'est indispensable au mode arcade, dont le score n'a de sens
+     * que si les niveaux sont réellement de plus en plus durs. */
+    if (self.bullets >= 1 && !opponent.isDefending && Math.random() < TENDENCY.EXTREME_SHOOT) {
+      return "shoot";
+    }
+
+    if (!canDo(self, "shoot")) return "charge";
+
+    if (canDo(self, "defend") && Math.random() < TENDENCY.EXTREME_DEFEND) return "defend";
+    return "charge";
+  }
+
+  /* ---------------------------------------------------------------------------
+   * OUTILS
+   * ------------------------------------------------------------------------ */
+
+  /**
+   * Estime les balles de l'adversaire à partir de ses coups observés.
+   * L'IA n'a pas le droit de lire `opponent.bullets` pour décider : elle
+   * reconstitue le compte comme le ferait un joueur attentif.
+   *     départ 1 balle, +1 par charge, -1 par tir
+   */
+  function estimateBullets(history) {
+    return RULES.START_BULLETS + count(history, "charge") - count(history, "shoot");
+  }
+
+  function count(list, value) {
+    let n = 0;
+    for (const item of list) if (item === value) n += 1;
+    return n;
+  }
+
+  DUELMINDS.ai = { makeBrain, resetBrainForManche, chooseAction, estimateBullets, TENDENCY };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/match.js ---------- */
+/* =============================================================================
+ * DUELMINDS — DÉROULEMENT DES PARTIES
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * Orchestrer ce qui dépasse le tour : les manches d'un duel, et les duels
+ * enchaînés d'une série arcade. Le tour lui-même est dans combat.js.
+ *
+ * LES DEUX NIVEAUX D'ORGANISATION
+ *
+ *   TOUR      les deux choisissent, on résout          -> combat.js
+ *   MANCHE    des tours jusqu'à ce que quelqu'un tombe -> ici
+ *   DUEL      des manches, premier à 2                 -> ici
+ *   SÉRIE     des duels enchaînés (mode arcade)        -> ici
+ *
+ * En mode DUEL on s'arrête après le duel. En mode ARCADE, gagner relance un
+ * duel contre un nouvel adversaire, et perdre met fin à la série : le score,
+ * c'est le nombre de duels enchaînés.
+ *
+ * Comme combat.js, ce fichier ne touche pas à l'écran : il est pilotable par
+ * l'interface comme par le simulateur.
+ *
+ * DÉPENDANCES : rules.js, combat.js, ai.js
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+  const { RULES } = DUELMINDS;
+  const { makeDuelist, resetForManche, resolveTurn } = DUELMINDS.combat;
+  const { makeBrain, resetBrainForManche } = DUELMINDS.ai;
+
+  /* ---------------------------------------------------------------------------
+   * UNE PARTIE
+   * ---------------------------------------------------------------------------
+   * Un même objet sert aux deux modes. En mode duel, la partie s'arrête au
+   * premier duel terminé ; en arcade, on enchaîne.
+   * ------------------------------------------------------------------------ */
+
+  /**
+   * @param {"duel"|"arcade"} mode
+   * @param {string} difficulty  "facile" | "difficile" | "extreme"
+   */
+  function createSession(mode, difficulty) {
+    const session = {
+      mode,
+      difficulty,
+
+      // Duel en cours
+      player: makeDuelist("Toi", false),
+      bot: makeDuelist("Adversaire", true),
+      brain: makeBrain(difficulty),
+      turn: 1,
+      mancheNumber: 1,
+
+      // Série (mode arcade) : nombre de duels gagnés d'affilée
+      streak: 0,
+      duelsPlayed: 0,
+
+      // Compteurs de la session entière, pour les statistiques
+      totals: { turns: 0, manches: 0, clashes: 0, superShots: 0,
+                actions: { charge: 0, shoot: 0, defend: 0 } },
+
+      over: false,      // la SESSION est terminée
+      lastReason: "",
+    };
+    return session;
+  }
+
+  /** Prépare la manche suivante du duel en cours. */
+  function startManche(session) {
+    resetForManche(session.player);
+    resetForManche(session.bot);
+    resetBrainForManche(session.brain);
+    session.turn = 1;
+  }
+
+  /** Remet tout à neuf pour un nouveau duel (mode arcade). */
+  function startNextDuel(session) {
+    session.player.manchesWon = 0;
+    session.bot.manchesWon = 0;
+    session.mancheNumber = 1;
+    startManche(session);
+  }
+
+  /**
+   * Joue un tour.
+   *
+   * @returns {{
+   *   turn: object,          ce qu'a renvoyé combat.resolveTurn
+   *   mancheOver: boolean,
+   *   duelOver: boolean,
+   *   duelWinner: null|"a"|"b",
+   *   sessionOver: boolean
+   * }}
+   */
+  function playTurn(session, playerAction) {
+    const botAction = DUELMINDS.ai.chooseAction(session.brain, session.bot, session.player);
+    const turnResult = resolveTurn(session.player, session.bot, playerAction, botAction);
+
+    // Compteurs de session
+    const t = session.totals;
+    t.turns += 1;
+    t.actions[playerAction] += 1;
+    if (turnResult.resultA === "clash") t.clashes += 1;
+    if (turnResult.resultA === "super_shot" || turnResult.resultB === "super_shot") t.superShots += 1;
+
+    const out = {
+      turn: turnResult,
+      mancheOver: false,
+      duelOver: false,
+      duelWinner: null,
+      sessionOver: false,
+    };
+
+    if (!turnResult.winner) {
+      session.turn += 1;
+      return out;
+    }
+
+    // --- La manche est jouée ---
+    out.mancheOver = true;
+    t.manches += 1;
+    session.lastReason = turnResult.reason;
+
+    if (turnResult.winner === "a") session.player.manchesWon += 1;
+    else session.bot.manchesWon += 1;
+
+    // --- Le duel est-il joué ? ---
+    const playerWon = session.player.manchesWon >= RULES.MANCHES_TO_WIN;
+    const botWon = session.bot.manchesWon >= RULES.MANCHES_TO_WIN;
+
+    if (!playerWon && !botWon) {
+      session.mancheNumber += 1;
+      return out;
+    }
+
+    out.duelOver = true;
+    out.duelWinner = playerWon ? "a" : "b";
+    session.duelsPlayed += 1;
+
+    // --- La session est-elle finie ? ---
+    if (session.mode === "duel") {
+      // Un seul duel : on s'arrête quel que soit le résultat.
+      out.sessionOver = true;
+      session.over = true;
+    } else {
+      // Arcade : gagner prolonge la série, perdre y met fin.
+      if (playerWon) {
+        session.streak += 1;
+      } else {
+        out.sessionOver = true;
+        session.over = true;
+      }
+    }
+
+    return out;
+  }
+
+  /** Score de la session, tel qu'il sera affiché et enregistré. */
+  function sessionScore(session) {
+    return session.mode === "arcade" ? session.streak : (session.player.manchesWon >= RULES.MANCHES_TO_WIN ? 1 : 0);
+  }
+
+  DUELMINDS.match = { createSession, startManche, startNextDuel, playTurn, sessionScore };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/sprites.js ---------- */
+/* =============================================================================
+ * DUELMINDS — SPRITES ET EFFETS
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * Dessiner les deux duellistes et les effets de leurs actions. Aucune image
+ * n'est chargée : les sprites sont décrits en texte ici même puis peints sur
+ * un canvas. Le projet reste donc entièrement en fichiers texte.
+ *
+ * COMMENT LIRE UN SPRITE
+ * Une grille de 16 lignes de 16 caractères, une lettre par couleur :
+ *
+ *     .  vide (transparent)      p  peau
+ *     o  contour sombre          j  jean
+ *     c  chapeau                 b  botte / cuir
+ *     v  veste / chemise         m  métal (arme, boucle)
+ *
+ * Les lignes plus courtes que 16 sont complétées automatiquement : une faute
+ * de frappe ne casse jamais l'affichage.
+ *
+ * POUR REMPLACER PAR TES PROPRES SPRITES
+ * Deux options, selon ce que tu as :
+ *   - du pixel art simple : réécris les grilles ci-dessous, c'est immédiat ;
+ *   - des fichiers PNG : remplace `drawDuelist` par un `ctx.drawImage`. Tout
+ *     le reste du jeu passe par cette seule fonction, rien d'autre à toucher.
+ *
+ * DÉPENDANCES : aucune (volontairement — ce fichier est réutilisable tel quel)
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+  const GRID = 16;
+
+  /* ---------------------------------------------------------------------------
+   * 1. LES SILHOUETTES
+   * ---------------------------------------------------------------------------
+   * Le joueur est vu DE DOS, en bas de l'écran ; l'adversaire DE FACE, en
+   * haut. C'est la disposition d'un duel : on regarde par-dessus son épaule.
+   * ------------------------------------------------------------------------ */
+  const ART = {
+    // Adversaire — de face, chapeau baissé, main près du holster
+    front: [
+      "................",
+      ".....oooooo.....",
+      "....occcccco....",
+      "...oooooooooo...",
+      "....o pppp o....",
+      "....opmppmpo....",
+      "....o pppp o....",
+      ".....ovvvvo.....",
+      "...oovvvvvvoo...",
+      "..ovvvvvvvvvvo..",
+      "..ovvpo vv opvo.",
+      "..o jjo  ojj o..",
+      "...ojjo  ojjo...",
+      "...ojjo  ojjo...",
+      "..obbbo  obbbo..",
+      "..ooooo  ooooo..",
+    ],
+    // Joueur — de dos, on voit le dos du chapeau et la nuque
+    back: [
+      "................",
+      "....oooooooo....",
+      "...occcccccco...",
+      "..oooooooooooo..",
+      "....occcccco....",
+      ".....o pp o.....",
+      ".....ovvvvo.....",
+      "...oovvvvvvoo...",
+      "..ovvvvvvvvvvo..",
+      "..ovvvvvvvvvvo..",
+      "..opvo vv ovpo..",
+      "..o jjo  ojj o..",
+      "...ojjo  ojjo...",
+      "...ojjo  ojjo...",
+      "..obbbo  obbbo..",
+      "..ooooo  ooooo..",
+    ],
+    // Au sol — utilisé pour les deux, le chapeau roule à côté
+    down: [
+      "................",
+      "................",
+      "................",
+      "................",
+      "................",
+      "................",
+      "................",
+      "................",
+      "......oooo......",
+      ".....occcco.....",
+      "....oooooooo....",
+      "..oovvvvvvvvoo..",
+      ".ovvvvvvjjjjjvo.",
+      "obbovvvjjjjjjjbo",
+      "ooooooooooooooo.",
+      "................",
+    ],
+  };
+
+  /* ---------------------------------------------------------------------------
+   * 2. PALETTES
+   * ---------------------------------------------------------------------------
+   * Deux tenues pour distinguer les duellistes d'un coup d'œil, sans avoir à
+   * lire les étiquettes.
+   * ------------------------------------------------------------------------ */
+  const PALETTES = {
+    player: { o: "#241a14", c: "#6b4a2f", v: "#c08a4a", p: "#e8b48a", j: "#33507a", b: "#4a3220", m: "#d6d2c4" },
+    bot:    { o: "#1e1620", c: "#5a3540", v: "#a35a5a", p: "#e0a880", j: "#3a3550", b: "#3d2630", m: "#d6d2c4" },
+  };
+
+  const MISSING_COLOR = "#ff00ff"; // magenta : impossible à rater
+
+  /* ---------------------------------------------------------------------------
+   * 3. RENDU DU DUELLISTE
+   * ------------------------------------------------------------------------ */
+
+  function cellAt(grid, x, y) {
+    const row = grid[y];
+    if (!row || x < 0 || x >= GRID || y < 0 || y >= GRID) return ".";
+    return row.length > x ? row[x] : ".";
+  }
+
+  /**
+   * Peint un duelliste. Le canvas doit être carré et de côté multiple de 16 :
+   * chaque pixel du sprite devient alors un carré net, sans flou.
+   *
+   * @param {HTMLCanvasElement} canvas
+   * @param {"player"|"bot"} side
+   * @param {object} [options]
+   * @param {boolean} [options.down]   duelliste à terre
+   * @param {number}  [options.bob]    décalage vertical en pixels de grille
+   * @param {number}  [options.flash]  0 à 1 : éclat blanc (impact)
+   */
+  function drawDuelist(canvas, side, options) {
+    const opts = options || {};
+    const grid = opts.down ? ART.down : (side === "player" ? ART.back : ART.front);
+    const palette = PALETTES[side] || PALETTES.player;
+
+    const ctx = canvas.getContext("2d");
+    const scale = Math.floor(canvas.width / GRID);
+    const bob = opts.bob || 0;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = false;
+
+    for (let y = 0; y < GRID; y++) {
+      for (let x = 0; x < GRID; x++) {
+        const ch = cellAt(grid, x, y);
+        if (ch === "." || ch === " ") continue;
+        ctx.fillStyle = palette[ch] || MISSING_COLOR;
+        ctx.fillRect(x * scale, (y + bob) * scale, scale, scale);
+      }
+    }
+
+    // Éclat blanc au moment de l'impact : plus lisible qu'un simple
+    // clignotement, et ça ne demande pas un second jeu de sprites.
+    if (opts.flash > 0) {
+      ctx.globalAlpha = Math.min(1, opts.flash) * 0.75;
+      ctx.globalCompositeOperation = "source-atop";
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+   * 4. EFFETS D'ACTION
+   * ---------------------------------------------------------------------------
+   * Dessinés par-dessus la scène, dans un canvas qui couvre toute la zone de
+   * duel. Chaque effet a une durée de vie exprimée de 1 (début) à 0 (fin) :
+   * c'est l'interface qui fait descendre cette valeur.
+   * ------------------------------------------------------------------------ */
+
+  /**
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {string} kind   "shoot" | "defend" | "charge" | "clash" | "super"
+   * @param {number} life   1 au déclenchement, 0 à la fin
+   * @param {object} zone   {x, y, width, height} de la zone de duel
+   * @param {"player"|"bot"} from  qui déclenche l'effet
+   */
+  function drawEffect(ctx, kind, life, zone, from) {
+    if (life <= 0) return;
+    const cx = zone.x + zone.width / 2;
+    const topY = zone.y + zone.height * 0.28;
+    const bottomY = zone.y + zone.height * 0.74;
+    const shooterY = from === "player" ? bottomY : topY;
+    const targetY = from === "player" ? topY : bottomY;
+
+    ctx.save();
+
+    if (kind === "shoot" || kind === "super") {
+      // La balle parcourt la distance : on la place selon le temps écoulé.
+      const progress = 1 - life;
+      const y = shooterY + (targetY - shooterY) * progress;
+      const big = kind === "super";
+
+      // Traînée
+      ctx.strokeStyle = big ? "rgba(255,180,60,.55)" : "rgba(255,230,170,.35)";
+      ctx.lineWidth = big ? 5 : 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, shooterY);
+      ctx.lineTo(cx, y);
+      ctx.stroke();
+
+      // Projectile
+      ctx.fillStyle = big ? "#ffd166" : "#fff3d0";
+      ctx.beginPath();
+      ctx.arc(cx, y, big ? 7 : 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Éclair au départ, seulement au tout début
+      if (life > 0.75) {
+        ctx.fillStyle = "rgba(255,220,120," + (life - 0.75) * 4 + ")";
+        ctx.beginPath();
+        ctx.arc(cx, shooterY, big ? 26 : 16, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    if (kind === "defend") {
+      // Arc de protection devant le duelliste
+      ctx.strokeStyle = "rgba(120,200,255," + life * 0.9 + ")";
+      ctx.lineWidth = 3;
+      const radius = 34 + (1 - life) * 10;
+      ctx.beginPath();
+      ctx.arc(cx, shooterY, radius,
+        from === "player" ? Math.PI : 0,
+        from === "player" ? Math.PI * 2 : Math.PI);
+      ctx.stroke();
+    }
+
+    if (kind === "charge") {
+      // Étincelles qui convergent vers le duelliste
+      ctx.fillStyle = "rgba(255,214,102," + life + ")";
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const distance = 12 + life * 30;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(angle) * distance, shooterY + Math.sin(angle) * distance, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    if (kind === "clash") {
+      // Les deux balles se percutent à mi-chemin
+      const midY = (topY + bottomY) / 2;
+      ctx.strokeStyle = "rgba(255,240,180," + life + ")";
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 10; i++) {
+        const angle = (i / 10) * Math.PI * 2;
+        const inner = 6, outer = 10 + (1 - life) * 34;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(angle) * inner, midY + Math.sin(angle) * inner);
+        ctx.lineTo(cx + Math.cos(angle) * outer, midY + Math.sin(angle) * outer);
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore();
+  }
+
+  DUELMINDS.sprites = { ART, PALETTES, GRID, drawDuelist, drawEffect };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/audio.js ---------- */
+/* =============================================================================
+ * DUELMINDS — SONS
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * Produire les bruitages du duel. Aucun fichier n'est chargé : les sons sont
+ * SYNTHÉTISÉS par le navigateur. Le projet reste entièrement en texte et se
+ * partage par un simple lien.
+ *
+ * COMMENT ON FABRIQUE UN SON
+ * Une forme d'onde donne la couleur (`square` claque, `sine` est doux,
+ * `sawtooth` gronde, du bruit blanc fait une détonation), une enveloppe donne
+ * la vie : le volume monte vite puis retombe. Sans enveloppe, on entendrait un
+ * bip continu au lieu d'un coup de feu.
+ *
+ * CONTRAINTE MOBILE
+ * iOS et Android refusent de jouer un son tant que l'utilisateur n'a pas
+ * touché l'écran. Le contexte audio n'est donc créé qu'au premier appui.
+ *
+ * RÈGLE : le son n'est jamais indispensable. Toute erreur est avalée — un
+ * navigateur sans Web Audio doit rester parfaitement jouable.
+ *
+ * DÉPENDANCES : aucune
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+
+  let ctx = null;
+  let enabled = true;
+
+  function ensureContext() {
+    if (!enabled) return null;
+    try {
+      if (!ctx) {
+        const Ctor = root.AudioContext || root.webkitAudioContext;
+        if (!Ctor) { enabled = false; return null; }
+        ctx = new Ctor();
+      }
+      if (ctx.state === "suspended") ctx.resume();
+      return ctx;
+    } catch (e) {
+      enabled = false;
+      return null;
+    }
+  }
+
+  /** Une note qui glisse d'une fréquence à une autre, puis s'éteint. */
+  function tone(ac, { type, from, to, gain, duration, delay = 0 }) {
+    const t = ac.currentTime + delay;
+    const osc = ac.createOscillator();
+    const amp = ac.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(from, t);
+    if (to && to !== from) osc.frequency.exponentialRampToValueAtTime(to, t + duration);
+    amp.gain.setValueAtTime(gain, t);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    osc.connect(amp);
+    amp.connect(ac.destination);
+    osc.start(t);
+    osc.stop(t + duration + 0.05);
+  }
+
+  /** Une bouffée de bruit blanc — la détonation. */
+  function noise(ac, { gain, duration, delay = 0 }) {
+    const t = ac.currentTime + delay;
+    const buffer = ac.createBuffer(1, Math.floor(ac.sampleRate * duration), ac.sampleRate);
+    const data = buffer.getChannelData(0);
+    // Le bruit décroît sur sa propre durée : « impact » plutôt que « souffle ».
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    }
+    const src = ac.createBufferSource();
+    const amp = ac.createGain();
+    src.buffer = buffer;
+    amp.gain.setValueAtTime(gain, t);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+    src.connect(amp);
+    amp.connect(ac.destination);
+    src.start(t);
+  }
+
+  /* ---------------------------------------------------------------------------
+   * LA BANQUE DE SONS
+   * Une recette par événement. Pour retoucher un bruitage, c'est ici.
+   * ------------------------------------------------------------------------ */
+  const RECIPES = {
+    // Coup de feu : détonation sèche plus une résonance grave
+    shoot: (ac) => {
+      noise(ac, { gain: 0.28, duration: 0.18 });
+      tone(ac, { type: "square", from: 180, to: 50, gain: 0.16, duration: 0.22 });
+    },
+    // Super tir : plus long, plus grave, avec une queue de réverbération
+    super: (ac) => {
+      noise(ac, { gain: 0.34, duration: 0.3 });
+      tone(ac, { type: "sawtooth", from: 140, to: 32, gain: 0.24, duration: 0.5 });
+      tone(ac, { type: "square", from: 90, to: 40, gain: 0.14, duration: 0.7, delay: 0.08 });
+    },
+    // Protection : une note montante, métallique et rassurante
+    defend: (ac) => tone(ac, { type: "triangle", from: 480, to: 720, gain: 0.13, duration: 0.22 }),
+    // Charge : le barillet qu'on remplit
+    charge: (ac) => {
+      tone(ac, { type: "sine", from: 280, to: 700, gain: 0.10, duration: 0.18 });
+      noise(ac, { gain: 0.06, duration: 0.06, delay: 0.16 });
+    },
+    // Deux balles qui se percutent
+    clash: (ac) => {
+      noise(ac, { gain: 0.22, duration: 0.2 });
+      tone(ac, { type: "square", from: 900, to: 1400, gain: 0.12, duration: 0.12 });
+      tone(ac, { type: "square", from: 1200, to: 600, gain: 0.10, duration: 0.18, delay: 0.05 });
+    },
+    // Manche perdue : chute longue
+    down: (ac) => tone(ac, { type: "sawtooth", from: 160, to: 32, gain: 0.20, duration: 0.75 }),
+    // Manche gagnée : deux notes qui montent
+    win: (ac) => {
+      tone(ac, { type: "triangle", from: 523, to: 523, gain: 0.11, duration: 0.16 });
+      tone(ac, { type: "triangle", from: 784, to: 784, gain: 0.11, duration: 0.28, delay: 0.14 });
+    },
+    // Duel remporté : petit arpège de fin
+    victory: (ac) => {
+      [392, 523, 659, 784].forEach((f, i) =>
+        tone(ac, { type: "triangle", from: f, to: f, gain: 0.10, duration: 0.3, delay: i * 0.09 }));
+    },
+    // Appui sur un bouton
+    click: (ac) => tone(ac, { type: "square", from: 620, to: 620, gain: 0.05, duration: 0.04 }),
+  };
+
+  /** Joue un bruitage. Ne lève jamais d'erreur. */
+  function play(name) {
+    const ac = ensureContext();
+    if (!ac || !RECIPES[name]) return;
+    try { RECIPES[name](ac); } catch (e) { /* le son reste facultatif */ }
+  }
+
+  /** Vibration du téléphone. Ignorée là où ce n'est pas géré. */
+  function vibrate(pattern) {
+    if (!root.navigator || !root.navigator.vibrate) return;
+    try { root.navigator.vibrate(pattern); } catch (e) { /* facultatif */ }
+  }
+
+  DUELMINDS.audio = { play, vibrate };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/stats.js ---------- */
+/* =============================================================================
+ * DUELMINDS — STATISTIQUES ET RECORDS
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * Compter ce qui se passe pendant les parties et le conserver d'une session à
+ * l'autre, pour savoir comment le jeu est réellement joué.
+ *
+ * DEUX CHOSES DIFFÉRENTES SONT SUIVIES ICI
+ *
+ *   LES COMPTEURS   cumulés sur toutes les parties, ventilés PAR MODE et PAR
+ *                   DIFFICULTÉ. C'est ce qui répond à « le mode arcade est-il
+ *                   plus joué que le duel ? », « les gens montent-ils en
+ *                   difficulté ? », « à quoi servent les protections ? ».
+ *
+ *   LES RECORDS     la meilleure série d'arcade par difficulté. C'est le score
+ *                   du joueur, ce qu'il a envie de battre et de comparer.
+ *
+ * OÙ C'EST STOCKÉ
+ * Dans le navigateur du joueur (`localStorage`), pas sur un serveur. Les
+ * chiffres sont donc PAR APPAREIL. La remontée centralisée, elle, est dans
+ * telemetry.js.
+ *
+ * TOLÉRANCE AUX PANNES
+ * En navigation privée, ou si le stockage est refusé, tout continue de
+ * fonctionner : les compteurs vivent en mémoire et disparaissent en fermant
+ * l'onglet. Le jeu ne doit jamais s'arrêter à cause des statistiques.
+ *
+ * DÉPENDANCES : rules.js
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+  const { MODES, DIFFICULTIES, ACTIONS, ACTION_LABEL } = DUELMINDS;
+
+  // Le numéro de version fait partie de la clé : le jour où la forme des
+  // données changera, les anciennes seront ignorées plutôt que de faire
+  // planter la lecture.
+  const STORAGE_KEY = "duelminds.stats.v1";
+
+  /** Compteurs vierges. Sert aussi de référence de forme à la lecture. */
+  function emptyStats() {
+    const byMode = {};
+    for (const mode of MODES) {
+      byMode[mode.key] = { sessions: 0, duelsPlayed: 0, duelsWon: 0 };
+    }
+
+    const byDifficulty = {};
+    for (const difficulty of DIFFICULTIES) {
+      byDifficulty[difficulty.key] = {
+        sessions: 0, duelsPlayed: 0, duelsWon: 0,
+        manchesPlayed: 0, manchesWon: 0,
+        bestStreak: 0,   // record d'arcade sur ce niveau
+      };
+    }
+
+    const byAction = {};
+    for (const action of ACTIONS) byAction[action] = 0;
+
+    return {
+      turns: 0,
+      clashes: 0,
+      superShots: 0,
+      byMode,
+      byDifficulty,
+      byAction,
+      firstPlayed: null,
+      lastPlayed: null,
+    };
+  }
+
+  let stats = emptyStats();
+  let storageWorks = true;
+
+  /* ---------------------------------------------------------------------------
+   * Lecture et écriture
+   * ------------------------------------------------------------------------ */
+
+  function load() {
+    try {
+      const raw = root.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+
+      // Fusion prudente : on part de compteurs vierges et on ne reprend que ce
+      // qui existe encore. Un mode ou une difficulté ajoutés plus tard
+      // démarrent proprement à zéro.
+      const fresh = emptyStats();
+      for (const key of ["turns", "clashes", "superShots", "firstPlayed", "lastPlayed"]) {
+        if (saved[key] !== undefined) fresh[key] = saved[key];
+      }
+      mergeGroup(fresh.byMode, saved.byMode);
+      mergeGroup(fresh.byDifficulty, saved.byDifficulty);
+      for (const key of Object.keys(fresh.byAction)) {
+        if (saved.byAction && typeof saved.byAction[key] === "number") {
+          fresh.byAction[key] = saved.byAction[key];
+        }
+      }
+      stats = fresh;
+    } catch (e) {
+      storageWorks = false;
+    }
+  }
+
+  function mergeGroup(target, saved) {
+    if (!saved) return;
+    for (const key of Object.keys(target)) {
+      if (saved[key]) Object.assign(target[key], saved[key]);
+    }
+  }
+
+  function save() {
+    if (!storageWorks) return;
+    try {
+      root.localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+    } catch (e) {
+      storageWorks = false;
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+   * Enregistrement des événements
+   * ---------------------------------------------------------------------------
+   * L'interface appelle ces fonctions au fil de la partie. Elles ne renvoient
+   * rien et ne doivent jamais lever d'erreur.
+   * ------------------------------------------------------------------------ */
+
+  function recordSessionStart(mode, difficulty) {
+    const now = new Date().toISOString();
+    if (!stats.firstPlayed) stats.firstPlayed = now;
+    stats.lastPlayed = now;
+    if (stats.byMode[mode]) stats.byMode[mode].sessions += 1;
+    if (stats.byDifficulty[difficulty]) stats.byDifficulty[difficulty].sessions += 1;
+    save();
+  }
+
+  function recordTurn(action, turnResult) {
+    stats.turns += 1;
+    if (stats.byAction[action] !== undefined) stats.byAction[action] += 1;
+    if (turnResult.resultA === "clash") stats.clashes += 1;
+    if (turnResult.resultA === "super_shot" || turnResult.resultB === "super_shot") {
+      stats.superShots += 1;
+    }
+    save();
+  }
+
+  function recordManche(difficulty, playerWon) {
+    const d = stats.byDifficulty[difficulty];
+    if (d) {
+      d.manchesPlayed += 1;
+      if (playerWon) d.manchesWon += 1;
+    }
+    save();
+  }
+
+  function recordDuel(mode, difficulty, playerWon) {
+    const m = stats.byMode[mode];
+    if (m) {
+      m.duelsPlayed += 1;
+      if (playerWon) m.duelsWon += 1;
+    }
+    const d = stats.byDifficulty[difficulty];
+    if (d) {
+      d.duelsPlayed += 1;
+      if (playerWon) d.duelsWon += 1;
+    }
+    save();
+  }
+
+  /**
+   * Enregistre une série d'arcade terminée.
+   * @returns {boolean} vrai s'il s'agit d'un nouveau record sur ce niveau
+   */
+  function recordStreak(difficulty, streak) {
+    const d = stats.byDifficulty[difficulty];
+    if (!d) return false;
+    const isRecord = streak > d.bestStreak;
+    if (isRecord) d.bestStreak = streak;
+    save();
+    return isRecord;
+  }
+
+  function bestStreak(difficulty) {
+    const d = stats.byDifficulty[difficulty];
+    return d ? d.bestStreak : 0;
+  }
+
+  function reset() {
+    stats = emptyStats();
+    try { root.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* sans importance */ }
+  }
+
+  /* ---------------------------------------------------------------------------
+   * Lecture
+   * ------------------------------------------------------------------------ */
+
+  function get() { return stats; }
+  function hasData() { return stats.turns > 0; }
+  function isPersistent() { return storageWorks; }
+
+  function percent(part, total) {
+    return total ? Math.round((part / total) * 100) : 0;
+  }
+
+  /** Résumé en texte brut, prêt à être collé dans un message. */
+  function toText() {
+    const s = stats;
+    const lines = [];
+    lines.push("DUELMINDS — statistiques de test");
+    if (s.firstPlayed) {
+      lines.push("Du " + s.firstPlayed.slice(0, 10) + " au " + (s.lastPlayed || "").slice(0, 10));
+    }
+    lines.push("");
+    lines.push("MODES");
+    for (const mode of MODES) {
+      const m = s.byMode[mode.key];
+      lines.push("  " + mode.label.padEnd(9) + String(m.sessions).padStart(4) + " parties · " +
+        m.duelsPlayed + " duels · " + percent(m.duelsWon, m.duelsPlayed) + " % gagnés");
+    }
+    lines.push("");
+    lines.push("DIFFICULTÉS");
+    for (const difficulty of DIFFICULTIES) {
+      const d = s.byDifficulty[difficulty.key];
+      lines.push("  " + difficulty.label.padEnd(10) +
+        percent(d.duelsWon, d.duelsPlayed) + " % de duels gagnés · " +
+        percent(d.manchesWon, d.manchesPlayed) + " % de manches · " +
+        "record arcade " + d.bestStreak);
+    }
+    lines.push("");
+    lines.push("ACTIONS   (" + s.turns + " tours joués)");
+    for (const action of ACTIONS) {
+      lines.push("  " + ACTION_LABEL[action].padEnd(10) +
+        String(s.byAction[action]).padStart(5) +
+        "  (" + percent(s.byAction[action], s.turns) + " %)");
+    }
+    lines.push("");
+    lines.push("  clashs      " + percent(s.clashes, s.turns) + " % des tours");
+    lines.push("  super tirs  " + s.superShots);
+    if (!storageWorks) {
+      lines.push("");
+      lines.push("(stockage indisponible : ces chiffres ne survivront pas à la fermeture)");
+    }
+    return lines.join("\n");
+  }
+
+  load();
+
+  DUELMINDS.stats = {
+    recordSessionStart, recordTurn, recordManche, recordDuel, recordStreak,
+    bestStreak, reset, get, hasData, isPersistent, percent, toText,
+  };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/telemetry.js ---------- */
+/* =============================================================================
+ * DUELMINDS — REMONTÉE DES PARTIES (optionnelle, désactivée par défaut)
+ * =============================================================================
+ *
+ * LE PROBLÈME QUE ÇA RÉSOUT
+ * `stats.js` compte les parties dans le navigateur de chaque joueur. Parfait
+ * pour qu'un testeur voie ses propres chiffres, mais ça ne remonte nulle part.
+ * Ce fichier envoie un résumé À LA FIN DE CHAQUE PARTIE, pour que tu récupères
+ * les données de tous tes testeurs au même endroit.
+ *
+ * POURQUOI C'EST DÉSACTIVÉ AU DÉPART
+ * Il faut une adresse qui reçoive les données. GitHub Pages ne sait QUE servir
+ * des fichiers : il n'exécute rien et ne stocke rien. Il faut donc un point de
+ * collecte extérieur — voir tools/google-apps-script.gs.
+ *
+ * CE QUI EST ENVOYÉ
+ *   - le MODE joué (duel ou arcade) et la DIFFICULTÉ
+ *   - le résultat, et pour l'arcade la longueur de la série
+ *   - le nombre de duels, manches, tours, clashs et super tirs
+ *   - la répartition des actions (charger / tirer / protéger)
+ *   - un identifiant ALÉATOIRE, tiré au sort au premier lancement, qui sert
+ *     uniquement à distinguer deux testeurs l'un de l'autre
+ *
+ * Aucun nom, aucune adresse, aucune position. Quand la remontée est active, la
+ * page l'annonce : on ne collecte pas de données sans le dire.
+ *
+ * DÉPENDANCES : rules.js
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+
+  /* ---------------------------------------------------------------------------
+   * ▼▼▼ LA SEULE LIGNE À MODIFIER ▼▼▼
+   * Colle ici l'adresse de ton application web Google Apps Script.
+   * Tant qu'elle est vide, rien n'est envoyé et la page n'annonce rien.
+   *
+   * Cette adresse est publique par nature (elle figure dans le code de la
+   * page). Ce n'est pas un secret : elle ne permet QUE d'ajouter une ligne,
+   * jamais de lire la feuille.
+   * ------------------------------------------------------------------------ */
+  const ENDPOINT = "";
+
+  const TESTER_KEY = "duelminds.tester.v1";
+
+  /** Identifiant de testeur : un nombre au hasard, généré une fois et gardé. */
+  function testerId() {
+    try {
+      let id = root.localStorage.getItem(TESTER_KEY);
+      if (!id) {
+        id = Math.random().toString(36).slice(2, 10);
+        root.localStorage.setItem(TESTER_KEY, id);
+      }
+      return id;
+    } catch (e) {
+      return "anonyme"; // navigation privée : on n'insiste pas
+    }
+  }
+
+  function isEnabled() {
+    return typeof ENDPOINT === "string" && ENDPOINT.length > 0;
+  }
+
+  /**
+   * Envoie le résumé d'une partie terminée.
+   *
+   * `sendBeacon` est privilégié : le navigateur se charge de l'envoi même si
+   * le joueur ferme l'onglet dans la seconde. En repli, un `fetch` en mode
+   * "no-cors" — on ne lit pas la réponse, mais les données arrivent.
+   *
+   * Aucune erreur ne remonte : une collecte qui échoue ne doit jamais gêner
+   * une partie.
+   */
+  function sendSession(payload) {
+    if (!isEnabled()) return;
+
+    const body = JSON.stringify(Object.assign({
+      tester: testerId(),
+      date: new Date().toISOString(),
+      version: DUELMINDS.VERSION || "web",
+    }, payload));
+
+    try {
+      if (root.navigator && root.navigator.sendBeacon) {
+        const blob = new Blob([body], { type: "text/plain;charset=utf-8" });
+        if (root.navigator.sendBeacon(ENDPOINT, blob)) return;
+      }
+      fetch(ENDPOINT, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: body,
+      }).catch(function () { /* sans importance */ });
+    } catch (e) {
+      /* la remontée est toujours facultative */
+    }
+  }
+
+  DUELMINDS.telemetry = { isEnabled, sendSession, testerId };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/ui.js ---------- */
+/* =============================================================================
+ * DUELMINDS — INTERFACE
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * Tout ce qui touche à l'écran : afficher l'état du duel, écouter les appuis,
+ * enchaîner les écrans. C'est le SEUL fichier qui manipule le DOM.
+ *
+ * Il ne contient aucune règle. Quand il a besoin de savoir si une action est
+ * permise ou qui gagne, il demande à combat.js et match.js.
+ *
+ * LES ÉCRANS
+ *
+ *     ACCUEIL ──(mode + difficulté)──> DUEL ──(manche jouée)──> ANNONCE
+ *        ^                              ^                          │
+ *        │                              └──(manche suivante)───────┤
+ *        └────────(fin de partie)───────────────────────────────────┘
+ *
+ *     RÈGLES et STATS : accessibles depuis l'accueil.
+ *
+ * LE DÉROULÉ D'UN TOUR
+ *   1. le joueur appuie sur une action
+ *   2. on verrouille les boutons — plus aucun appui n'est accepté
+ *   3. l'adversaire choisit, le moteur résout
+ *   4. les deux choix apparaissent EN MÊME TEMPS au centre, avec l'effet
+ *      correspondant : c'est la RÉVÉLATION
+ *   5. après une pause, tour suivant ou fin de manche
+ *
+ * La pause n'est pas décorative : sans elle, le joueur ne verrait jamais ce
+ * que l'adversaire a joué, et le jeu perdrait tout son sel.
+ *
+ * DÉPENDANCES : tous les autres modules
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+  const { RULES, ACTIONS, ACTION_LABEL, MODES, DIFFICULTIES } = DUELMINDS;
+  const { canDo, defenceCost, isSuperShot } = DUELMINDS.combat;
+  const { drawDuelist, drawEffect } = DUELMINDS.sprites;
+  const audio = DUELMINDS.audio;
+  const stats = DUELMINDS.stats;
+
+  /* Durées, en millisecondes. Assez long pour lire le coup adverse, assez
+   * court pour ne pas casser le rythme. */
+  const REVEAL_MS = 1250;
+  const EFFECT_MS = 620;
+
+  const state = {
+    mode: null,
+    difficulty: null,
+    session: null,
+    phase: "home",   // "home" | "choosing" | "revealing" | "announce"
+
+    // Effet en cours, dessiné sur le canvas de scène
+    effect: null,    // { kind, from, until }
+    flash: { player: 0, bot: 0 },
+
+    // Compteurs de la PARTIE en cours, pour la remontée
+    log: null,
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function newLog() {
+    return { turns: 0, clashes: 0, superShots: 0, duels: 0, manches: 0,
+             actions: { charge: 0, shoot: 0, defend: 0 } };
+  }
+
+  /* =========================================================================
+   * NAVIGATION
+   * ====================================================================== */
+  function showScreen(id) {
+    for (const section of document.querySelectorAll(".screen")) {
+      section.classList.toggle("on", section.id === id);
+    }
+  }
+
+  /* =========================================================================
+   * ÉCRAN D'ACCUEIL — choix du mode puis de la difficulté
+   * ====================================================================== */
+
+  function buildHome() {
+    const modeList = $("modes");
+    modeList.innerHTML = "";
+    for (const mode of MODES) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "choice";
+      button.dataset.mode = mode.key;
+      button.innerHTML =
+        "<span class='choice-title'>" + mode.label + "</span>" +
+        "<span class='choice-desc'>" + mode.blurb + "</span>";
+      button.addEventListener("click", () => selectMode(mode.key));
+      modeList.appendChild(button);
+    }
+
+    const difficultyList = $("difficulties");
+    difficultyList.innerHTML = "";
+    for (const difficulty of DIFFICULTIES) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "choice";
+      button.dataset.difficulty = difficulty.key;
+      button.style.setProperty("--accent", "var(" + difficulty.accent + ")");
+      button.innerHTML =
+        "<span class='choice-title'>" + difficulty.label + "</span>" +
+        "<span class='choice-desc'>" + difficulty.blurb + "</span>" +
+        "<span class='choice-record' data-record='" + difficulty.key + "'></span>";
+      button.addEventListener("click", () => selectDifficulty(difficulty.key));
+      difficultyList.appendChild(button);
+    }
+
+    refreshHome();
+  }
+
+  function selectMode(key) {
+    state.mode = key;
+    audio.play("click");
+    refreshHome();
+  }
+
+  function selectDifficulty(key) {
+    state.difficulty = key;
+    audio.play("click");
+    refreshHome();
+  }
+
+  /** Met à jour la sélection, les records affichés et le bouton de départ. */
+  function refreshHome() {
+    for (const button of document.querySelectorAll("[data-mode]")) {
+      button.classList.toggle("selected", button.dataset.mode === state.mode);
+    }
+    for (const button of document.querySelectorAll("[data-difficulty]")) {
+      button.classList.toggle("selected", button.dataset.difficulty === state.difficulty);
+    }
+
+    // Le record d'arcade ne veut rien dire en mode duel : on ne l'affiche
+    // que là où il a un sens.
+    for (const span of document.querySelectorAll("[data-record]")) {
+      const best = stats.bestStreak(span.dataset.record);
+      const show = state.mode === "arcade" && best > 0;
+      span.textContent = show ? "record " + best : "";
+    }
+
+    $("btn-start").disabled = !(state.mode && state.difficulty);
+  }
+
+  /* =========================================================================
+   * ÉCRAN DE RÈGLES — chiffres injectés depuis rules.js
+   * ====================================================================== */
+  function buildRules() {
+    $("rules-super").textContent = RULES.SUPER_SHOT_BULLETS;
+    $("rules-manches").textContent = RULES.MANCHES_TO_WIN;
+    $("rules-start").textContent = RULES.START_BULLETS;
+    $("rules-free").textContent = RULES.FREE_DEFENCE_RIGHT + 1;
+  }
+
+  /* =========================================================================
+   * LE DUEL
+   * ====================================================================== */
+
+  function startSession() {
+    state.session = DUELMINDS.match.createSession(state.mode, state.difficulty);
+    DUELMINDS.match.startManche(state.session);
+    state.phase = "choosing";
+    state.log = newLog();
+    state.effect = null;
+    state.flash.player = 0;
+    state.flash.bot = 0;
+
+    stats.recordSessionStart(state.mode, state.difficulty);
+
+    setLog(state.mode === "arcade"
+      ? "Mode arcade. Chaque duel gagné prolonge la série."
+      : "Premier à " + RULES.MANCHES_TO_WIN + " manches remporte le duel.");
+
+    renderDuel();
+    showScreen("screen-duel");
+  }
+
+  function setLog(text) { $("log").textContent = text; }
+
+  function renderDuel() {
+    const s = state.session;
+
+    // Bandeau : mode, difficulté, et série en cours si on est en arcade
+    const difficulty = DIFFICULTIES.find((d) => d.key === s.difficulty);
+    $("hud-mode").textContent = MODES.find((m) => m.key === s.mode).label;
+    $("hud-difficulty").textContent = difficulty.label;
+    $("hud-difficulty").style.setProperty("--accent", "var(" + difficulty.accent + ")");
+
+    const arcade = s.mode === "arcade";
+    $("hud-streak").hidden = !arcade;
+    if (arcade) {
+      $("streak-value").textContent = s.streak;
+      $("streak-best").textContent = stats.bestStreak(s.difficulty);
+    }
+
+    $("manche-number").textContent = s.mancheNumber;
+    renderScore($("score-me"), s.player.manchesWon);
+    renderScore($("score-bot"), s.bot.manchesWon);
+
+    renderDuelist("me", s.player);
+    renderDuelist("bot", s.bot);
+
+    // On DÉSACTIVE les actions interdites au lieu de les masquer : le joueur
+    // doit voir qu'il lui manque une balle, pas chercher le bouton.
+    const canAct = state.phase === "choosing";
+    for (const button of document.querySelectorAll(".action")) {
+      button.disabled = !canAct || !canDo(s.player, button.dataset.action);
+    }
+
+    // Le bouton de tir annonce quand le coup traversera la protection.
+    $("shoot-note").textContent = isSuperShot(s.player) ? "SUPER TIR" : "coûte 1 balle";
+    $("btn-shoot").classList.toggle("super", isSuperShot(s.player));
+
+    const cost = defenceCost(s.player);
+    $("defend-note").textContent = cost === 0 ? "gratuit" : "coûte " + cost + " balle";
+  }
+
+  function renderScore(container, won) {
+    container.innerHTML = "";
+    for (let i = 0; i < RULES.MANCHES_TO_WIN; i++) {
+      const pip = document.createElement("span");
+      pip.className = "pip" + (i < won ? " won" : "");
+      container.appendChild(pip);
+    }
+  }
+
+  /** Barillet : une pastille par balle. Bien plus lisible qu'un nombre. */
+  function renderDuelist(side, duelist) {
+    const prefix = side === "me" ? "me" : "bot";
+    $(prefix + "-bullets").innerHTML = "";
+
+    // On affiche au moins 4 emplacements pour que le seuil de super tir soit
+    // visible même quand le barillet est presque vide.
+    const slots = Math.max(RULES.SUPER_SHOT_BULLETS, duelist.bullets);
+    for (let i = 0; i < slots; i++) {
+      const bullet = document.createElement("span");
+      bullet.className = "bullet" + (i < duelist.bullets ? " loaded" : "") +
+        (i === RULES.SUPER_SHOT_BULLETS - 1 ? " threshold" : "");
+      $(prefix + "-bullets").appendChild(bullet);
+    }
+
+    const defends = duelist.consecutiveDefends;
+    $(prefix + "-guard").textContent = defends > 0 ? "protection ×" + defends : "";
+  }
+
+  /* ---------------------------------------------------------------------------
+   * LA SCÈNE — deux duellistes et les effets, sur des canvas
+   * ------------------------------------------------------------------------ */
+
+  function sceneZone() {
+    const canvas = $("effects");
+    return { x: 0, y: 0, width: canvas.width, height: canvas.height };
+  }
+
+  /** Redimensionne le canvas d'effets à la taille réelle de la scène. */
+  function resizeScene() {
+    const canvas = $("effects");
+    const box = canvas.parentElement.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.round(box.width));
+    canvas.height = Math.max(1, Math.round(box.height));
+  }
+
+  /* ---------------------------------------------------------------------------
+   * UN TOUR
+   * ------------------------------------------------------------------------ */
+
+  function onPlayerAction(action) {
+    const s = state.session;
+    if (state.phase !== "choosing" || !canDo(s.player, action)) return;
+
+    // Verrou immédiat : plus rien n'est cliquable jusqu'à la fin de la révélation
+    state.phase = "revealing";
+    for (const button of document.querySelectorAll(".action")) button.disabled = true;
+
+    const result = DUELMINDS.match.playTurn(s, action);
+    const turn = result.turn;
+
+    // Compteurs
+    state.log.turns += 1;
+    state.log.actions[action] += 1;
+    if (turn.resultA === "clash") state.log.clashes += 1;
+    if (turn.resultA === "super_shot" || turn.resultB === "super_shot") state.log.superShots += 1;
+    stats.recordTurn(action, turn);
+
+    showReveal(turn);
+    playTurnSound(turn);
+    renderDuel();
+    setLog(describeTurn(turn));
+
+    window.setTimeout(() => finishTurn(result), REVEAL_MS);
+  }
+
+  /** Affiche les deux choix côte à côte et déclenche l'effet visuel. */
+  function showReveal(turn) {
+    const band = $("reveal");
+    band.innerHTML = "";
+    band.appendChild(revealCard("Adversaire", turn.actionB, turn.resultB, "from-top"));
+    band.appendChild(revealCard("Toi", turn.actionA, turn.resultA, "from-bottom"));
+
+    // Un seul effet par tour : le plus marquant.
+    if (turn.resultA === "clash" && turn.resultB === "clash") {
+      triggerEffect("clash", "player");
+    } else if (turn.resultA === "super_shot") {
+      triggerEffect("super", "player");
+    } else if (turn.resultB === "super_shot") {
+      triggerEffect("super", "bot");
+    } else if (turn.actionA === "shoot") {
+      triggerEffect("shoot", "player");
+    } else if (turn.actionB === "shoot") {
+      triggerEffect("shoot", "bot");
+    } else if (turn.actionA === "defend" || turn.actionB === "defend") {
+      triggerEffect("defend", turn.actionA === "defend" ? "player" : "bot");
+    } else {
+      triggerEffect("charge", "player");
+    }
+
+    // L'éclat blanc marque qui vient d'être touché.
+    if (turn.winner === "a") state.flash.bot = 1;
+    if (turn.winner === "b") state.flash.player = 1;
+  }
+
+  function revealCard(who, action, result, animation) {
+    const card = document.createElement("div");
+    card.className = "reveal-card " + animation +
+      (result === "super_shot" ? " super" : "") +
+      (result === "clash" ? " clash" : "");
+    card.innerHTML =
+      "<span class='reveal-who'>" + who + "</span>" +
+      "<span class='reveal-action'>" + ACTION_LABEL[action] + "</span>" +
+      (result === "super_shot" ? "<span class='reveal-tag'>super tir</span>" : "") +
+      (result === "death" ? "<span class='reveal-tag'>impossible</span>" : "");
+    return card;
+  }
+
+  function triggerEffect(kind, from) {
+    state.effect = { kind, from, until: performance.now() + EFFECT_MS };
+  }
+
+  function playTurnSound(turn) {
+    if (turn.resultA === "clash" && turn.resultB === "clash") {
+      audio.play("clash"); audio.vibrate(25); return;
+    }
+    if (turn.resultA === "super_shot" || turn.resultB === "super_shot") {
+      audio.play("super"); audio.vibrate([40, 40, 80]); return;
+    }
+    if (turn.actionA === "shoot" || turn.actionB === "shoot") {
+      audio.play("shoot"); audio.vibrate(20); return;
+    }
+    if (turn.actionA === "defend" || turn.actionB === "defend") { audio.play("defend"); return; }
+    audio.play("charge");
+  }
+
+  function describeTurn(turn) {
+    const lines = ["Toi : " + ACTION_LABEL[turn.actionA] +
+                   "  ·  Adversaire : " + ACTION_LABEL[turn.actionB] + "."];
+    if (turn.reason) lines.push(turn.reason);
+    return lines.join(" ");
+  }
+
+  /* ---------------------------------------------------------------------------
+   * FIN DE TOUR : manche suivante, duel suivant, ou fin de partie
+   * ------------------------------------------------------------------------ */
+
+  function finishTurn(result) {
+    const s = state.session;
+
+    if (!result.mancheOver) {
+      state.phase = "choosing";
+      renderDuel();
+      return;
+    }
+
+    state.log.manches += 1;
+    const playerWonManche = result.turn.winner === "a";
+    stats.recordManche(s.difficulty, playerWonManche);
+    audio.play(playerWonManche ? "win" : "down");
+
+    if (!result.duelOver) {
+      // Manche suivante du même duel
+      announce(
+        playerWonManche ? "Manche gagnée" : "Manche perdue",
+        s.lastReason,
+        "Manche " + (s.mancheNumber),
+        () => {
+          DUELMINDS.match.startManche(s);
+          state.phase = "choosing";
+          renderDuel();
+          showScreen("screen-duel");
+        }
+      );
+      return;
+    }
+
+    // --- Le duel est joué ---
+    state.log.duels += 1;
+    const playerWonDuel = result.duelWinner === "a";
+    stats.recordDuel(s.mode, s.difficulty, playerWonDuel);
+    if (playerWonDuel) audio.play("victory");
+
+    if (!result.sessionOver) {
+      // Arcade : la série continue
+      announce(
+        "Duel remporté",
+        "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") + ". L'adversaire suivant arrive.",
+        "Duel " + (s.streak + 1),
+        () => {
+          DUELMINDS.match.startNextDuel(s);
+          state.phase = "choosing";
+          renderDuel();
+          showScreen("screen-duel");
+        }
+      );
+      return;
+    }
+
+    endSession(playerWonDuel);
+  }
+
+  /** Écran intermédiaire entre deux manches ou deux duels. */
+  function announce(title, detail, buttonLabel, onContinue) {
+    state.phase = "announce";
+    $("announce-title").textContent = title;
+    $("announce-detail").textContent = detail;
+    $("btn-announce").textContent = buttonLabel;
+    $("btn-announce").onclick = () => { audio.play("click"); onContinue(); };
+    showScreen("screen-announce");
+  }
+
+  /* ---------------------------------------------------------------------------
+   * FIN DE PARTIE
+   * ------------------------------------------------------------------------ */
+
+  function endSession(playerWonDuel) {
+    const s = state.session;
+    state.phase = "announce";
+
+    let title, detail;
+
+    if (s.mode === "arcade") {
+      const isRecord = stats.recordStreak(s.difficulty, s.streak);
+      title = s.streak === 0 ? "Série terminée" : "Série de " + s.streak;
+      detail = s.lastReason + " " +
+        (isRecord && s.streak > 0
+          ? "Nouveau record sur ce niveau."
+          : "Ton record ici est de " + stats.bestStreak(s.difficulty) + ".");
+    } else {
+      title = playerWonDuel ? "Duel remporté" : "Duel perdu";
+      detail = s.lastReason;
+    }
+
+    $("end-title").textContent = title;
+    $("end-detail").textContent = detail;
+
+    // Résumé chiffré de la partie
+    const summary = $("end-summary");
+    summary.innerHTML = "";
+    const rows = [
+      ["Mode", MODES.find((m) => m.key === s.mode).label],
+      ["Difficulté", DIFFICULTIES.find((d) => d.key === s.difficulty).label],
+      ["Duels joués", state.log.duels],
+      ["Manches", state.log.manches],
+      ["Tours", state.log.turns],
+      ["Clashs", state.log.clashes],
+      ["Super tirs", state.log.superShots],
+    ];
+    if (s.mode === "arcade") rows.splice(2, 0, ["Série", s.streak]);
+    for (const [label, value] of rows) {
+      const row = document.createElement("div");
+      row.className = "summary-row";
+      row.innerHTML = "<span>" + label + "</span><b class='num'>" + value + "</b>";
+      summary.appendChild(row);
+    }
+
+    reportSession(playerWonDuel);
+    showScreen("screen-end");
+  }
+
+  /** Remonte la partie vers le point de collecte, s'il y en a un. */
+  function reportSession(playerWonDuel) {
+    if (!DUELMINDS.telemetry || !DUELMINDS.telemetry.isEnabled()) return;
+    const s = state.session;
+    DUELMINDS.telemetry.sendSession({
+      mode: s.mode,
+      difficulty: s.difficulty,
+      result: s.mode === "arcade" ? "serie" : (playerWonDuel ? "victoire" : "defaite"),
+      streak: s.mode === "arcade" ? s.streak : "",
+      duels: state.log.duels,
+      manches: state.log.manches,
+      turns: state.log.turns,
+      clashes: state.log.clashes,
+      superShots: state.log.superShots,
+      actions: state.log.actions,
+    });
+  }
+
+  /* =========================================================================
+   * ÉCRAN DES STATISTIQUES
+   * ====================================================================== */
+
+  function renderStats() {
+    const s = stats.get();
+    const body = $("stats-body");
+
+    if (!stats.hasData()) {
+      body.innerHTML = "<p>Aucune partie jouée pour l'instant. Les compteurs se " +
+        "remplissent au fil des duels.</p>";
+      return;
+    }
+
+    const pct = stats.percent;
+
+    const modeRows = MODES.map((mode) => {
+      const m = s.byMode[mode.key];
+      return "<tr><td>" + mode.label + "</td><td class='n'>" + m.sessions + "</td>" +
+        "<td class='n'>" + m.duelsPlayed + "</td>" +
+        "<td class='n'>" + pct(m.duelsWon, m.duelsPlayed) + " %</td></tr>";
+    }).join("");
+
+    const difficultyRows = DIFFICULTIES.map((difficulty) => {
+      const d = s.byDifficulty[difficulty.key];
+      return "<tr><td>" + difficulty.label + "</td>" +
+        "<td class='n'>" + pct(d.duelsWon, d.duelsPlayed) + " %</td>" +
+        "<td class='n'>" + pct(d.manchesWon, d.manchesPlayed) + " %</td>" +
+        "<td class='n'>" + d.bestStreak + "</td></tr>";
+    }).join("");
+
+    const actionRows = ACTIONS.map((action) =>
+      "<tr><td>" + ACTION_LABEL[action] + "</td>" +
+      "<td class='n'>" + s.byAction[action] + "</td>" +
+      "<td class='n'>" + pct(s.byAction[action], s.turns) + " %</td></tr>").join("");
+
+    body.innerHTML =
+      "<h3>Modes</h3><div class='table-wrap'><table>" +
+        "<thead><tr><th>Mode</th><th class='n'>Parties</th><th class='n'>Duels</th>" +
+        "<th class='n'>Gagnés</th></tr></thead><tbody>" + modeRows + "</tbody></table></div>" +
+
+      "<h3>Difficultés</h3><div class='table-wrap'><table>" +
+        "<thead><tr><th>Niveau</th><th class='n'>Duels</th><th class='n'>Manches</th>" +
+        "<th class='n'>Record</th></tr></thead><tbody>" + difficultyRows + "</tbody></table></div>" +
+
+      "<h3>Tes actions</h3><div class='table-wrap'><table>" +
+        "<thead><tr><th>Action</th><th class='n'>Fois</th><th class='n'>Part</th></tr></thead>" +
+        "<tbody>" + actionRows + "</tbody></table></div>" +
+
+      "<h3>Mécaniques</h3><ul>" +
+        "<li><b>" + s.turns + "</b> tours joués</li>" +
+        "<li>" + pct(s.clashes, s.turns) + " % de clashs</li>" +
+        "<li><b>" + s.superShots + "</b> super tirs</li>" +
+      "</ul>" +
+
+      (stats.isPersistent()
+        ? "<p>Ces chiffres ne concernent que cet appareil et sont conservés entre deux sessions.</p>"
+        : "<p>Le stockage du navigateur est indisponible : ces chiffres seront perdus " +
+          "en fermant l'onglet.</p>");
+  }
+
+  /** `navigator.clipboard` n'existe pas partout : on prévoit un repli. */
+  function copyStats(button) {
+    const text = stats.toText();
+    const done = () => {
+      const original = button.textContent;
+      button.textContent = "Copié";
+      window.setTimeout(() => { button.textContent = original; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+
+  function fallbackCopy(text, done) {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    try { document.execCommand("copy"); done(); } catch (e) { /* rien à faire */ }
+    document.body.removeChild(area);
+  }
+
+  /* =========================================================================
+   * BOUCLE D'ANIMATION
+   * -------------------------------------------------------------------------
+   * Une seule boucle pour tout : la respiration des duellistes, l'effet en
+   * cours et l'éclat d'impact. Redessiner en continu coûte moins cher que de
+   * jongler avec des minuteurs, et reste fluide sur téléphone.
+   * ====================================================================== */
+
+  function loop(timestamp) {
+    if ($("screen-duel").classList.contains("on") && state.session) {
+      const s = state.session;
+
+      // Respiration : un pixel de haut en bas, en opposition entre les deux
+      const bob = Math.sin(timestamp / 520) > 0 ? 0 : 1;
+      drawDuelist($("me-sprite"), "player",
+        { bob, flash: state.flash.player, down: state.flash.player > 0.85 });
+      drawDuelist($("bot-sprite"), "bot",
+        { bob: 1 - bob, flash: state.flash.bot, down: state.flash.bot > 0.85 });
+
+      // L'éclat s'estompe tout seul
+      state.flash.player = Math.max(0, state.flash.player - 0.02);
+      state.flash.bot = Math.max(0, state.flash.bot - 0.02);
+
+      // Effet en cours
+      const canvas = $("effects");
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (state.effect) {
+        const life = (state.effect.until - timestamp) / EFFECT_MS;
+        if (life <= 0) state.effect = null;
+        else drawEffect(ctx, state.effect.kind, life, sceneZone(), state.effect.from);
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+
+  /* =========================================================================
+   * DÉMARRAGE
+   * ====================================================================== */
+  function init() {
+    buildHome();
+    buildRules();
+
+    // On ne collecte jamais de données sans le dire.
+    if (DUELMINDS.telemetry && DUELMINDS.telemetry.isEnabled()) {
+      $("privacy-note").hidden = false;
+    }
+
+    for (const button of document.querySelectorAll(".action")) {
+      button.addEventListener("click", () => onPlayerAction(button.dataset.action));
+    }
+
+    $("btn-start").addEventListener("click", () => { audio.play("click"); startSession(); });
+    $("btn-quit").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
+    $("btn-again").addEventListener("click", () => { audio.play("click"); startSession(); });
+    $("btn-home").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
+
+    $("btn-rules").addEventListener("click", () => showScreen("screen-rules"));
+    $("btn-rules-back").addEventListener("click", () => showScreen("screen-home"));
+    $("btn-stats").addEventListener("click", () => { renderStats(); showScreen("screen-stats"); });
+    $("btn-stats-back").addEventListener("click", () => showScreen("screen-home"));
+    $("btn-stats-copy").addEventListener("click", (e) => copyStats(e.currentTarget));
+    $("btn-stats-reset").addEventListener("click", () => { stats.reset(); renderStats(); refreshHome(); });
+
+    window.addEventListener("resize", resizeScene);
+    resizeScene();
+    requestAnimationFrame(loop);
+  }
+
+  DUELMINDS.ui = { init, state };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/main.js ---------- */
+/* =============================================================================
+ * DUELMINDS — DÉMARRAGE
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * Le point d'entrée, et rien d'autre. Il vérifie que tous les modules sont
+ * chargés, puis lance l'interface.
+ *
+ * Ce fichier doit rester le dernier chargé par index.html.
+ *
+ * DÉPENDANCES : tous les autres modules
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = root.DUELMINDS;
+
+  /* Un oubli dans l'ordre des <script> d'index.html produirait sinon une
+   * erreur obscure au premier clic. Mieux vaut échouer tout de suite, en
+   * expliquant ce qui manque. */
+  const REQUIRED = ["RULES", "ACTIONS", "DIFFICULTIES", "MODES",
+                    "combat", "ai", "match", "sprites", "audio", "stats", "telemetry", "ui"];
+
+  function start() {
+    if (!DUELMINDS) {
+      throw new Error("DuelMinds : aucun module chargé. Vérifie les <script> d'index.html.");
+    }
+
+    const missing = REQUIRED.filter((name) => !DUELMINDS[name]);
+    if (missing.length) {
+      throw new Error(
+        "DuelMinds : module(s) manquant(s) — " + missing.join(", ") +
+        ". Vérifie l'ordre des <script> dans index.html."
+      );
+    }
+
+    DUELMINDS.ui.init();
+  }
+
+  // Nos scripts sont classiques, pas différés : on attend que le DOM soit prêt
+  // avant de chercher les éléments par leur id.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start);
+  } else {
+    start();
+  }
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+</script>
+</body>
+</html>
