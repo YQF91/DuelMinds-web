@@ -75,6 +75,12 @@
      * Nombre de duels à enchaîner avant que le compteur ne s'affole. Purement
      * indicatif : il n'y a pas de limite réelle, on joue jusqu'à la défaite. */
     ARCADE_MILESTONE: 10,
+
+    /* --- Mode blitz ---
+     * Secondes pour choisir. Passé ce délai, une action est jouée au hasard
+     * parmi celles qui sont permises : ne rien décider est aussi une décision,
+     * et elle se paie. */
+    BLITZ_SECONDS: 5,
   };
 
   /* ---------------------------------------------------------------------------
@@ -106,7 +112,11 @@
       key: "extreme",
       label: "Extrême",
       accent: "--hard",
-      blurb: "Cherche la faille, refuse de se répéter et punit la moindre habitude.",
+      blurb: "Cherche la faille, punit la moindre habitude — et tu ne vois plus ses balles.",
+      /* À ce niveau, le compteur de l'adversaire disparaît : il faut suivre
+       * ses balles de tête. C'est la préparation du futur mode classé, où
+       * personne ne verra le barillet d'en face. */
+      hidesBullets: true,
     },
   ];
 
@@ -127,7 +137,27 @@
       label: "Arcade",
       blurb: "Enchaîne les duels. Combien en gagnes-tu d'affilée avant de tomber ?",
     },
+    {
+      key: "blitz",
+      label: "Blitz",
+      blurb: "Cinq secondes pour choisir, sinon le hasard décide à ta place. Duels enchaînés.",
+      /* Le blitz est une série, comme l'arcade : c'est le nombre de duels
+       * enchaînés qui fait le score. */
+      isStreak: true,
+      timed: true,
+    },
+    {
+      key: "classe",
+      label: "Classé",
+      blurb: "Les balles adverses sont cachées, quel que soit l'adversaire. Le vrai duel.",
+      isStreak: true,
+      hidesBullets: true,
+    },
   ];
+
+  /* Le mode arcade est aussi une série : on le marque ici plutôt que de tester
+   * son nom un peu partout dans le code. */
+  MODES[1].isStreak = true;
 
   /* ---------------------------------------------------------------------------
    * 5. LES DUELLISTES

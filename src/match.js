@@ -141,18 +141,19 @@
     session.duelsPlayed += 1;
 
     // --- La session est-elle finie ? ---
-    if (session.mode === "duel") {
-      // Un seul duel : on s'arrête quel que soit le résultat.
+    /* Un mode « série » (arcade, blitz, classé) enchaîne les duels tant qu'on
+     * gagne ; les autres s'arrêtent après un seul affrontement. */
+    const mode = DUELMINDS.MODES.find((m) => m.key === session.mode);
+    const isStreak = !!(mode && mode.isStreak);
+
+    if (!isStreak) {
       out.sessionOver = true;
       session.over = true;
+    } else if (playerWon) {
+      session.streak += 1;
     } else {
-      // Arcade : gagner prolonge la série, perdre y met fin.
-      if (playerWon) {
-        session.streak += 1;
-      } else {
-        out.sessionOver = true;
-        session.over = true;
-      }
+      out.sessionOver = true;
+      session.over = true;
     }
 
     return out;
@@ -160,7 +161,9 @@
 
   /** Score de la session, tel qu'il sera affiché et enregistré. */
   function sessionScore(session) {
-    return session.mode === "arcade" ? session.streak : (session.player.manchesWon >= RULES.MANCHES_TO_WIN ? 1 : 0);
+    const mode = DUELMINDS.MODES.find((m) => m.key === session.mode);
+    if (mode && mode.isStreak) return session.streak;
+    return session.player.manchesWon >= RULES.MANCHES_TO_WIN ? 1 : 0;
   }
 
   DUELMINDS.match = { createSession, startManche, startNextDuel, playTurn, sessionScore };

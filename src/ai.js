@@ -51,9 +51,15 @@
    * Le niveau extrême a besoin de se souvenir d'une manche à l'autre. Plutôt
    * que d'alourdir le duelliste, on lui attache une mémoire à part.
    * ------------------------------------------------------------------------ */
-  function makeBrain(difficulty) {
+  /**
+   * @param {string} difficulty
+   * @param {boolean} blind  si vrai, l'IA n'a pas accès au barillet du joueur
+   *                         et doit l'estimer, comme le joueur le fait d'elle
+   */
+  function makeBrain(difficulty, blind) {
     return {
       difficulty,
+      blind: !!blind,
       opponentHistory: [], // copie de l'historique du joueur
       usedPatterns: [],    // empreintes de situations déjà rencontrées
       turnCount: 0,        // numéro du tour dans la manche
@@ -87,9 +93,19 @@
 
     brain.turnCount += 1;
 
+    /* SYMÉTRIE DE L'INFORMATION.
+     * Quand le jeu cache les balles de l'IA au joueur, il serait malhonnête
+     * que l'IA, elle, lise le barillet du joueur. Dans ce cas elle n'a droit
+     * qu'à son ESTIMATION, calculée à partir des coups observés — exactement
+     * ce que le joueur doit faire de son côté.
+     * On lui présente donc un adversaire « flouté ». */
+    const seen = brain.blind
+      ? Object.assign({}, opponent, { bullets: estimateBullets(brain.opponentHistory) })
+      : opponent;
+
     switch (brain.difficulty) {
-      case "difficile": return decideHard(brain, self, opponent);
-      case "extreme":   return decideExtreme(brain, self, opponent);
+      case "difficile": return decideHard(brain, self, seen);
+      case "extreme":   return decideExtreme(brain, self, seen);
       default:          return decideEasy(self);
     }
   }

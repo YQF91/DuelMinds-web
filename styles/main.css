@@ -458,6 +458,39 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 @keyframes slide-from-left  { from { transform: translateX(-40px); opacity: 0; } }
 @keyframes slide-from-right { from { transform: translateX(40px);  opacity: 0; } }
 
+/* --- Chronomètre du mode blitz ---
+   Une barre qui se vide en haut de l'arène. Volontairement sans chiffres :
+   on doit la percevoir du coin de l'œil sans quitter le duel des yeux. */
+.timer {
+  position: absolute;
+  left: 10px; right: 10px; bottom: 8px;
+  height: 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ground) 70%, transparent);
+  overflow: hidden;
+}
+.timer[hidden] { display: none; }
+.timer-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--brass);
+  transform-origin: left center;
+  transition: none;
+}
+/* Dernière seconde : la barre vire au rouge et pulse. */
+.timer-bar.urgent {
+  background: var(--rust);
+  animation: throb .35s ease-in-out infinite;
+}
+
+/* Balles cachées : on montre qu'il y a une information, mais pas laquelle. */
+.bullets.hidden-count {
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: .22em;
+  color: var(--dim);
+}
+
 /* --- Panneaux d'information, sous chaque côté --- */
 .panels {
   display: grid;

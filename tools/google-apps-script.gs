@@ -89,6 +89,8 @@
 var COLUMNS = [
   "date", "testeur", "version",
   "mode", "difficulte", "resultat", "serie",
+  "ballesCachees",   // 1 si le joueur ne voyait pas le barillet adverse
+  "tempsEcoule",     // mode blitz : nombre de fois où le chrono a decide
   "duels", "manches", "tours", "toursParManche",
   "clashs", "superTirs",
   "charger", "tirer", "proteger",
@@ -118,6 +120,8 @@ function doPost(e) {
       data.difficulty || "",
       data.result || "",
       data.streak === "" || data.streak === undefined ? "" : data.streak,
+      data.hiddenBullets === undefined ? "" : data.hiddenBullets,
+      data.timedOut === undefined ? "" : data.timedOut,
       data.duels, data.manches, data.turns,
       data.manches ? Math.round((data.turns / data.manches) * 10) / 10 : "",
       data.clashes, data.superShots,

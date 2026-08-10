@@ -129,6 +129,11 @@
       <!-- Effets (balles, protections, clashs) : couvre toute l'arène -->
       <canvas class="effects" id="effects" aria-hidden="true"></canvas>
 
+      <!-- Chronomètre du mode blitz. Masqué dans les autres modes. -->
+      <div class="timer" id="timer" hidden>
+        <div class="timer-bar" id="timer-bar"></div>
+      </div>
+
       <!-- LA RÉVÉLATION — les deux choix simultanés apparaissent au centre -->
       <div class="reveal" id="reveal" aria-live="polite">
         <p class="hint">Vous choisissez en même temps.<br>Il ne voit pas ton coup.</p>
@@ -259,7 +264,26 @@
         <li><b>Arcade</b> — les duels s'enchaînent. Chaque victoire prolonge ta
             série, la première défaite y met fin. Ton meilleur score est
             conservé par niveau de difficulté.</li>
+        <li><b>Blitz</b> — arcade, mais avec <b>5 secondes</b> pour choisir.
+            Passé le délai, une action permise est jouée au hasard : ne pas
+            décider est aussi une décision, et elle se paie.</li>
+        <li><b>Classé</b> — arcade, mais <b>tu ne vois plus les balles de
+            l'adversaire</b>. Il faut les suivre de tête. C'est le mode qui
+            préfigure le PVP.</li>
       </ul>
+
+      <h3>L'information cachée</h3>
+      <p>
+        En <b>Classé</b>, et face à l'adversaire <b>Extrême</b>, le barillet
+        d'en face est remplacé par des points d'interrogation. À toi de compter :
+        il commence à 1 balle, en gagne une à chaque charge, en dépense une à
+        chaque tir, et une de plus à partir de sa 3<sup>e</sup> protection
+        d'affilée.
+      </p>
+      <p>
+        L'IA joue à la même enseigne : quand tu ne vois pas ses balles, elle ne
+        voit pas les tiennes non plus et doit les estimer comme toi.
+      </p>
 
       <h3>Les personnages</h3>
       <p>

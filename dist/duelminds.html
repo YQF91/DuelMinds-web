@@ -474,6 +474,39 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 @keyframes slide-from-left  { from { transform: translateX(-40px); opacity: 0; } }
 @keyframes slide-from-right { from { transform: translateX(40px);  opacity: 0; } }
 
+/* --- Chronomètre du mode blitz ---
+   Une barre qui se vide en haut de l'arène. Volontairement sans chiffres :
+   on doit la percevoir du coin de l'œil sans quitter le duel des yeux. */
+.timer {
+  position: absolute;
+  left: 10px; right: 10px; bottom: 8px;
+  height: 5px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ground) 70%, transparent);
+  overflow: hidden;
+}
+.timer[hidden] { display: none; }
+.timer-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--brass);
+  transform-origin: left center;
+  transition: none;
+}
+/* Dernière seconde : la barre vire au rouge et pulse. */
+.timer-bar.urgent {
+  background: var(--rust);
+  animation: throb .35s ease-in-out infinite;
+}
+
+/* Balles cachées : on montre qu'il y a une information, mais pas laquelle. */
+.bullets.hidden-count {
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: .22em;
+  color: var(--dim);
+}
+
 /* --- Panneaux d'information, sous chaque côté --- */
 .panels {
   display: grid;
@@ -771,6 +804,11 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       <!-- Effets (balles, protections, clashs) : couvre toute l'arène -->
       <canvas class="effects" id="effects" aria-hidden="true"></canvas>
 
+      <!-- Chronomètre du mode blitz. Masqué dans les autres modes. -->
+      <div class="timer" id="timer" hidden>
+        <div class="timer-bar" id="timer-bar"></div>
+      </div>
+
       <!-- LA RÉVÉLATION — les deux choix simultanés apparaissent au centre -->
       <div class="reveal" id="reveal" aria-live="polite">
         <p class="hint">Vous choisissez en même temps.<br>Il ne voit pas ton coup.</p>
@@ -901,7 +939,26 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
         <li><b>Arcade</b> — les duels s'enchaînent. Chaque victoire prolonge ta
             série, la première défaite y met fin. Ton meilleur score est
             conservé par niveau de difficulté.</li>
+        <li><b>Blitz</b> — arcade, mais avec <b>5 secondes</b> pour choisir.
+            Passé le délai, une action permise est jouée au hasard : ne pas
+            décider est aussi une décision, et elle se paie.</li>
+        <li><b>Classé</b> — arcade, mais <b>tu ne vois plus les balles de
+            l'adversaire</b>. Il faut les suivre de tête. C'est le mode qui
+            préfigure le PVP.</li>
       </ul>
+
+      <h3>L'information cachée</h3>
+      <p>
+        En <b>Classé</b>, et face à l'adversaire <b>Extrême</b>, le barillet
+        d'en face est remplacé par des points d'interrogation. À toi de compter :
+        il commence à 1 balle, en gagne une à chaque charge, en dépense une à
+        chaque tir, et une de plus à partir de sa 3<sup>e</sup> protection
+        d'affilée.
+      </p>
+      <p>
+        L'IA joue à la même enseigne : quand tu ne vois pas ses balles, elle ne
+        voit pas les tiennes non plus et doit les estimer comme toi.
+      </p>
 
       <h3>Les personnages</h3>
       <p>
@@ -1025,6 +1082,12 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
      * Nombre de duels à enchaîner avant que le compteur ne s'affole. Purement
      * indicatif : il n'y a pas de limite réelle, on joue jusqu'à la défaite. */
     ARCADE_MILESTONE: 10,
+
+    /* --- Mode blitz ---
+     * Secondes pour choisir. Passé ce délai, une action est jouée au hasard
+     * parmi celles qui sont permises : ne rien décider est aussi une décision,
+     * et elle se paie. */
+    BLITZ_SECONDS: 5,
   };
 
   /* ---------------------------------------------------------------------------
@@ -1056,7 +1119,11 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       key: "extreme",
       label: "Extrême",
       accent: "--hard",
-      blurb: "Cherche la faille, refuse de se répéter et punit la moindre habitude.",
+      blurb: "Cherche la faille, punit la moindre habitude — et tu ne vois plus ses balles.",
+      /* À ce niveau, le compteur de l'adversaire disparaît : il faut suivre
+       * ses balles de tête. C'est la préparation du futur mode classé, où
+       * personne ne verra le barillet d'en face. */
+      hidesBullets: true,
     },
   ];
 
@@ -1077,7 +1144,27 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       label: "Arcade",
       blurb: "Enchaîne les duels. Combien en gagnes-tu d'affilée avant de tomber ?",
     },
+    {
+      key: "blitz",
+      label: "Blitz",
+      blurb: "Cinq secondes pour choisir, sinon le hasard décide à ta place. Duels enchaînés.",
+      /* Le blitz est une série, comme l'arcade : c'est le nombre de duels
+       * enchaînés qui fait le score. */
+      isStreak: true,
+      timed: true,
+    },
+    {
+      key: "classe",
+      label: "Classé",
+      blurb: "Les balles adverses sont cachées, quel que soit l'adversaire. Le vrai duel.",
+      isStreak: true,
+      hidesBullets: true,
+    },
   ];
+
+  /* Le mode arcade est aussi une série : on le marque ici plutôt que de tester
+   * son nom un peu partout dans le code. */
+  MODES[1].isStreak = true;
 
   /* ---------------------------------------------------------------------------
    * 5. LES DUELLISTES
@@ -1421,9 +1508,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * Le niveau extrême a besoin de se souvenir d'une manche à l'autre. Plutôt
    * que d'alourdir le duelliste, on lui attache une mémoire à part.
    * ------------------------------------------------------------------------ */
-  function makeBrain(difficulty) {
+  /**
+   * @param {string} difficulty
+   * @param {boolean} blind  si vrai, l'IA n'a pas accès au barillet du joueur
+   *                         et doit l'estimer, comme le joueur le fait d'elle
+   */
+  function makeBrain(difficulty, blind) {
     return {
       difficulty,
+      blind: !!blind,
       opponentHistory: [], // copie de l'historique du joueur
       usedPatterns: [],    // empreintes de situations déjà rencontrées
       turnCount: 0,        // numéro du tour dans la manche
@@ -1457,9 +1550,19 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     brain.turnCount += 1;
 
+    /* SYMÉTRIE DE L'INFORMATION.
+     * Quand le jeu cache les balles de l'IA au joueur, il serait malhonnête
+     * que l'IA, elle, lise le barillet du joueur. Dans ce cas elle n'a droit
+     * qu'à son ESTIMATION, calculée à partir des coups observés — exactement
+     * ce que le joueur doit faire de son côté.
+     * On lui présente donc un adversaire « flouté ». */
+    const seen = brain.blind
+      ? Object.assign({}, opponent, { bullets: estimateBullets(brain.opponentHistory) })
+      : opponent;
+
     switch (brain.difficulty) {
-      case "difficile": return decideHard(brain, self, opponent);
-      case "extreme":   return decideExtreme(brain, self, opponent);
+      case "difficile": return decideHard(brain, self, seen);
+      case "extreme":   return decideExtreme(brain, self, seen);
       default:          return decideEasy(self);
     }
   }
@@ -1824,18 +1927,19 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     session.duelsPlayed += 1;
 
     // --- La session est-elle finie ? ---
-    if (session.mode === "duel") {
-      // Un seul duel : on s'arrête quel que soit le résultat.
+    /* Un mode « série » (arcade, blitz, classé) enchaîne les duels tant qu'on
+     * gagne ; les autres s'arrêtent après un seul affrontement. */
+    const mode = DUELMINDS.MODES.find((m) => m.key === session.mode);
+    const isStreak = !!(mode && mode.isStreak);
+
+    if (!isStreak) {
       out.sessionOver = true;
       session.over = true;
+    } else if (playerWon) {
+      session.streak += 1;
     } else {
-      // Arcade : gagner prolonge la série, perdre y met fin.
-      if (playerWon) {
-        session.streak += 1;
-      } else {
-        out.sessionOver = true;
-        session.over = true;
-      }
+      out.sessionOver = true;
+      session.over = true;
     }
 
     return out;
@@ -1843,7 +1947,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
   /** Score de la session, tel qu'il sera affiché et enregistré. */
   function sessionScore(session) {
-    return session.mode === "arcade" ? session.streak : (session.player.manchesWon >= RULES.MANCHES_TO_WIN ? 1 : 0);
+    const mode = DUELMINDS.MODES.find((m) => m.key === session.mode);
+    if (mode && mode.isStreak) return session.streak;
+    return session.player.manchesWon >= RULES.MANCHES_TO_WIN ? 1 : 0;
   }
 
   DUELMINDS.match = { createSession, startManche, startNextDuel, playTurn, sessionScore };
@@ -3056,7 +3162,30 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     // Compteurs de la PARTIE en cours, pour la remontée
     log: null,
+
+    /* Mode blitz : instant limite pour choisir. `null` hors blitz. */
+    deadline: null,
+    timedOut: 0,   // nombre de fois où le temps a décidé à la place du joueur
   };
+
+  /** Le barillet adverse est-il caché ? Le mode OU la difficulté peuvent l'exiger. */
+  function bulletsHidden() {
+    const mode = MODES.find((m) => m.key === state.mode);
+    const difficulty = DIFFICULTIES.find((d) => d.key === state.difficulty);
+    return !!((mode && mode.hidesBullets) || (difficulty && difficulty.hidesBullets));
+  }
+
+  /** Le mode impose-t-il un chronomètre ? */
+  function isTimed() {
+    const mode = MODES.find((m) => m.key === state.mode);
+    return !!(mode && mode.timed);
+  }
+
+  /** Le mode enchaîne-t-il les duels ? */
+  function isStreakMode() {
+    const mode = MODES.find((m) => m.key === state.mode);
+    return !!(mode && mode.isStreak);
+  }
 
   const $ = (id) => document.getElementById(id);
 
@@ -3233,11 +3362,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     stats.recordSessionStart(state.mode, state.difficulty);
 
-    setLog(state.mode === "arcade"
-      ? "Mode arcade. Chaque duel gagné prolonge la série."
-      : "Premier à " + RULES.MANCHES_TO_WIN + " manches remporte le duel.");
+    const intro = [];
+    if (isStreakMode()) intro.push("Chaque duel gagné prolonge la série.");
+    else intro.push("Premier à " + RULES.MANCHES_TO_WIN + " manches remporte le duel.");
+    if (isTimed()) intro.push(RULES.BLITZ_SECONDS + " secondes pour choisir.");
+    if (bulletsHidden()) intro.push("Les balles adverses sont cachées : compte-les.");
+    setLog(intro.join(" "));
 
     renderDuel();
+    startTimer();
     showScreen("screen-duel");
   }
 
@@ -3252,7 +3385,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     $("hud-difficulty").textContent = difficulty.label;
     $("hud-difficulty").style.setProperty("--accent", "var(" + difficulty.accent + ")");
 
-    const arcade = s.mode === "arcade";
+    const arcade = isStreakMode();
     $("hud-streak").hidden = !arcade;
     if (arcade) {
       $("streak-value").textContent = s.streak;
@@ -3300,7 +3433,21 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   /** Barillet : une pastille par balle. Bien plus lisible qu'un nombre. */
   function renderDuelist(side, duelist) {
     const prefix = side === "me" ? "me" : "bot";
-    $(prefix + "-bullets").innerHTML = "";
+    const slot = $(prefix + "-bullets");
+    slot.innerHTML = "";
+    slot.classList.remove("hidden-count");
+
+    /* Le barillet de l'ADVERSAIRE peut être masqué : c'est tout l'intérêt des
+     * modes Classé et Extrême. On n'affiche pas un vide — on affiche des points
+     * d'interrogation, pour que le joueur sache qu'il y a une information à
+     * suivre plutôt que de croire à un bogue. */
+    if (side === "bot" && bulletsHidden()) {
+      slot.classList.add("hidden-count");
+      slot.textContent = "? ? ? ?";
+      $(prefix + "-guard").textContent =
+        duelist.consecutiveDefends > 0 ? "protection ×" + duelist.consecutiveDefends : "";
+      return;
+    }
 
     // On affiche au moins 4 emplacements pour que le seuil de super tir soit
     // visible même quand le barillet est presque vide.
@@ -3337,9 +3484,37 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * UN TOUR
    * ------------------------------------------------------------------------ */
 
+  /** Lance le compte à rebours du tour, en mode blitz uniquement. */
+  function startTimer() {
+    if (!isTimed()) { $("timer").hidden = true; state.deadline = null; return; }
+    $("timer").hidden = false;
+    state.deadline = performance.now() + RULES.BLITZ_SECONDS * 1000;
+  }
+
+  function stopTimer() {
+    state.deadline = null;
+    $("timer").hidden = !isTimed();
+    if (isTimed()) $("timer-bar").style.transform = "scaleX(1)";
+    $("timer-bar").classList.remove("urgent");
+  }
+
+  /**
+   * Le temps est écoulé : on joue à la place du joueur, au hasard parmi les
+   * actions permises. Ne pas décider est une décision, et elle se paie.
+   */
+  function onTimeout() {
+    const s = state.session;
+    if (state.phase !== "choosing") return;
+    const options = DUELMINDS.combat.legalActions(s.player);
+    state.timedOut += 1;
+    audio.play("clash", 0.35);
+    onPlayerAction(options[Math.floor(Math.random() * options.length)]);
+  }
+
   function onPlayerAction(action) {
     const s = state.session;
     if (state.phase !== "choosing" || !canDo(s.player, action)) return;
+    stopTimer();
 
     // Verrou immédiat : plus rien n'est cliquable jusqu'à la fin de la révélation
     state.phase = "revealing";
@@ -3483,6 +3658,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     if (!result.mancheOver) {
       state.phase = "choosing";
       renderDuel();
+      startTimer();
       return;
     }
 
@@ -3503,6 +3679,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
           setPose("bot", "idle");
           state.phase = "choosing";
           renderDuel();
+          startTimer();
           showScreen("screen-duel");
         }
       );
@@ -3527,6 +3704,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
           setPose("bot", "idle");
           state.phase = "choosing";
           renderDuel();
+          startTimer();
           showScreen("screen-duel");
         }
       );
@@ -3556,7 +3734,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     let title, detail;
 
-    if (s.mode === "arcade") {
+    if (isStreakMode()) {
       const isRecord = stats.recordStreak(s.difficulty, s.streak);
       title = s.streak === 0 ? "Série terminée" : "Série de " + s.streak;
       detail = s.lastReason + " " +
@@ -3583,7 +3761,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       ["Clashs", state.log.clashes],
       ["Super tirs", state.log.superShots],
     ];
-    if (s.mode === "arcade") rows.splice(2, 0, ["Série", s.streak]);
+    if (isStreakMode()) rows.splice(2, 0, ["Série", s.streak]);
+    if (isTimed()) rows.push(["Temps écoulé", state.timedOut + " fois"]);
     for (const [label, value] of rows) {
       const row = document.createElement("div");
       row.className = "summary-row";
@@ -3602,8 +3781,10 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     DUELMINDS.telemetry.sendSession({
       mode: s.mode,
       difficulty: s.difficulty,
-      result: s.mode === "arcade" ? "serie" : (playerWonDuel ? "victoire" : "defaite"),
-      streak: s.mode === "arcade" ? s.streak : "",
+      result: isStreakMode() ? "serie" : (playerWonDuel ? "victoire" : "defaite"),
+      streak: isStreakMode() ? s.streak : "",
+      timedOut: state.timedOut,
+      hiddenBullets: bulletsHidden() ? 1 : 0,
       duels: state.log.duels,
       manches: state.log.manches,
       turns: state.log.turns,
@@ -3735,6 +3916,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
   function loop(timestamp) {
     if ($("screen-duel").classList.contains("on") && state.session) {
+      // Chronomètre du blitz : la barre se vide, puis le hasard tranche.
+      if (state.deadline && state.phase === "choosing") {
+        const left = state.deadline - timestamp;
+        const ratio = Math.max(0, left / (RULES.BLITZ_SECONDS * 1000));
+        $("timer-bar").style.transform = "scaleX(" + ratio + ")";
+        $("timer-bar").classList.toggle("urgent", ratio < 0.25);
+        if (left <= 0) { state.deadline = null; onTimeout(); }
+      }
+
       const s = state.session;
 
       // Respiration : un pixel de haut en bas, en opposition entre les deux
