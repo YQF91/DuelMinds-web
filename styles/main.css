@@ -214,6 +214,53 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   letter-spacing: .04em;
 }
 
+
+/* --- Sélecteur de personnage ---
+   Une grille de portraits. Tant qu'un PNG manque, la case affiche l'initiale
+   du personnage : on voit d'un coup d'oeil ce qui reste a dessiner. */
+.roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 6px;
+}
+.roster-slot {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  cursor: pointer;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: background .15s ease, border-color .15s ease;
+  touch-action: manipulation;
+  position: relative;
+  overflow: hidden;
+}
+.roster-slot:hover { background: var(--panel-2); }
+.roster-slot.selected { border-color: var(--brass); background: color-mix(in srgb, var(--brass) 16%, var(--panel)); }
+.roster-slot img { width: 100%; height: 100%; object-fit: contain; }
+/* Repli quand l'image n'existe pas encore */
+.roster-slot .initial {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--dim);
+}
+.roster-slot.selected .initial { color: var(--brass); }
+.roster-name {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 1px 2px;
+  font-size: 8px;
+  text-align: center;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--ground) 80%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.roster-note { text-align: left; margin-top: 6px; }
+
 /* =============================================================================
  * 6. ÉCRAN DE DUEL
  * ========================================================================== */
@@ -253,46 +300,188 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 #streak-value { font-size: 22px; font-weight: 700; color: var(--brass); }
 .streak-best { font-size: 10px; color: var(--dim); }
 
-/* --- La scène --- */
-.scene {
+/* --- L'ARÈNE ---
+   Les deux duellistes se font face horizontalement, chacun sur sa plateforme,
+   comme dans un combat Fire Emblem. Le positionnement est absolu : les
+   personnages ne bougent jamais, seuls les effets traversent l'espace. */
+.arena {
   position: relative;
   flex: 1;
-  min-height: 260px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 12px;
-  border-radius: var(--radius);
+  min-height: 230px;
+  border-radius: var(--radius) var(--radius) 0 0;
   border: 1px solid var(--line);
+  border-bottom: none;
   /* Un ciel de fin de journée : le duel a lieu au crépuscule */
   background:
-    radial-gradient(120% 70% at 50% 0%, #3a2a1e 0%, transparent 60%),
-    linear-gradient(180deg, var(--panel) 0%, #1b1512 100%);
+    radial-gradient(130% 80% at 50% 10%, #4a3524 0%, transparent 62%),
+    linear-gradient(180deg, #2b211a 0%, #1b1512 100%);
   overflow: hidden;
 }
 
-.fighter { display: flex; align-items: center; gap: 12px; }
-.fighter.bot { justify-content: flex-start; }
-.fighter.me { justify-content: flex-end; }
-
-.sprite { display: block; width: 84px; height: 84px; image-rendering: pixelated; }
-
-.fighter-info { display: grid; gap: 4px; }
-.fighter.me .fighter-info { text-align: right; justify-items: end; }
-.fighter-name {
+/* Bandeaux de nom, dans les coins hauts */
+.nameplate {
+  position: absolute;
+  top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: color-mix(in srgb, var(--ground) 78%, transparent);
+  border: 1px solid var(--line);
+}
+.nameplate.left  { left: 8px;  border-radius: 4px 10px 10px 4px; border-left-color: var(--rust); border-left-width: 3px; }
+.nameplate.right { right: 8px; border-radius: 10px 4px 4px 10px; border-right-color: var(--brass); border-right-width: 3px; }
+.nameplate-name {
   font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: .12em;
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* Compteur de manches, au centre du bandeau */
+.manche-badge {
+  position: absolute;
+  top: 10px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--muted);
+}
+.manche-badge b { color: var(--ink); }
+
+.score { display: flex; gap: 3px; }
+.pip {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+}
+.pip.won { background: var(--brass); border-color: var(--brass); }
+.nameplate.left .pip.won { background: var(--rust); border-color: var(--rust); }
+
+/* Les duellistes : posés au sol, à gauche et à droite */
+.fighter {
+  position: absolute;
+  bottom: 14px;
+  width: 42%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.fighter.left  { left: 2%; }
+.fighter.right { right: 2%; }
+
+.sprite {
+  display: block;
+  width: 100%;
+  max-width: 140px;
+  aspect-ratio: 1;
+  image-rendering: pixelated;   /* sans effet sur les PNG haute résolution */
+}
+
+/* La plateforme donne le sol et sépare les deux camps du regard */
+.platform {
+  width: 78%;
+  height: 10px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #6b5137 0%, transparent 72%);
+}
+
+/* Le canvas d'effets couvre toute l'arène, sans intercepter les appuis */
+.effects {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* --- La révélation : les deux choix, au centre de l'arène --- */
+.reveal {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-align: center;
+  pointer-events: none;
+}
+.hint { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--dim); }
+
+.reveal-card {
+  min-width: 116px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ground) 82%, transparent);
+  display: grid;
+  gap: 0;
+}
+.reveal-who {
+  font-family: var(--font-display);
+  font-size: 8.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.reveal-action {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.reveal-tag {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--rust);
+}
+.reveal-card.super { border-color: var(--rust); background: color-mix(in srgb, var(--rust) 24%, var(--ground)); }
+.reveal-card.clash { border-color: var(--brass); }
+
+/* Chaque carte arrive de son côté et se rejoint au centre */
+.from-left  { animation: slide-from-left  .3s cubic-bezier(.2,.9,.3,1.3); }
+.from-right { animation: slide-from-right .3s cubic-bezier(.2,.9,.3,1.3); }
+@keyframes slide-from-left  { from { transform: translateX(-40px); opacity: 0; } }
+@keyframes slide-from-right { from { transform: translateX(40px);  opacity: 0; } }
+
+/* --- Panneaux d'information, sous chaque côté --- */
+.panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+}
+.panel {
+  display: grid;
+  gap: 4px;
+  padding: 8px 11px;
+  background: var(--panel);
+}
+.panel.right { justify-items: end; text-align: right; }
+.panel-label {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--dim);
 }
 
 /* Barillet : une pastille par balle. Se lit d'un coup d'œil, contrairement
    à un nombre qu'il faut interpréter. */
 .bullets { display: flex; gap: 4px; }
 .bullet {
-  width: 11px; height: 11px;
+  width: 12px; height: 12px;
   border-radius: 50%;
   border: 1.5px solid var(--line);
   background: transparent;
@@ -308,94 +497,6 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   color: var(--steel);
   min-height: 1em;
 }
-
-/* --- La révélation : le moment fort de chaque tour --- */
-.reveal {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  text-align: center;
-  padding: 4px;
-}
-.hint { margin: 0; font-size: 12px; line-height: 1.5; color: var(--dim); }
-
-.reveal-card {
-  min-width: 130px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--panel-2) 80%, transparent);
-  display: grid;
-  gap: 1px;
-}
-.reveal-who {
-  font-family: var(--font-display);
-  font-size: 9px;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--dim);
-}
-.reveal-action {
-  font-family: var(--font-display);
-  font-size: 17px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-.reveal-tag {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--rust);
-}
-.reveal-card.super { border-color: var(--rust); background: color-mix(in srgb, var(--rust) 18%, var(--panel-2)); }
-.reveal-card.clash { border-color: var(--brass); }
-
-/* Les deux cartes arrivent des deux bords opposés et se rejoignent au centre */
-.from-top    { animation: drop-in .3s cubic-bezier(.2,.9,.3,1.3); }
-.from-bottom { animation: rise-in .3s cubic-bezier(.2,.9,.3,1.3); }
-@keyframes drop-in { from { transform: translateY(-26px); opacity: 0; } }
-@keyframes rise-in { from { transform: translateY(26px);  opacity: 0; } }
-
-/* Le canvas d'effets couvre toute la scène, sans intercepter les appuis */
-.effects {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-/* Score de manches, en surimpression discrète */
-.manche-badge {
-  position: absolute;
-  top: 8px; left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ground) 70%, transparent);
-  border: 1px solid var(--line);
-}
-.manche-label {
-  font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.score { display: flex; gap: 3px; }
-.pip {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line);
-}
-.pip.won { background: var(--brass); border-color: var(--brass); }
 
 /* --- Les trois actions --- */
 .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

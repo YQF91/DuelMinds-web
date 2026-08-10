@@ -201,22 +201,52 @@ cyrillique glissé dans une grille, ce qui est déjà arrivé. Rejoue aussi
 
 ---
 
-## 9. Remplacer les sprites
+## 9. Les personnages
 
-Les duellistes sont décrits **en texte** dans `src/sprites.js` : une grille de
-16 lignes de 16 caractères, une lettre par couleur.
+### Déposer les images
+
+Un PNG par personnage dans `assets/characters/`, nommé comme sa clé dans
+`src/rules.js` — par exemple `cowboy.png`. La liste complète et les
+conventions sont dans [`assets/characters/README.md`](assets/characters/README.md).
+
+**Fond transparent obligatoire**, sinon un rectangle blanc entoure le
+personnage. Vise 512 × 512, carré de préférence.
+
+**Dessine tout le monde tourné vers la droite** (ou de face) : le jeu retourne
+automatiquement le duelliste de gauche pour que les deux se regardent.
+
+### Tant qu'une image manque
+
+Le jeu affiche une silhouette en pixel art et **reste parfaitement jouable**.
+Dans le sélecteur, une case sans image montre l'initiale du personnage : tu
+vois d'un coup d'œil ce qu'il reste à dessiner.
+
+### Le choix du personnage ne change aucune règle
+
+Tout le monde a les mêmes balles, les mêmes actions, les mêmes seuils. C'est
+volontaire : dans DuelMinds, ce qui départage c'est la lecture de l'adversaire,
+jamais la fiche du perso.
+
+### La disposition du duel
+
+Les deux duellistes se font face **horizontalement**, sur des plateformes, avec
+les informations de chacun sous son côté — la disposition d'un combat
+Fire Emblem :
 
 ```
-.  vide       o  contour     c  chapeau    v  veste
-p  peau       j  jean        b  botte      m  métal
+┌──────────────────────────────────────┐
+│  ADVERSAIRE ●○      Manche 2   ○● TOI│
+│                                      │
+│      🧍   ←  se font face  →   🧍    │
+│   ▓▓▓▓▓▓▓                  ▓▓▓▓▓▓▓   │
+│           [ RÉVÉLATION ]             │
+├──────────────────┬───────────────────┤
+│ balles ●●○○      │       ●●●○ balles │
+└──────────────────┴───────────────────┘
 ```
 
-Édite la grille, recharge la page. Une ligne trop courte est complétée
-automatiquement : une faute de frappe ne casse jamais l'affichage.
-
-**Pour passer à de vrais fichiers PNG** : remplace le corps de `drawDuelist`
-par un `ctx.drawImage`. Tout le reste du jeu passe par cette seule fonction,
-il n'y a rien d'autre à toucher.
+Les projectiles traversent donc l'écran de gauche à droite, et le bouclier se
+dresse du côté de l'adversaire.
 
 ---
 

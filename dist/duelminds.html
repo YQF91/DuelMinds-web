@@ -230,6 +230,53 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   letter-spacing: .04em;
 }
 
+
+/* --- Sélecteur de personnage ---
+   Une grille de portraits. Tant qu'un PNG manque, la case affiche l'initiale
+   du personnage : on voit d'un coup d'oeil ce qui reste a dessiner. */
+.roster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  gap: 6px;
+}
+.roster-slot {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  cursor: pointer;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: background .15s ease, border-color .15s ease;
+  touch-action: manipulation;
+  position: relative;
+  overflow: hidden;
+}
+.roster-slot:hover { background: var(--panel-2); }
+.roster-slot.selected { border-color: var(--brass); background: color-mix(in srgb, var(--brass) 16%, var(--panel)); }
+.roster-slot img { width: 100%; height: 100%; object-fit: contain; }
+/* Repli quand l'image n'existe pas encore */
+.roster-slot .initial {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--dim);
+}
+.roster-slot.selected .initial { color: var(--brass); }
+.roster-name {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 1px 2px;
+  font-size: 8px;
+  text-align: center;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--ground) 80%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.roster-note { text-align: left; margin-top: 6px; }
+
 /* =============================================================================
  * 6. ÉCRAN DE DUEL
  * ========================================================================== */
@@ -269,46 +316,188 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 #streak-value { font-size: 22px; font-weight: 700; color: var(--brass); }
 .streak-best { font-size: 10px; color: var(--dim); }
 
-/* --- La scène --- */
-.scene {
+/* --- L'ARÈNE ---
+   Les deux duellistes se font face horizontalement, chacun sur sa plateforme,
+   comme dans un combat Fire Emblem. Le positionnement est absolu : les
+   personnages ne bougent jamais, seuls les effets traversent l'espace. */
+.arena {
   position: relative;
   flex: 1;
-  min-height: 260px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 12px;
-  border-radius: var(--radius);
+  min-height: 230px;
+  border-radius: var(--radius) var(--radius) 0 0;
   border: 1px solid var(--line);
+  border-bottom: none;
   /* Un ciel de fin de journée : le duel a lieu au crépuscule */
   background:
-    radial-gradient(120% 70% at 50% 0%, #3a2a1e 0%, transparent 60%),
-    linear-gradient(180deg, var(--panel) 0%, #1b1512 100%);
+    radial-gradient(130% 80% at 50% 10%, #4a3524 0%, transparent 62%),
+    linear-gradient(180deg, #2b211a 0%, #1b1512 100%);
   overflow: hidden;
 }
 
-.fighter { display: flex; align-items: center; gap: 12px; }
-.fighter.bot { justify-content: flex-start; }
-.fighter.me { justify-content: flex-end; }
-
-.sprite { display: block; width: 84px; height: 84px; image-rendering: pixelated; }
-
-.fighter-info { display: grid; gap: 4px; }
-.fighter.me .fighter-info { text-align: right; justify-items: end; }
-.fighter-name {
+/* Bandeaux de nom, dans les coins hauts */
+.nameplate {
+  position: absolute;
+  top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: color-mix(in srgb, var(--ground) 78%, transparent);
+  border: 1px solid var(--line);
+}
+.nameplate.left  { left: 8px;  border-radius: 4px 10px 10px 4px; border-left-color: var(--rust); border-left-width: 3px; }
+.nameplate.right { right: 8px; border-radius: 10px 4px 4px 10px; border-right-color: var(--brass); border-right-width: 3px; }
+.nameplate-name {
   font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: .12em;
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* Compteur de manches, au centre du bandeau */
+.manche-badge {
+  position: absolute;
+  top: 10px; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--muted);
+}
+.manche-badge b { color: var(--ink); }
+
+.score { display: flex; gap: 3px; }
+.pip {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+}
+.pip.won { background: var(--brass); border-color: var(--brass); }
+.nameplate.left .pip.won { background: var(--rust); border-color: var(--rust); }
+
+/* Les duellistes : posés au sol, à gauche et à droite */
+.fighter {
+  position: absolute;
+  bottom: 14px;
+  width: 42%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.fighter.left  { left: 2%; }
+.fighter.right { right: 2%; }
+
+.sprite {
+  display: block;
+  width: 100%;
+  max-width: 140px;
+  aspect-ratio: 1;
+  image-rendering: pixelated;   /* sans effet sur les PNG haute résolution */
+}
+
+/* La plateforme donne le sol et sépare les deux camps du regard */
+.platform {
+  width: 78%;
+  height: 10px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, #6b5137 0%, transparent 72%);
+}
+
+/* Le canvas d'effets couvre toute l'arène, sans intercepter les appuis */
+.effects {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* --- La révélation : les deux choix, au centre de l'arène --- */
+.reveal {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  text-align: center;
+  pointer-events: none;
+}
+.hint { margin: 0; font-size: 11.5px; line-height: 1.5; color: var(--dim); }
+
+.reveal-card {
+  min-width: 116px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ground) 82%, transparent);
+  display: grid;
+  gap: 0;
+}
+.reveal-who {
+  font-family: var(--font-display);
+  font-size: 8.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.reveal-action {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.reveal-tag {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--rust);
+}
+.reveal-card.super { border-color: var(--rust); background: color-mix(in srgb, var(--rust) 24%, var(--ground)); }
+.reveal-card.clash { border-color: var(--brass); }
+
+/* Chaque carte arrive de son côté et se rejoint au centre */
+.from-left  { animation: slide-from-left  .3s cubic-bezier(.2,.9,.3,1.3); }
+.from-right { animation: slide-from-right .3s cubic-bezier(.2,.9,.3,1.3); }
+@keyframes slide-from-left  { from { transform: translateX(-40px); opacity: 0; } }
+@keyframes slide-from-right { from { transform: translateX(40px);  opacity: 0; } }
+
+/* --- Panneaux d'information, sous chaque côté --- */
+.panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+}
+.panel {
+  display: grid;
+  gap: 4px;
+  padding: 8px 11px;
+  background: var(--panel);
+}
+.panel.right { justify-items: end; text-align: right; }
+.panel-label {
+  font-family: var(--font-display);
+  font-size: 9.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--dim);
 }
 
 /* Barillet : une pastille par balle. Se lit d'un coup d'œil, contrairement
    à un nombre qu'il faut interpréter. */
 .bullets { display: flex; gap: 4px; }
 .bullet {
-  width: 11px; height: 11px;
+  width: 12px; height: 12px;
   border-radius: 50%;
   border: 1.5px solid var(--line);
   background: transparent;
@@ -324,94 +513,6 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   color: var(--steel);
   min-height: 1em;
 }
-
-/* --- La révélation : le moment fort de chaque tour --- */
-.reveal {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  text-align: center;
-  padding: 4px;
-}
-.hint { margin: 0; font-size: 12px; line-height: 1.5; color: var(--dim); }
-
-.reveal-card {
-  min-width: 130px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--panel-2) 80%, transparent);
-  display: grid;
-  gap: 1px;
-}
-.reveal-who {
-  font-family: var(--font-display);
-  font-size: 9px;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--dim);
-}
-.reveal-action {
-  font-family: var(--font-display);
-  font-size: 17px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-.reveal-tag {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--rust);
-}
-.reveal-card.super { border-color: var(--rust); background: color-mix(in srgb, var(--rust) 18%, var(--panel-2)); }
-.reveal-card.clash { border-color: var(--brass); }
-
-/* Les deux cartes arrivent des deux bords opposés et se rejoignent au centre */
-.from-top    { animation: drop-in .3s cubic-bezier(.2,.9,.3,1.3); }
-.from-bottom { animation: rise-in .3s cubic-bezier(.2,.9,.3,1.3); }
-@keyframes drop-in { from { transform: translateY(-26px); opacity: 0; } }
-@keyframes rise-in { from { transform: translateY(26px);  opacity: 0; } }
-
-/* Le canvas d'effets couvre toute la scène, sans intercepter les appuis */
-.effects {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-/* Score de manches, en surimpression discrète */
-.manche-badge {
-  position: absolute;
-  top: 8px; left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ground) 70%, transparent);
-  border: 1px solid var(--line);
-}
-.manche-label {
-  font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.score { display: flex; gap: 3px; }
-.pip {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line);
-}
-.pip.won { background: var(--brass); border-color: var(--brass); }
 
 /* --- Les trois actions --- */
 .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -549,12 +650,23 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   DUELMINDS — VERSION WEB
   =============================================================================
   Ce fichier ne contient que la STRUCTURE. Les styles sont dans styles/, la
-  logique dans src/. Les zones qui changent en cours de partie sont remplies
-  par src/ui.js et repérées par leur `id`.
+  logique dans src/. Les zones qui changent en jeu sont remplies par src/ui.js
+  et repérées par leur `id`.
 
-  Les écrans coexistent dans la page ; un seul porte la classe `on`. C'est plus
-  simple et plus rapide qu'une navigation entre pages, et ça garde le jeu
-  utilisable hors ligne.
+  LA DISPOSITION DU DUEL
+  Les deux duellistes se font face HORIZONTALEMENT, comme dans un combat
+  Fire Emblem : l'adversaire à gauche, toi à droite, sur des plateformes, avec
+  les informations de chacun dans un panneau sous son côté.
+
+      ┌──────────────────────────────────────┐
+      │  ADVERSAIRE          Manche      TOI │
+      │                                      │
+      │      🧍   ←  se font face  →   🧍    │
+      │   ▓▓▓▓▓▓▓                  ▓▓▓▓▓▓▓   │
+      │         [ RÉVÉLATION ]               │
+      ├──────────────────┬───────────────────┤
+      │ balles ●●○○      │       ●●●○ balles │
+      └──────────────────┴───────────────────┘
 
   Pour comprendre le projet, lire dans cet ordre :
      README.md  ->  src/rules.js  ->  src/combat.js  ->  src/ui.js
@@ -563,15 +675,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 <div class="app">
 
   <!-- ======================================================================
-       ÉCRAN 1 — ACCUEIL : choix du mode puis de la difficulté
+       ÉCRAN 1 — ACCUEIL : mode, adversaire, personnage
        ==================================================================== -->
   <section id="screen-home" class="screen on" aria-label="Accueil">
     <header class="title">
       <p class="eyebrow">Duel tactique · actions simultanées</p>
       <h1>DuelMinds</h1>
-      <p class="tagline">
-        Vous choisissez en même temps. Une balle suffit.
-      </p>
+      <p class="tagline">Vous choisissez en même temps. Une balle suffit.</p>
     </header>
 
     <div>
@@ -582,6 +692,16 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     <div>
       <p class="section-label">Adversaire</p>
       <div class="choices" id="difficulties"></div>
+    </div>
+
+    <div>
+      <p class="section-label">Ton duelliste</p>
+      <!-- Grille de portraits, remplie par ui.js depuis rules.js -->
+      <div class="roster" id="roster"></div>
+      <p class="footnote roster-note">
+        Le personnage ne change rien aux règles : tout le monde a les mêmes
+        balles et les mêmes actions.
+      </p>
     </div>
 
     <div class="row">
@@ -601,12 +721,10 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
   <!-- ======================================================================
        ÉCRAN 2 — LE DUEL
-       Adversaire en haut, joueur en bas, révélation au centre, actions sous
-       le pouce.
        ==================================================================== -->
   <section id="screen-duel" class="screen" aria-label="Duel en cours">
 
-    <!-- Bandeau d'état -->
+    <!-- Bandeau d'état : mode, difficulté, série d'arcade -->
     <div class="hud">
       <div class="hud-left">
         <span class="tag" id="hud-mode">—</span>
@@ -619,45 +737,55 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       </div>
     </div>
 
-    <!-- La scène : les deux duellistes et les effets par-dessus -->
-    <div class="scene">
-      <!-- ADVERSAIRE -->
-      <div class="fighter bot">
-        <canvas class="sprite" id="bot-sprite" width="128" height="128" aria-hidden="true"></canvas>
-        <div class="fighter-info">
-          <span class="fighter-name">Adversaire</span>
-          <span class="bullets" id="bot-bullets" title="Balles"></span>
-          <span class="guard" id="bot-guard"></span>
-        </div>
+    <!-- L'ARÈNE : les deux duellistes face à face -->
+    <div class="arena">
+      <!-- Bandeaux de nom, en haut de chaque côté -->
+      <div class="nameplate left">
+        <span class="nameplate-name" id="bot-name">Adversaire</span>
+        <span class="score" id="score-bot"></span>
+      </div>
+      <div class="manche-badge">Manche <b class="num" id="manche-number">1</b></div>
+      <div class="nameplate right">
+        <span class="score" id="score-me"></span>
+        <span class="nameplate-name" id="me-name">Toi</span>
       </div>
 
-      <!-- LA RÉVÉLATION — les deux choix simultanés apparaissent ici -->
-      <div class="reveal" id="reveal" aria-live="polite">
-        <p class="hint">Vous choisissez en même temps.<br>L'adversaire ne voit pas ton coup.</p>
+      <!-- ADVERSAIRE, à gauche -->
+      <div class="fighter left">
+        <canvas class="sprite" id="bot-sprite" width="256" height="256" aria-hidden="true"></canvas>
+        <div class="platform"></div>
       </div>
 
-      <!-- JOUEUR -->
-      <div class="fighter me">
-        <div class="fighter-info">
-          <span class="fighter-name">Toi</span>
-          <span class="bullets" id="me-bullets" title="Balles"></span>
-          <span class="guard" id="me-guard"></span>
-        </div>
-        <canvas class="sprite" id="me-sprite" width="128" height="128" aria-hidden="true"></canvas>
+      <!-- TOI, à droite -->
+      <div class="fighter right">
+        <canvas class="sprite" id="me-sprite" width="256" height="256" aria-hidden="true"></canvas>
+        <div class="platform"></div>
       </div>
 
-      <!-- Effets (balles, protections, clashs) : couvre toute la scène -->
+      <!-- Effets (balles, protections, clashs) : couvre toute l'arène -->
       <canvas class="effects" id="effects" aria-hidden="true"></canvas>
 
-      <!-- Score de manches, en surimpression -->
-      <div class="manche-badge">
-        <span class="score" id="score-bot"></span>
-        <span class="manche-label">Manche <b class="num" id="manche-number">1</b></span>
-        <span class="score" id="score-me"></span>
+      <!-- LA RÉVÉLATION — les deux choix simultanés apparaissent au centre -->
+      <div class="reveal" id="reveal" aria-live="polite">
+        <p class="hint">Vous choisissez en même temps.<br>Il ne voit pas ton coup.</p>
       </div>
     </div>
 
-    <!-- LES ACTIONS. `data-action` fait le lien avec le moteur : les valeurs
+    <!-- PANNEAUX D'INFORMATION, un par duelliste, sous son côté -->
+    <div class="panels">
+      <div class="panel">
+        <span class="panel-label">Adversaire</span>
+        <span class="bullets" id="bot-bullets" title="Balles"></span>
+        <span class="guard" id="bot-guard"></span>
+      </div>
+      <div class="panel right">
+        <span class="panel-label">Toi</span>
+        <span class="bullets" id="me-bullets" title="Balles"></span>
+        <span class="guard" id="me-guard"></span>
+      </div>
+    </div>
+
+    <!-- LES ACTIONS. `data-action` fait le lien avec le moteur : ces valeurs
          doivent rester celles de DUELMINDS.ACTIONS dans rules.js. -->
     <div class="actions">
       <button class="action" data-action="charge" type="button">
@@ -713,7 +841,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   <!-- ======================================================================
        ÉCRAN 5 — RÈGLES
        Les valeurs chiffrées marquées d'un `id` sont injectées depuis
-       rules.js : la page ne peut donc pas mentir sur les règles appliquées.
+       rules.js : la page ne peut pas mentir sur les règles appliquées.
        ==================================================================== -->
   <section id="screen-rules" class="screen" aria-label="Règles du jeu">
     <h2>Règles</h2>
@@ -768,6 +896,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
             série, la première défaite y met fin. Ton meilleur score est
             conservé par niveau de difficulté.</li>
       </ul>
+
+      <h3>Les personnages</h3>
+      <p>
+        Le duelliste que tu choisis est <b>purement esthétique</b>. Tout le
+        monde a les mêmes balles, les mêmes actions et les mêmes règles : ce
+        qui départage, c'est la lecture de l'adversaire.
+      </p>
     </div>
     <div class="row">
       <button class="btn" id="btn-rules-back" type="button">Retour</button>
@@ -938,7 +1073,38 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     },
   ];
 
+  /* ---------------------------------------------------------------------------
+   * 5. LES DUELLISTES
+   * ---------------------------------------------------------------------------
+   * Le choix du personnage est PUREMENT ESTHÉTIQUE : dans DuelMinds, tout le
+   * monde a les mêmes règles, les mêmes balles et les mêmes actions. Ce qui
+   * départage, c'est la lecture de l'adversaire, jamais la fiche du perso.
+   *
+   * `key` sert à deux choses à la fois :
+   *   - le nom du fichier image, `assets/characters/<key>.png`
+   *   - l'identifiant enregistré dans les statistiques
+   * Renommer une clé impose donc de renommer le fichier correspondant.
+   *
+   * Tant qu'un PNG est absent, le jeu affiche une silhouette en pixel art :
+   * on peut donc jouer avant d'avoir tous les dessins.
+   * ------------------------------------------------------------------------ */
+  const CHARACTERS = [
+    { key: "ingenieur",     name: "Ingénieure",    blurb: "Lunettes de soudeur, bras mécanique." },
+    { key: "cowboy",        name: "Cowboy",        blurb: "Chapeau brun, revolver, foulard." },
+    { key: "capitaine",     name: "Capitaine",     blurb: "Bicorne à tête de mort, crinière rouge." },
+    { key: "mecano",        name: "Mécano",        blurb: "Réacteur dorsal et lunettes vertes." },
+    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au côté." },
+    { key: "bourreau",      name: "Bourreau",      blurb: "Armure sombre, deux haches." },
+    { key: "plombier",      name: "Plombier",      blurb: "Casquette rouge, salopette." },
+    { key: "corsaire",      name: "Corsaire",      blurb: "Sabre au clair, cape brune." },
+    { key: "pyromancienne", name: "Pyromancienne", blurb: "Cheveux de flammes, fouet ardent." },
+    { key: "ange",          name: "Ange",          blurb: "Ailes blanches, robe claire." },
+    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu." },
+    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, mauvais." },
+  ];
+
   DUELMINDS.RULES = RULES;
+  DUELMINDS.CHARACTERS = CHARACTERS;
   DUELMINDS.ACTIONS = ACTIONS;
   DUELMINDS.ACTION_LABEL = ACTION_LABEL;
   DUELMINDS.DIFFICULTIES = DIFFICULTIES;
@@ -1689,28 +1855,40 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
  * =============================================================================
  *
  * RÔLE DU FICHIER
- * Dessiner les deux duellistes et les effets de leurs actions. Aucune image
- * n'est chargée : les sprites sont décrits en texte ici même puis peints sur
- * un canvas. Le projet reste donc entièrement en fichiers texte.
+ * Dessiner les deux duellistes et les effets de leurs actions.
  *
- * COMMENT LIRE UN SPRITE
+ * DEUX SOURCES D'IMAGE, DANS CET ORDRE
+ *
+ *   1. UN PNG dans `assets/characters/<clé>.png` — les vrais personnages.
+ *   2. À DÉFAUT, une silhouette en pixel art décrite en texte plus bas.
+ *
+ * Ce repli n'est pas un détail : il permet de jouer avant que tous les dessins
+ * ne soient prêts, et évite qu'un fichier manquant ne casse la page. Un
+ * personnage sans image reste parfaitement jouable, il est juste moins beau.
+ *
+ * ORIENTATION — comment les deux se font face
+ * Les images sont toutes dessinées tournées vers la droite (ou de face). Le
+ * duelliste de GAUCHE est donc retourné horizontalement à l'affichage :
+ *
+ *       ADVERSAIRE                              TOI
+ *           🧍  ──────  se regardent  ──────  🧍
+ *       (retourné)                        (tel quel)
+ *
+ * C'est la disposition d'un duel Fire Emblem, et elle rend le face-à-face
+ * lisible sans avoir à dessiner deux versions de chaque personnage.
+ *
+ * COMMENT LIRE UNE SILHOUETTE DE SECOURS
  * Une grille de 16 lignes de 16 caractères, une lettre par couleur :
  *
  *     .  vide (transparent)      p  peau
  *     o  contour sombre          j  jean
  *     c  chapeau                 b  botte / cuir
- *     v  veste / chemise         m  métal (arme, boucle)
+ *     v  veste / chemise         m  métal
  *
- * Les lignes plus courtes que 16 sont complétées automatiquement : une faute
- * de frappe ne casse jamais l'affichage.
+ * Les lignes plus courtes que 16 sont complétées : une faute de frappe ne
+ * casse jamais l'affichage.
  *
- * POUR REMPLACER PAR TES PROPRES SPRITES
- * Deux options, selon ce que tu as :
- *   - du pixel art simple : réécris les grilles ci-dessous, c'est immédiat ;
- *   - des fichiers PNG : remplace `drawDuelist` par un `ctx.drawImage`. Tout
- *     le reste du jeu passe par cette seule fonction, rien d'autre à toucher.
- *
- * DÉPENDANCES : aucune (volontairement — ce fichier est réutilisable tel quel)
+ * DÉPENDANCES : aucune
  * ========================================================================== */
 
 (function (root) {
@@ -1718,16 +1896,40 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
   const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
   const GRID = 16;
+  const ASSET_PATH = "assets/characters/";
 
   /* ---------------------------------------------------------------------------
-   * 1. LES SILHOUETTES
+   * 1. CHARGEMENT DES IMAGES
    * ---------------------------------------------------------------------------
-   * Le joueur est vu DE DOS, en bas de l'écran ; l'adversaire DE FACE, en
-   * haut. C'est la disposition d'un duel : on regarde par-dessus son épaule.
+   * On demande une image une seule fois et on retient le résultat, succès ou
+   * échec. Un fichier absent ne doit pas provoquer une nouvelle tentative à
+   * chaque image de l'animation — soit 60 requêtes par seconde.
+   * ------------------------------------------------------------------------ */
+  const cache = new Map(); // clé -> { image, ready, failed }
+
+  function getImage(key) {
+    if (!key) return null;
+    if (cache.has(key)) return cache.get(key);
+
+    const entry = { image: new Image(), ready: false, failed: false };
+    entry.image.onload = () => { entry.ready = true; };
+    entry.image.onerror = () => { entry.failed = true; };
+    entry.image.src = ASSET_PATH + key + ".png";
+    cache.set(key, entry);
+    return entry;
+  }
+
+  /** Précharge toute la distribution, pour éviter un clignotement au premier duel. */
+  function preload(keys) {
+    for (const key of keys) getImage(key);
+  }
+
+  /* ---------------------------------------------------------------------------
+   * 2. SILHOUETTES DE SECOURS
    * ------------------------------------------------------------------------ */
   const ART = {
-    // Adversaire — de face, chapeau baissé, main près du holster
-    front: [
+    // Duelliste debout, de trois quarts, tourné vers la droite
+    stand: [
       "................",
       ".....oooooo.....",
       "....occcccco....",
@@ -1745,26 +1947,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       "..obbbo  obbbo..",
       "..ooooo  ooooo..",
     ],
-    // Joueur — de dos, on voit le dos du chapeau et la nuque
-    back: [
-      "................",
-      "....oooooooo....",
-      "...occcccccco...",
-      "..oooooooooooo..",
-      "....occcccco....",
-      ".....o pp o.....",
-      ".....ovvvvo.....",
-      "...oovvvvvvoo...",
-      "..ovvvvvvvvvvo..",
-      "..ovvvvvvvvvvo..",
-      "..opvo vv ovpo..",
-      "..o jjo  ojj o..",
-      "...ojjo  ojjo...",
-      "...ojjo  ojjo...",
-      "..obbbo  obbbo..",
-      "..ooooo  ooooo..",
-    ],
-    // Au sol — utilisé pour les deux, le chapeau roule à côté
+    // À terre, le chapeau roulé à côté
     down: [
       "................",
       "................",
@@ -1785,12 +1968,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     ],
   };
 
-  /* ---------------------------------------------------------------------------
-   * 2. PALETTES
-   * ---------------------------------------------------------------------------
-   * Deux tenues pour distinguer les duellistes d'un coup d'œil, sans avoir à
-   * lire les étiquettes.
-   * ------------------------------------------------------------------------ */
+  /* Deux tenues pour distinguer les duellistes quand aucune image n'est
+   * disponible. Avec les vraies images, ces palettes ne servent plus. */
   const PALETTES = {
     player: { o: "#241a14", c: "#6b4a2f", v: "#c08a4a", p: "#e8b48a", j: "#33507a", b: "#4a3220", m: "#d6d2c4" },
     bot:    { o: "#1e1620", c: "#5a3540", v: "#a35a5a", p: "#e0a880", j: "#3a3550", b: "#3d2630", m: "#d6d2c4" },
@@ -1798,38 +1977,100 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
   const MISSING_COLOR = "#ff00ff"; // magenta : impossible à rater
 
-  /* ---------------------------------------------------------------------------
-   * 3. RENDU DU DUELLISTE
-   * ------------------------------------------------------------------------ */
-
   function cellAt(grid, x, y) {
     const row = grid[y];
     if (!row || x < 0 || x >= GRID || y < 0 || y >= GRID) return ".";
     return row.length > x ? row[x] : ".";
   }
 
+  /* ---------------------------------------------------------------------------
+   * 3. RENDU D'UN DUELLISTE
+   * ------------------------------------------------------------------------ */
+
   /**
-   * Peint un duelliste. Le canvas doit être carré et de côté multiple de 16 :
-   * chaque pixel du sprite devient alors un carré net, sans flou.
+   * Peint un duelliste sur son canvas.
    *
    * @param {HTMLCanvasElement} canvas
-   * @param {"player"|"bot"} side
-   * @param {object} [options]
-   * @param {boolean} [options.down]   duelliste à terre
-   * @param {number}  [options.bob]    décalage vertical en pixels de grille
-   * @param {number}  [options.flash]  0 à 1 : éclat blanc (impact)
+   * @param {object} options
+   * @param {string}  options.character  clé du personnage (nom du PNG)
+   * @param {"player"|"bot"} options.side  sert au repli et à l'orientation
+   * @param {boolean} options.faceLeft   retourne l'image (duelliste de gauche)
+   * @param {boolean} options.down       duelliste à terre
+   * @param {number}  options.bob        respiration, en pixels de grille
+   * @param {number}  options.flash      0 à 1 : éclat blanc d'impact
    */
-  function drawDuelist(canvas, side, options) {
+  function drawDuelist(canvas, options) {
     const opts = options || {};
-    const grid = opts.down ? ART.down : (side === "player" ? ART.back : ART.front);
-    const palette = PALETTES[side] || PALETTES.player;
-
     const ctx = canvas.getContext("2d");
-    const scale = Math.floor(canvas.width / GRID);
-    const bob = opts.bob || 0;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;
+
+    const entry = getImage(opts.character);
+    const useImage = entry && entry.ready && !entry.failed;
+
+    ctx.save();
+
+    // Le retournement se fait sur le contexte entier : c'est ce qui permet de
+    // n'avoir qu'un seul dessin par personnage.
+    if (opts.faceLeft) {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+
+    if (useImage) {
+      drawImageContained(ctx, entry.image, canvas, opts);
+    } else {
+      drawPixelFallback(ctx, canvas, opts);
+    }
+
+    ctx.restore();
+
+    // L'éclat marque qui vient d'être touché. Plus lisible qu'un clignotement,
+    // et ça ne demande pas un second jeu d'images.
+    if (opts.flash > 0) {
+      ctx.globalAlpha = Math.min(1, opts.flash) * 0.7;
+      ctx.globalCompositeOperation = "source-atop";
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  /**
+   * Dessine l'image en la contenant dans le canvas, sans la déformer.
+   * Le personnage est calé sur le BAS : ses pieds restent au sol même si
+   * l'image n'est pas carrée.
+   */
+  function drawImageContained(ctx, image, canvas, opts) {
+    const bobPixels = (opts.bob || 0) * (canvas.height / GRID);
+    const ratio = Math.min(canvas.width / image.width, canvas.height / image.height);
+    const width = image.width * ratio;
+    const height = image.height * ratio;
+    const x = (canvas.width - width) / 2;
+    const y = canvas.height - height + bobPixels;
+
+    if (opts.down) {
+      // À terre : on couche le personnage plutôt que de demander un second
+      // dessin. Rotation d'un quart de tour, calée en bas.
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height * 0.82);
+      ctx.rotate(-Math.PI / 2);
+      ctx.globalAlpha = 0.75;
+      ctx.drawImage(image, -height / 2, -width / 2, height, width);
+      ctx.restore();
+      return;
+    }
+
+    ctx.drawImage(image, x, y, width, height);
+  }
+
+  /** Silhouette en pixel art, quand aucune image n'est disponible. */
+  function drawPixelFallback(ctx, canvas, opts) {
+    const grid = opts.down ? ART.down : ART.stand;
+    const palette = PALETTES[opts.side] || PALETTES.player;
+    const scale = Math.floor(canvas.width / GRID);
+    const bob = opts.bob || 0;
 
     for (let y = 0; y < GRID; y++) {
       for (let x = 0; x < GRID; x++) {
@@ -1839,108 +2080,111 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
         ctx.fillRect(x * scale, (y + bob) * scale, scale, scale);
       }
     }
+  }
 
-    // Éclat blanc au moment de l'impact : plus lisible qu'un simple
-    // clignotement, et ça ne demande pas un second jeu de sprites.
-    if (opts.flash > 0) {
-      ctx.globalAlpha = Math.min(1, opts.flash) * 0.75;
-      ctx.globalCompositeOperation = "source-atop";
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = 1;
-    }
+  /** Un personnage a-t-il son image ? Sert à signaler les fichiers manquants. */
+  function hasImage(key) {
+    const entry = cache.get(key);
+    return !!(entry && entry.ready && !entry.failed);
   }
 
   /* ---------------------------------------------------------------------------
    * 4. EFFETS D'ACTION
    * ---------------------------------------------------------------------------
-   * Dessinés par-dessus la scène, dans un canvas qui couvre toute la zone de
-   * duel. Chaque effet a une durée de vie exprimée de 1 (début) à 0 (fin) :
-   * c'est l'interface qui fait descendre cette valeur.
+   * Dessinés dans un canvas qui couvre toute la scène. Les duellistes se font
+   * face HORIZONTALEMENT : les projectiles vont donc de gauche à droite ou
+   * l'inverse, jamais de haut en bas.
+   *
+   * Chaque effet a une durée de vie de 1 (début) à 0 (fin) ; c'est l'interface
+   * qui fait descendre cette valeur.
    * ------------------------------------------------------------------------ */
 
   /**
    * @param {CanvasRenderingContext2D} ctx
-   * @param {string} kind   "shoot" | "defend" | "charge" | "clash" | "super"
-   * @param {number} life   1 au déclenchement, 0 à la fin
-   * @param {object} zone   {x, y, width, height} de la zone de duel
-   * @param {"player"|"bot"} from  qui déclenche l'effet
+   * @param {string} kind  "shoot" | "super" | "defend" | "charge" | "clash"
+   * @param {number} life  1 au déclenchement, 0 à la fin
+   * @param {object} zone  {width, height} de la scène
+   * @param {"player"|"bot"} from  qui déclenche
    */
   function drawEffect(ctx, kind, life, zone, from) {
     if (life <= 0) return;
-    const cx = zone.x + zone.width / 2;
-    const topY = zone.y + zone.height * 0.28;
-    const bottomY = zone.y + zone.height * 0.74;
-    const shooterY = from === "player" ? bottomY : topY;
-    const targetY = from === "player" ? topY : bottomY;
+
+    // Le joueur est à DROITE, l'adversaire à GAUCHE.
+    const leftX = zone.width * 0.24;
+    const rightX = zone.width * 0.76;
+    const lineY = zone.height * 0.52;
+
+    const originX = from === "player" ? rightX : leftX;
+    const targetX = from === "player" ? leftX : rightX;
 
     ctx.save();
 
     if (kind === "shoot" || kind === "super") {
-      // La balle parcourt la distance : on la place selon le temps écoulé.
       const progress = 1 - life;
-      const y = shooterY + (targetY - shooterY) * progress;
+      const x = originX + (targetX - originX) * progress;
       const big = kind === "super";
 
-      // Traînée
-      ctx.strokeStyle = big ? "rgba(255,180,60,.55)" : "rgba(255,230,170,.35)";
-      ctx.lineWidth = big ? 5 : 2;
+      // Traînée derrière le projectile
+      ctx.strokeStyle = big ? "rgba(209,87,63,.55)" : "rgba(255,230,170,.4)";
+      ctx.lineWidth = big ? 6 : 2.5;
       ctx.beginPath();
-      ctx.moveTo(cx, shooterY);
-      ctx.lineTo(cx, y);
+      ctx.moveTo(originX, lineY);
+      ctx.lineTo(x, lineY);
       ctx.stroke();
 
-      // Projectile
-      ctx.fillStyle = big ? "#ffd166" : "#fff3d0";
+      ctx.fillStyle = big ? "#e0a13c" : "#fff3d0";
       ctx.beginPath();
-      ctx.arc(cx, y, big ? 7 : 4, 0, Math.PI * 2);
+      ctx.arc(x, lineY, big ? 8 : 4.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Éclair au départ, seulement au tout début
-      if (life > 0.75) {
-        ctx.fillStyle = "rgba(255,220,120," + (life - 0.75) * 4 + ")";
+      // Éclair de bouche, au tout début seulement
+      if (life > 0.72) {
+        const intensity = (life - 0.72) / 0.28;
+        ctx.fillStyle = "rgba(255,220,120," + intensity + ")";
         ctx.beginPath();
-        ctx.arc(cx, shooterY, big ? 26 : 16, 0, Math.PI * 2);
+        ctx.arc(originX, lineY, big ? 30 : 18, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
     if (kind === "defend") {
-      // Arc de protection devant le duelliste
-      ctx.strokeStyle = "rgba(120,200,255," + life * 0.9 + ")";
-      ctx.lineWidth = 3;
-      const radius = 34 + (1 - life) * 10;
+      // Bouclier vertical devant le duelliste, tourné vers l'adversaire
+      const facing = from === "player" ? -1 : 1;
+      ctx.strokeStyle = "rgba(111,168,201," + life * 0.95 + ")";
+      ctx.lineWidth = 3.5;
+      const radius = 40 + (1 - life) * 12;
       ctx.beginPath();
-      ctx.arc(cx, shooterY, radius,
-        from === "player" ? Math.PI : 0,
-        from === "player" ? Math.PI * 2 : Math.PI);
+      ctx.arc(originX + facing * 14, lineY, radius,
+        facing < 0 ? Math.PI * 0.55 : Math.PI * 1.55,
+        facing < 0 ? Math.PI * 1.45 : Math.PI * 0.45);
       ctx.stroke();
     }
 
     if (kind === "charge") {
-      // Étincelles qui convergent vers le duelliste
-      ctx.fillStyle = "rgba(255,214,102," + life + ")";
+      // Balles qui convergent vers le barillet
+      ctx.fillStyle = "rgba(224,161,60," + life + ")";
       for (let i = 0; i < 8; i++) {
         const angle = (i / 8) * Math.PI * 2;
-        const distance = 12 + life * 30;
+        const distance = 14 + life * 34;
         ctx.beginPath();
-        ctx.arc(cx + Math.cos(angle) * distance, shooterY + Math.sin(angle) * distance, 2.5, 0, Math.PI * 2);
+        ctx.arc(originX + Math.cos(angle) * distance, lineY + Math.sin(angle) * distance,
+                2.5, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
     if (kind === "clash") {
-      // Les deux balles se percutent à mi-chemin
-      const midY = (topY + bottomY) / 2;
+      // Les deux balles se percutent au milieu du terrain
+      const midX = (leftX + rightX) / 2;
       ctx.strokeStyle = "rgba(255,240,180," + life + ")";
       ctx.lineWidth = 3;
-      for (let i = 0; i < 10; i++) {
-        const angle = (i / 10) * Math.PI * 2;
-        const inner = 6, outer = 10 + (1 - life) * 34;
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        const inner = 7;
+        const outer = 12 + (1 - life) * 40;
         ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(angle) * inner, midY + Math.sin(angle) * inner);
-        ctx.lineTo(cx + Math.cos(angle) * outer, midY + Math.sin(angle) * outer);
+        ctx.moveTo(midX + Math.cos(angle) * inner, lineY + Math.sin(angle) * inner);
+        ctx.lineTo(midX + Math.cos(angle) * outer, lineY + Math.sin(angle) * outer);
         ctx.stroke();
       }
     }
@@ -1948,7 +2192,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     ctx.restore();
   }
 
-  DUELMINDS.sprites = { ART, PALETTES, GRID, drawDuelist, drawEffect };
+  DUELMINDS.sprites = { ART, PALETTES, GRID, drawDuelist, drawEffect, preload, hasImage };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
 /* ---------- src/audio.js ---------- */
@@ -2510,6 +2754,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   const state = {
     mode: null,
     difficulty: null,
+    character: null,    // clé du personnage choisi par le joueur
+    botCharacter: null, // tiré au sort, toujours différent du tien
     session: null,
     phase: "home",   // "home" | "choosing" | "revealing" | "announce"
 
@@ -2572,7 +2818,58 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       difficultyList.appendChild(button);
     }
 
+    buildRoster();
     refreshHome();
+  }
+
+  /**
+   * Grille de portraits. Le personnage est purement esthétique : il ne change
+   * aucune règle. Tant qu'un PNG manque dans assets/characters/, la case
+   * affiche l'initiale — on voit donc d'un coup d'œil ce qui reste à dessiner.
+   */
+  function buildRoster() {
+    const grid = $("roster");
+    grid.innerHTML = "";
+
+    for (const character of DUELMINDS.CHARACTERS) {
+      const slot = document.createElement("button");
+      slot.type = "button";
+      slot.className = "roster-slot";
+      slot.dataset.character = character.key;
+      slot.title = character.name + " — " + character.blurb;
+
+      // L'image se remplace toute seule par l'initiale si le fichier manque.
+      const image = document.createElement("img");
+      image.alt = character.name;
+      image.src = "assets/characters/" + character.key + ".png";
+      image.addEventListener("error", () => {
+        image.remove();
+        const initial = document.createElement("span");
+        initial.className = "initial";
+        initial.textContent = character.name.charAt(0);
+        slot.prepend(initial);
+      });
+      slot.appendChild(image);
+
+      const label = document.createElement("span");
+      label.className = "roster-name";
+      label.textContent = character.name;
+      slot.appendChild(label);
+
+      slot.addEventListener("click", () => {
+        state.character = character.key;
+        audio.play("click");
+        refreshHome();
+      });
+      grid.appendChild(slot);
+    }
+
+    // Premier personnage sélectionné par défaut : on peut lancer une partie
+    // sans avoir à choisir.
+    if (!state.character && DUELMINDS.CHARACTERS.length) {
+      state.character = DUELMINDS.CHARACTERS[0].key;
+    }
+    DUELMINDS.sprites.preload(DUELMINDS.CHARACTERS.map((c) => c.key));
   }
 
   function selectMode(key) {
@@ -2604,7 +2901,11 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       span.textContent = show ? "record " + best : "";
     }
 
-    $("btn-start").disabled = !(state.mode && state.difficulty);
+    for (const slot of document.querySelectorAll("[data-character]")) {
+      slot.classList.toggle("selected", slot.dataset.character === state.character);
+    }
+
+    $("btn-start").disabled = !(state.mode && state.difficulty && state.character);
   }
 
   /* =========================================================================
@@ -2622,6 +2923,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * ====================================================================== */
 
   function startSession() {
+    // L'adversaire prend un autre personnage que le tien : deux silhouettes
+    // identiques face à face rendraient le duel illisible.
+    const others = DUELMINDS.CHARACTERS.filter((c) => c.key !== state.character);
+    state.botCharacter = others.length
+      ? others[Math.floor(Math.random() * others.length)].key
+      : state.character;
+
     state.session = DUELMINDS.match.createSession(state.mode, state.difficulty);
     DUELMINDS.match.startManche(state.session);
     state.phase = "choosing";
@@ -2659,6 +2967,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     }
 
     $("manche-number").textContent = s.mancheNumber;
+
+    const nameOf = (key) => {
+      const character = DUELMINDS.CHARACTERS.find((c) => c.key === key);
+      return character ? character.name : "Duelliste";
+    };
+    $("me-name").textContent = nameOf(state.character);
+    $("bot-name").textContent = nameOf(state.botCharacter);
     renderScore($("score-me"), s.player.manchesWon);
     renderScore($("score-bot"), s.bot.manchesWon);
 
@@ -2759,8 +3074,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   function showReveal(turn) {
     const band = $("reveal");
     band.innerHTML = "";
-    band.appendChild(revealCard("Adversaire", turn.actionB, turn.resultB, "from-top"));
-    band.appendChild(revealCard("Toi", turn.actionA, turn.resultA, "from-bottom"));
+    band.appendChild(revealCard("Adversaire", turn.actionB, turn.resultB, "from-left"));
+    band.appendChild(revealCard("Toi", turn.actionA, turn.resultA, "from-right"));
 
     // Un seul effet par tour : le plus marquant.
     if (turn.resultA === "clash" && turn.resultB === "clash") {
@@ -3060,10 +3375,16 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
       // Respiration : un pixel de haut en bas, en opposition entre les deux
       const bob = Math.sin(timestamp / 520) > 0 ? 0 : 1;
-      drawDuelist($("me-sprite"), "player",
-        { bob, flash: state.flash.player, down: state.flash.player > 0.85 });
-      drawDuelist($("bot-sprite"), "bot",
-        { bob: 1 - bob, flash: state.flash.bot, down: state.flash.bot > 0.85 });
+
+      // Le duelliste de GAUCHE est retourné pour que les deux se regardent.
+      drawDuelist($("bot-sprite"), {
+        character: state.botCharacter, side: "bot", faceLeft: false,
+        bob: 1 - bob, flash: state.flash.bot, down: state.flash.bot > 0.85,
+      });
+      drawDuelist($("me-sprite"), {
+        character: state.character, side: "player", faceLeft: true,
+        bob, flash: state.flash.player, down: state.flash.player > 0.85,
+      });
 
       // L'éclat s'estompe tout seul
       state.flash.player = Math.max(0, state.flash.player - 0.02);

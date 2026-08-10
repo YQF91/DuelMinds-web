@@ -14,12 +14,23 @@
   DUELMINDS — VERSION WEB
   =============================================================================
   Ce fichier ne contient que la STRUCTURE. Les styles sont dans styles/, la
-  logique dans src/. Les zones qui changent en cours de partie sont remplies
-  par src/ui.js et repérées par leur `id`.
+  logique dans src/. Les zones qui changent en jeu sont remplies par src/ui.js
+  et repérées par leur `id`.
 
-  Les écrans coexistent dans la page ; un seul porte la classe `on`. C'est plus
-  simple et plus rapide qu'une navigation entre pages, et ça garde le jeu
-  utilisable hors ligne.
+  LA DISPOSITION DU DUEL
+  Les deux duellistes se font face HORIZONTALEMENT, comme dans un combat
+  Fire Emblem : l'adversaire à gauche, toi à droite, sur des plateformes, avec
+  les informations de chacun dans un panneau sous son côté.
+
+      ┌──────────────────────────────────────┐
+      │  ADVERSAIRE          Manche      TOI │
+      │                                      │
+      │      🧍   ←  se font face  →   🧍    │
+      │   ▓▓▓▓▓▓▓                  ▓▓▓▓▓▓▓   │
+      │         [ RÉVÉLATION ]               │
+      ├──────────────────┬───────────────────┤
+      │ balles ●●○○      │       ●●●○ balles │
+      └──────────────────┴───────────────────┘
 
   Pour comprendre le projet, lire dans cet ordre :
      README.md  ->  src/rules.js  ->  src/combat.js  ->  src/ui.js
@@ -28,15 +39,13 @@
 <div class="app">
 
   <!-- ======================================================================
-       ÉCRAN 1 — ACCUEIL : choix du mode puis de la difficulté
+       ÉCRAN 1 — ACCUEIL : mode, adversaire, personnage
        ==================================================================== -->
   <section id="screen-home" class="screen on" aria-label="Accueil">
     <header class="title">
       <p class="eyebrow">Duel tactique · actions simultanées</p>
       <h1>DuelMinds</h1>
-      <p class="tagline">
-        Vous choisissez en même temps. Une balle suffit.
-      </p>
+      <p class="tagline">Vous choisissez en même temps. Une balle suffit.</p>
     </header>
 
     <div>
@@ -47,6 +56,16 @@
     <div>
       <p class="section-label">Adversaire</p>
       <div class="choices" id="difficulties"></div>
+    </div>
+
+    <div>
+      <p class="section-label">Ton duelliste</p>
+      <!-- Grille de portraits, remplie par ui.js depuis rules.js -->
+      <div class="roster" id="roster"></div>
+      <p class="footnote roster-note">
+        Le personnage ne change rien aux règles : tout le monde a les mêmes
+        balles et les mêmes actions.
+      </p>
     </div>
 
     <div class="row">
@@ -66,12 +85,10 @@
 
   <!-- ======================================================================
        ÉCRAN 2 — LE DUEL
-       Adversaire en haut, joueur en bas, révélation au centre, actions sous
-       le pouce.
        ==================================================================== -->
   <section id="screen-duel" class="screen" aria-label="Duel en cours">
 
-    <!-- Bandeau d'état -->
+    <!-- Bandeau d'état : mode, difficulté, série d'arcade -->
     <div class="hud">
       <div class="hud-left">
         <span class="tag" id="hud-mode">—</span>
@@ -84,45 +101,55 @@
       </div>
     </div>
 
-    <!-- La scène : les deux duellistes et les effets par-dessus -->
-    <div class="scene">
-      <!-- ADVERSAIRE -->
-      <div class="fighter bot">
-        <canvas class="sprite" id="bot-sprite" width="128" height="128" aria-hidden="true"></canvas>
-        <div class="fighter-info">
-          <span class="fighter-name">Adversaire</span>
-          <span class="bullets" id="bot-bullets" title="Balles"></span>
-          <span class="guard" id="bot-guard"></span>
-        </div>
+    <!-- L'ARÈNE : les deux duellistes face à face -->
+    <div class="arena">
+      <!-- Bandeaux de nom, en haut de chaque côté -->
+      <div class="nameplate left">
+        <span class="nameplate-name" id="bot-name">Adversaire</span>
+        <span class="score" id="score-bot"></span>
+      </div>
+      <div class="manche-badge">Manche <b class="num" id="manche-number">1</b></div>
+      <div class="nameplate right">
+        <span class="score" id="score-me"></span>
+        <span class="nameplate-name" id="me-name">Toi</span>
       </div>
 
-      <!-- LA RÉVÉLATION — les deux choix simultanés apparaissent ici -->
-      <div class="reveal" id="reveal" aria-live="polite">
-        <p class="hint">Vous choisissez en même temps.<br>L'adversaire ne voit pas ton coup.</p>
+      <!-- ADVERSAIRE, à gauche -->
+      <div class="fighter left">
+        <canvas class="sprite" id="bot-sprite" width="256" height="256" aria-hidden="true"></canvas>
+        <div class="platform"></div>
       </div>
 
-      <!-- JOUEUR -->
-      <div class="fighter me">
-        <div class="fighter-info">
-          <span class="fighter-name">Toi</span>
-          <span class="bullets" id="me-bullets" title="Balles"></span>
-          <span class="guard" id="me-guard"></span>
-        </div>
-        <canvas class="sprite" id="me-sprite" width="128" height="128" aria-hidden="true"></canvas>
+      <!-- TOI, à droite -->
+      <div class="fighter right">
+        <canvas class="sprite" id="me-sprite" width="256" height="256" aria-hidden="true"></canvas>
+        <div class="platform"></div>
       </div>
 
-      <!-- Effets (balles, protections, clashs) : couvre toute la scène -->
+      <!-- Effets (balles, protections, clashs) : couvre toute l'arène -->
       <canvas class="effects" id="effects" aria-hidden="true"></canvas>
 
-      <!-- Score de manches, en surimpression -->
-      <div class="manche-badge">
-        <span class="score" id="score-bot"></span>
-        <span class="manche-label">Manche <b class="num" id="manche-number">1</b></span>
-        <span class="score" id="score-me"></span>
+      <!-- LA RÉVÉLATION — les deux choix simultanés apparaissent au centre -->
+      <div class="reveal" id="reveal" aria-live="polite">
+        <p class="hint">Vous choisissez en même temps.<br>Il ne voit pas ton coup.</p>
       </div>
     </div>
 
-    <!-- LES ACTIONS. `data-action` fait le lien avec le moteur : les valeurs
+    <!-- PANNEAUX D'INFORMATION, un par duelliste, sous son côté -->
+    <div class="panels">
+      <div class="panel">
+        <span class="panel-label">Adversaire</span>
+        <span class="bullets" id="bot-bullets" title="Balles"></span>
+        <span class="guard" id="bot-guard"></span>
+      </div>
+      <div class="panel right">
+        <span class="panel-label">Toi</span>
+        <span class="bullets" id="me-bullets" title="Balles"></span>
+        <span class="guard" id="me-guard"></span>
+      </div>
+    </div>
+
+    <!-- LES ACTIONS. `data-action` fait le lien avec le moteur : ces valeurs
          doivent rester celles de DUELMINDS.ACTIONS dans rules.js. -->
     <div class="actions">
       <button class="action" data-action="charge" type="button">
@@ -178,7 +205,7 @@
   <!-- ======================================================================
        ÉCRAN 5 — RÈGLES
        Les valeurs chiffrées marquées d'un `id` sont injectées depuis
-       rules.js : la page ne peut donc pas mentir sur les règles appliquées.
+       rules.js : la page ne peut pas mentir sur les règles appliquées.
        ==================================================================== -->
   <section id="screen-rules" class="screen" aria-label="Règles du jeu">
     <h2>Règles</h2>
@@ -233,6 +260,13 @@
             série, la première défaite y met fin. Ton meilleur score est
             conservé par niveau de difficulté.</li>
       </ul>
+
+      <h3>Les personnages</h3>
+      <p>
+        Le duelliste que tu choisis est <b>purement esthétique</b>. Tout le
+        monde a les mêmes balles, les mêmes actions et les mêmes règles : ce
+        qui départage, c'est la lecture de l'adversaire.
+      </p>
     </div>
     <div class="row">
       <button class="btn" id="btn-rules-back" type="button">Retour</button>

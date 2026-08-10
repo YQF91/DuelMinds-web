@@ -129,7 +129,38 @@
     },
   ];
 
+  /* ---------------------------------------------------------------------------
+   * 5. LES DUELLISTES
+   * ---------------------------------------------------------------------------
+   * Le choix du personnage est PUREMENT ESTHÉTIQUE : dans DuelMinds, tout le
+   * monde a les mêmes règles, les mêmes balles et les mêmes actions. Ce qui
+   * départage, c'est la lecture de l'adversaire, jamais la fiche du perso.
+   *
+   * `key` sert à deux choses à la fois :
+   *   - le nom du fichier image, `assets/characters/<key>.png`
+   *   - l'identifiant enregistré dans les statistiques
+   * Renommer une clé impose donc de renommer le fichier correspondant.
+   *
+   * Tant qu'un PNG est absent, le jeu affiche une silhouette en pixel art :
+   * on peut donc jouer avant d'avoir tous les dessins.
+   * ------------------------------------------------------------------------ */
+  const CHARACTERS = [
+    { key: "ingenieur",     name: "Ingénieure",    blurb: "Lunettes de soudeur, bras mécanique." },
+    { key: "cowboy",        name: "Cowboy",        blurb: "Chapeau brun, revolver, foulard." },
+    { key: "capitaine",     name: "Capitaine",     blurb: "Bicorne à tête de mort, crinière rouge." },
+    { key: "mecano",        name: "Mécano",        blurb: "Réacteur dorsal et lunettes vertes." },
+    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au côté." },
+    { key: "bourreau",      name: "Bourreau",      blurb: "Armure sombre, deux haches." },
+    { key: "plombier",      name: "Plombier",      blurb: "Casquette rouge, salopette." },
+    { key: "corsaire",      name: "Corsaire",      blurb: "Sabre au clair, cape brune." },
+    { key: "pyromancienne", name: "Pyromancienne", blurb: "Cheveux de flammes, fouet ardent." },
+    { key: "ange",          name: "Ange",          blurb: "Ailes blanches, robe claire." },
+    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu." },
+    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, mauvais." },
+  ];
+
   DUELMINDS.RULES = RULES;
+  DUELMINDS.CHARACTERS = CHARACTERS;
   DUELMINDS.ACTIONS = ACTIONS;
   DUELMINDS.ACTION_LABEL = ACTION_LABEL;
   DUELMINDS.DIFFICULTIES = DIFFICULTIES;

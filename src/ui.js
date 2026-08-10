@@ -50,6 +50,8 @@
   const state = {
     mode: null,
     difficulty: null,
+    character: null,    // clé du personnage choisi par le joueur
+    botCharacter: null, // tiré au sort, toujours différent du tien
     session: null,
     phase: "home",   // "home" | "choosing" | "revealing" | "announce"
 
@@ -112,7 +114,58 @@
       difficultyList.appendChild(button);
     }
 
+    buildRoster();
     refreshHome();
+  }
+
+  /**
+   * Grille de portraits. Le personnage est purement esthétique : il ne change
+   * aucune règle. Tant qu'un PNG manque dans assets/characters/, la case
+   * affiche l'initiale — on voit donc d'un coup d'œil ce qui reste à dessiner.
+   */
+  function buildRoster() {
+    const grid = $("roster");
+    grid.innerHTML = "";
+
+    for (const character of DUELMINDS.CHARACTERS) {
+      const slot = document.createElement("button");
+      slot.type = "button";
+      slot.className = "roster-slot";
+      slot.dataset.character = character.key;
+      slot.title = character.name + " — " + character.blurb;
+
+      // L'image se remplace toute seule par l'initiale si le fichier manque.
+      const image = document.createElement("img");
+      image.alt = character.name;
+      image.src = "assets/characters/" + character.key + ".png";
+      image.addEventListener("error", () => {
+        image.remove();
+        const initial = document.createElement("span");
+        initial.className = "initial";
+        initial.textContent = character.name.charAt(0);
+        slot.prepend(initial);
+      });
+      slot.appendChild(image);
+
+      const label = document.createElement("span");
+      label.className = "roster-name";
+      label.textContent = character.name;
+      slot.appendChild(label);
+
+      slot.addEventListener("click", () => {
+        state.character = character.key;
+        audio.play("click");
+        refreshHome();
+      });
+      grid.appendChild(slot);
+    }
+
+    // Premier personnage sélectionné par défaut : on peut lancer une partie
+    // sans avoir à choisir.
+    if (!state.character && DUELMINDS.CHARACTERS.length) {
+      state.character = DUELMINDS.CHARACTERS[0].key;
+    }
+    DUELMINDS.sprites.preload(DUELMINDS.CHARACTERS.map((c) => c.key));
   }
 
   function selectMode(key) {
@@ -144,7 +197,11 @@
       span.textContent = show ? "record " + best : "";
     }
 
-    $("btn-start").disabled = !(state.mode && state.difficulty);
+    for (const slot of document.querySelectorAll("[data-character]")) {
+      slot.classList.toggle("selected", slot.dataset.character === state.character);
+    }
+
+    $("btn-start").disabled = !(state.mode && state.difficulty && state.character);
   }
 
   /* =========================================================================
@@ -162,6 +219,13 @@
    * ====================================================================== */
 
   function startSession() {
+    // L'adversaire prend un autre personnage que le tien : deux silhouettes
+    // identiques face à face rendraient le duel illisible.
+    const others = DUELMINDS.CHARACTERS.filter((c) => c.key !== state.character);
+    state.botCharacter = others.length
+      ? others[Math.floor(Math.random() * others.length)].key
+      : state.character;
+
     state.session = DUELMINDS.match.createSession(state.mode, state.difficulty);
     DUELMINDS.match.startManche(state.session);
     state.phase = "choosing";
@@ -199,6 +263,13 @@
     }
 
     $("manche-number").textContent = s.mancheNumber;
+
+    const nameOf = (key) => {
+      const character = DUELMINDS.CHARACTERS.find((c) => c.key === key);
+      return character ? character.name : "Duelliste";
+    };
+    $("me-name").textContent = nameOf(state.character);
+    $("bot-name").textContent = nameOf(state.botCharacter);
     renderScore($("score-me"), s.player.manchesWon);
     renderScore($("score-bot"), s.bot.manchesWon);
 
@@ -299,8 +370,8 @@
   function showReveal(turn) {
     const band = $("reveal");
     band.innerHTML = "";
-    band.appendChild(revealCard("Adversaire", turn.actionB, turn.resultB, "from-top"));
-    band.appendChild(revealCard("Toi", turn.actionA, turn.resultA, "from-bottom"));
+    band.appendChild(revealCard("Adversaire", turn.actionB, turn.resultB, "from-left"));
+    band.appendChild(revealCard("Toi", turn.actionA, turn.resultA, "from-right"));
 
     // Un seul effet par tour : le plus marquant.
     if (turn.resultA === "clash" && turn.resultB === "clash") {
@@ -600,10 +671,16 @@
 
       // Respiration : un pixel de haut en bas, en opposition entre les deux
       const bob = Math.sin(timestamp / 520) > 0 ? 0 : 1;
-      drawDuelist($("me-sprite"), "player",
-        { bob, flash: state.flash.player, down: state.flash.player > 0.85 });
-      drawDuelist($("bot-sprite"), "bot",
-        { bob: 1 - bob, flash: state.flash.bot, down: state.flash.bot > 0.85 });
+
+      // Le duelliste de GAUCHE est retourné pour que les deux se regardent.
+      drawDuelist($("bot-sprite"), {
+        character: state.botCharacter, side: "bot", faceLeft: false,
+        bob: 1 - bob, flash: state.flash.bot, down: state.flash.bot > 0.85,
+      });
+      drawDuelist($("me-sprite"), {
+        character: state.character, side: "player", faceLeft: true,
+        bob, flash: state.flash.player, down: state.flash.player > 0.85,
+      });
 
       // L'éclat s'estompe tout seul
       state.flash.player = Math.max(0, state.flash.player - 0.02);
