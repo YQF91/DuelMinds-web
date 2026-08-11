@@ -213,7 +213,16 @@
   function resolved(payload) {
     const mySide = match.side;
     const other = mySide === "a" ? "b" : "a";
-    match.turn = payload.turn;
+
+    /* ON AVANCE D'UN TOUR, et c'est essentiel.
+     *
+     * `payload.turn` est le tour qui vient d'être JOUÉ. Y rester ferait
+     * redéposer le coup suivant sur ce même tour : l'arbitre le verrait déjà
+     * complet, renverrait les deux anciens coups, et le jeu rejouerait le tour
+     * indéfiniment. C'est aussi ce numéro qui déclenche le passage au tour
+     * suivant côté arbitre — voir pvpMove(). */
+    match.turn = payload.turn + 1;
+
     return {
       ok: true,
       mine: payload.moves[mySide],

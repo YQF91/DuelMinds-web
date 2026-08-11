@@ -95,7 +95,112 @@ check("l'abandon est vu par l'autre", pvpRoute({ pvp: "state", code: A.code, pla
 check("le classement reste accessible", pvpRoute({ pvp: "rien" }) === null);
 check("un appel sans pvp passe son chemin", pvpRoute({ mode: "arcade" }) === null);
 
-console.log("\n  ARBITRE PVP — " + (ok.length + ko.length) + " verifications\n");
+/* =============================================================================
+ * UNE PARTIE COMPLETE, ENTRE DEUX VRAIS CLIENTS
+ * =============================================================================
+ *
+ * POURQUOI CETTE SECTION EXISTE
+ * Les verifications ci-dessus ne testent que l'ARBITRE, en lui envoyant des
+ * numeros de tour ecrits a la main. Elles ont laisse passer un defaut serieux :
+ * apres la resolution d'un tour, le client restait sur le numero du tour
+ * ECOULE. Il redeposait donc son coup suivant sur ce meme tour, l'arbitre le
+ * voyait deja complet, renvoyait les deux anciens coups -- et le jeu rejouait
+ * le tour 1 indefiniment.
+ *
+ * Aucun test de l'arbitre seul ne pouvait le voir. Il fallait faire tourner le
+ * VRAI src/pvp.js, des deux cotes, sur plusieurs tours.
+ *
+ * COMMENT DEUX CLIENTS TIENNENT DANS UN SEUL PROCESSUS
+ * pvp.js garde la partie en cours dans une variable de module : une seule
+ * copie ne peut donc etre qu'un seul joueur. On l'evalue dans DEUX contextes
+ * separes (module `vm` de Node), chacun avec son propre stockage et son propre
+ * transport -- lequel appelle directement l'arbitre, sans reseau.
+ * ========================================================================== */
+
+import { createContext, runInContext } from "node:vm";
+
+const PVP_SRC = readFileSync("./src/pvp.js", "utf8");
+
+/** Un client isole, avec son identite et son transport vers l'arbitre. */
+function makeClient(id, playerName) {
+  const memory = new Map();
+  memory.set("duelminds.player.v1", id);
+
+  const sandbox = {
+    Math, JSON, Date, Promise, String, Number, Object,
+    setTimeout: (fn, ms) => setTimeout(fn, Math.min(ms, 5)),  // on ne va pas attendre
+    localStorage: {
+      getItem: (k) => (memory.has(k) ? memory.get(k) : null),
+      setItem: (k, v) => memory.set(k, String(v)),
+      removeItem: (k) => memory.delete(k),
+    },
+    DUELMINDS: {
+      /* Le transport, remplace : au lieu de passer par une balise script et
+         par Google, on appelle l'arbitre directement. C'est le meme code des
+         deux cotes de la conversation. */
+      net: { call: (params) => Promise.resolve(pvpRoute(params) || { ok: false }),
+             isAvailable: () => true },
+      leaderboard: { name: () => playerName },
+    },
+  };
+  sandbox.globalThis = sandbox;
+  sandbox.window = sandbox;
+
+  const context = createContext(sandbox);
+  runInContext(PVP_SRC, context);
+  return sandbox.DUELMINDS.pvp;
+}
+
+const jude = makeClient("jude", "Jude");
+const lea = makeClient("lea", "Lea");
+
+/* --- Ils se trouvent --- */
+const opened = await jude.create("cowboy");
+check("client : la partie s'ouvre", opened.ok === true && /^[A-Z2-9]{4}$/.test(opened.code));
+
+const joined = await lea.join(opened.code, "gobelin");
+check("client : le second rejoint", joined.ok === true);
+check("client : un code en minuscules et espaces passe quand meme",
+      (await lea.join(" " + opened.code.toLowerCase() + " ", "gobelin")).ok === true);
+
+/* --- LE TEST QUI MANQUAIT : plusieurs tours d'affilee --- */
+const SCRIPT = [
+  ["charge", "charge"],
+  ["charge", "defend"],
+  ["shoot",  "charge"],
+  ["charge", "shoot"],
+  ["defend", "charge"],
+];
+
+let allGood = true, seenTurns = [];
+for (let i = 0; i < SCRIPT.length; i++) {
+  const [mine, theirs] = SCRIPT[i];
+  // Les deux jouent "en meme temps", comme dans la vraie vie.
+  const [ra, rb] = await Promise.all([jude.playMove(mine), lea.playMove(theirs)]);
+
+  if (!ra.ok || !rb.ok) { allGood = false; break; }
+  seenTurns.push(ra.turn);
+
+  // Chacun doit lire SON coup et celui d'en face, sans confusion de camp.
+  if (ra.mine !== mine || ra.theirs !== theirs) allGood = false;
+  if (rb.mine !== theirs || rb.theirs !== mine) allGood = false;
+  // Et les deux doivent parler du MEME tour.
+  if (ra.turn !== rb.turn) allGood = false;
+}
+
+check("client : cinq tours s'enchainent sans erreur", allGood);
+check("client : le numero de tour avance a chaque fois -- " + seenTurns.join(", "),
+      seenTurns.length === SCRIPT.length &&
+      seenTurns.every((n, i) => n === i + 1));
+check("client : chacun distingue son coup de celui d'en face", allGood);
+
+/* --- L'abandon se voit d'en face --- */
+await jude.leave();
+const orphan = await lea.playMove("shoot");
+check("client : l'abandon interrompt l'attente d'en face",
+      orphan.ok === false && orphan.reason === "opponent-left");
+
+console.log("\n  DUEL EN LIGNE — " + (ok.length + ko.length) + " verifications\n");
 for (const l of ok) console.log("    ok    " + l);
 for (const l of ko) console.log("    ECHEC " + l);
 console.log("");
