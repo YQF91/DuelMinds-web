@@ -37,7 +37,7 @@ globalThis.localStorage = {
 };
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
-for (const file of ["rules.js", "progress.js"]) {
+for (const file of ["i18n.js", "rules.js", "progress.js"]) {
   new Function(readFileSync(join(SRC, file), "utf8"))();
 }
 const D = globalThis.DUELMINDS;

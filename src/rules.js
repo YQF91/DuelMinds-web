@@ -92,6 +92,13 @@
    * ------------------------------------------------------------------------ */
   const ACTIONS = ["charge", "shoot", "defend"];
   const ACTION_LABEL = { charge: "Charger", shoot: "Tirer", defend: "Protéger" };
+  const ACTION_LABEL_EN = { charge: "Charge", shoot: "Shoot", defend: "Guard" };
+
+  /** Le nom d'une action dans la langue courante. Voir i18n.js. */
+  function actionLabel(action) {
+    const english = DUELMINDS.i18n && DUELMINDS.i18n.lang() !== "fr";
+    return (english ? ACTION_LABEL_EN : ACTION_LABEL)[action] || action;
+  }
 
   /* ---------------------------------------------------------------------------
    * 3. NIVEAUX DE DIFFICULTÉ
@@ -110,6 +117,8 @@
       label: "Facile",
       accent: "--easy",
       blurb: "Joue au hasard, avec un penchant pour la charge. Idéal pour comprendre le jeu.",
+      en: { label: "Easy",
+            blurb: "Plays at random, with a taste for charging. Ideal for learning the game." },
       blitzSeconds: 5,
     },
     {
@@ -117,6 +126,8 @@
       label: "Difficile",
       accent: "--medium",
       blurb: "Lit ton historique, estime tes balles et se protège quand tu deviens dangereux.",
+      en: { label: "Hard",
+            blurb: "Reads your history, counts your bullets and guards when you turn dangerous." },
       blitzSeconds: 3,
     },
     {
@@ -124,6 +135,8 @@
       label: "Extrême",
       accent: "--hard",
       blurb: "Cherche la faille, punit la moindre habitude — et tu ne vois plus ses balles.",
+      en: { label: "Extreme",
+            blurb: "Hunts for the opening, punishes any habit — and its bullets are hidden from you." },
       blitzSeconds: 2,
       /* À ce niveau, le compteur de l'adversaire disparaît : il faut suivre
        * ses balles de tête. C'est la préparation du futur mode classé, où
@@ -143,16 +156,21 @@
       key: "duel",
       label: "Duel",
       blurb: "Un affrontement au meilleur des 3 manches.",
+      en: { label: "Duel", blurb: "A single confrontation, best of 3 rounds." },
     },
     {
       key: "arcade",
       label: "Arcade",
       blurb: "Enchaîne les duels. Combien en gagnes-tu d'affilée avant de tomber ?",
+      en: { label: "Arcade",
+            blurb: "One duel after another. How many in a row before you fall?" },
     },
     {
       key: "blitz",
       label: "Blitz",
       blurb: "Le chrono tourne : 5 s en facile, 3 s en difficile, 2 s en extrême. Sinon le hasard décide.",
+      en: { label: "Blitz",
+            blurb: "The clock runs: 5 s on easy, 3 s on hard, 2 s on extreme. Miss it and chance decides." },
       /* Le blitz est une série, comme l'arcade : c'est le nombre de duels
        * enchaînés qui fait le score. */
       isStreak: true,
@@ -162,6 +180,8 @@
       key: "aveugle",
       label: "Aveugle",
       blurb: "Tu ne vois plus les balles adverses : compte-les de tête. Duels enchaînés.",
+      en: { label: "Blind",
+            blurb: "Enemy bullets are hidden — count them in your head. Duels back to back." },
       isStreak: true,
       hidesBullets: true,
     },
@@ -203,18 +223,26 @@
     /* `ai` = le CARACTÈRE que prend ce personnage QUAND C'EST L'ADVERSAIRE qui
      * le joue. Voir le commentaire au-dessus : ça ne change rien à tes règles
      * quand c'est toi qui le choisis. */
-    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu.",        ai: "prudent"  },
-    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience.",      ai: "agressif" },
-    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé.",  ai: "neutre"   },
-    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent.",  ai: "joueur"   },
-    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues.",          ai: "agressif" },
-    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre"   },
+    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu.",        ai: "prudent",
+      en: { name: "Archer",      blurb: "Wolf hood, bow drawn." } },
+    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience.",      ai: "agressif",
+      en: { name: "Berserker",   blurb: "Two axes, no patience whatsoever." } },
+    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé.",  ai: "neutre",
+      en: { name: "Cowboy",      blurb: "Revolver in hand, hat pulled down." } },
+    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent.",  ai: "joueur",
+      en: { name: "Enchantress", blurb: "Hair of flame, whip of fire." } },
+    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues.",          ai: "agressif",
+      en: { name: "Goblin",      blurb: "Small, green, two daggers." } },
+    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre",
+      en: { name: "Samurai",     blurb: "Straw hat, katana across the back." } },
   ];
 
   DUELMINDS.RULES = RULES;
   DUELMINDS.CHARACTERS = CHARACTERS;
   DUELMINDS.ACTIONS = ACTIONS;
   DUELMINDS.ACTION_LABEL = ACTION_LABEL;
+  DUELMINDS.ACTION_LABEL_EN = ACTION_LABEL_EN;
+  DUELMINDS.actionLabel = actionLabel;
   DUELMINDS.DIFFICULTIES = DIFFICULTIES;
   DUELMINDS.MODES = MODES;
   DUELMINDS.VERSION = "web-1.0";

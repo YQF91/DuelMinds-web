@@ -27,7 +27,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..", "src");
-for (const f of ["rules.js", "combat.js", "ai.js"]) {
+for (const f of ["i18n.js", "rules.js", "combat.js", "ai.js"]) {
   new Function(readFileSync(join(SRC, f), "utf8"))();
 }
 const D = globalThis.DUELMINDS;

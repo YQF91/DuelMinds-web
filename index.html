@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+<!-- L'attribut lang ci-dessus est remplace au chargement par src/i18n.js. -->
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -43,42 +44,50 @@
        ==================================================================== -->
   <section id="screen-home" class="screen on" aria-label="Accueil">
     <header class="title">
-      <p class="eyebrow">Duel tactique · actions simultanées</p>
+      <p class="eyebrow" data-en="Tactical duel · simultaneous actions">Duel tactique · actions simultanées</p>
       <h1>DuelMinds</h1>
-      <p class="tagline">Vous choisissez en même temps. Une balle suffit.</p>
+      <p class="tagline" data-en="You both choose at once. One bullet is enough.">Vous choisissez en même temps. Une balle suffit.</p>
     </header>
 
     <div>
-      <p class="section-label">Mode de jeu</p>
+      <p class="section-label" data-en="Game mode">Mode de jeu</p>
       <div class="choices" id="modes"></div>
     </div>
 
     <div>
-      <p class="section-label">Adversaire</p>
+      <p class="section-label" data-en="Opponent">Adversaire</p>
       <div class="choices" id="difficulties"></div>
     </div>
 
     <div>
-      <p class="section-label">Ton duelliste</p>
+      <p class="section-label" data-en="Your duelist">Ton duelliste</p>
       <!-- Grille de portraits, remplie par ui.js depuis rules.js -->
       <div class="roster" id="roster"></div>
-      <p class="footnote roster-note">
+      <p class="footnote roster-note"
+         data-en="Your character changes nothing about the rules: everyone has the same bullets and the same actions.">
         Le personnage ne change rien aux règles : tout le monde a les mêmes
         balles et les mêmes actions.
       </p>
     </div>
 
     <div class="row">
-      <button class="btn" id="btn-rules" type="button">Règles</button>
-      <button class="btn" id="btn-progress" type="button">Progression</button>
-      <button class="btn" id="btn-stats" type="button">Stats</button>
+      <button class="btn" id="btn-rules" type="button" data-en="Rules">Règles</button>
+      <button class="btn" id="btn-progress" type="button" data-en="Progress">Progression</button>
+      <button class="btn" id="btn-stats" type="button" data-en="Stats">Stats</button>
     </div>
     <div class="row">
-      <button class="btn primary" id="btn-start" type="button" disabled>Commencer</button>
+      <button class="btn primary" id="btn-start" type="button" disabled data-en="Start">Commencer</button>
+    </div>
+
+    <!-- Choix de la langue. Placé en bas : un joueur anglophone tombe déjà sur
+         un jeu en anglais (voir i18n.js), le bouton ne sert qu'à corriger. -->
+    <div class="row">
+      <button class="btn ghost" id="btn-lang" type="button">English</button>
     </div>
 
     <!-- Affiché uniquement si un point de collecte est configuré (telemetry.js) -->
-    <p class="footnote" id="privacy-note" hidden>
+    <p class="footnote" id="privacy-note" hidden
+       data-en="Test phase: the outcome of your games is sent anonymously to help balance the game. No personal data.">
       Phase de test : le résultat de tes parties est envoyé de façon anonyme
       pour aider à équilibrer le jeu. Aucune donnée personnelle.
     </p>
@@ -96,9 +105,9 @@
         <span class="tag accent" id="hud-difficulty">—</span>
       </div>
       <div class="hud-right" id="hud-streak" hidden>
-        <span class="streak-label">Série</span>
+        <span class="streak-label" data-en="Streak">Série</span>
         <b class="num" id="streak-value">0</b>
-        <span class="streak-best">record <b class="num" id="streak-best">0</b></span>
+        <span class="streak-best" data-en-html="best <b class='num' id='streak-best'>0</b>">record <b class="num" id="streak-best">0</b></span>
       </div>
     </div>
 
@@ -109,7 +118,7 @@
         <span class="nameplate-name" id="bot-name">Adversaire</span>
         <span class="score" id="score-bot"></span>
       </div>
-      <div class="manche-badge">Manche <b class="num" id="manche-number">1</b></div>
+      <div class="manche-badge" data-en-html="Round <b class='num' id='manche-number'>1</b>">Manche <b class="num" id="manche-number">1</b></div>
       <div class="nameplate right">
         <span class="score" id="score-me"></span>
         <span class="nameplate-name" id="me-name">Toi</span>
@@ -137,19 +146,19 @@
 
       <!-- LA RÉVÉLATION — les deux choix simultanés apparaissent au centre -->
       <div class="reveal" id="reveal" aria-live="polite">
-        <p class="hint">Vous choisissez en même temps.<br>Il ne voit pas ton coup.</p>
+        <p class="hint" data-en-html="You both choose at once.<br>It cannot see your move.">Vous choisissez en même temps.<br>Il ne voit pas ton coup.</p>
       </div>
     </div>
 
     <!-- PANNEAUX D'INFORMATION, un par duelliste, sous son côté -->
     <div class="panels">
       <div class="panel">
-        <span class="panel-label">Adversaire</span>
+        <span class="panel-label" data-en="Opponent">Adversaire</span>
         <span class="bullets" id="bot-bullets" title="Balles"></span>
         <span class="guard" id="bot-guard"></span>
       </div>
       <div class="panel right">
-        <span class="panel-label">Toi</span>
+        <span class="panel-label" data-en="You">Toi</span>
         <span class="bullets" id="me-bullets" title="Balles"></span>
         <span class="guard" id="me-guard"></span>
       </div>
@@ -158,21 +167,24 @@
     <!-- LES ACTIONS. `data-action` fait le lien avec le moteur : ces valeurs
          doivent rester celles de DUELMINDS.ACTIONS dans rules.js. -->
     <div class="actions">
-      <button class="action" data-action="charge" type="button">
+      <button class="action" data-action="charge" type="button"
+              data-en-html="Charge<small>+ 1 bullet</small>">
         Charger<small>+ 1 balle</small>
       </button>
-      <button class="action" id="btn-shoot" data-action="shoot" type="button">
+      <button class="action" id="btn-shoot" data-action="shoot" type="button"
+              data-en-html="Shoot<small id='shoot-note'>costs 1 bullet</small>">
         Tirer<small id="shoot-note">coûte 1 balle</small>
       </button>
-      <button class="action" data-action="defend" type="button">
+      <button class="action" data-action="defend" type="button"
+              data-en-html="Guard<small id='defend-note'>free</small>">
         Protéger<small id="defend-note">gratuit</small>
       </button>
     </div>
 
-    <p class="log" id="log" aria-live="polite">La manche commence.</p>
+    <p class="log" id="log" aria-live="polite" data-en="The round begins.">La manche commence.</p>
 
     <div class="row">
-      <button class="btn ghost" id="btn-quit" type="button">Abandonner</button>
+      <button class="btn ghost" id="btn-quit" type="button" data-en="Give up">Abandonner</button>
     </div>
   </section>
 
@@ -187,7 +199,7 @@
       </div>
     </div>
     <div class="row">
-      <button class="btn primary" id="btn-announce" type="button">Continuer</button>
+      <button class="btn primary" id="btn-announce" type="button" data-en="Continue">Continuer</button>
     </div>
   </section>
 
@@ -203,8 +215,8 @@
       <div class="summary" id="end-summary"></div>
     </div>
     <div class="row">
-      <button class="btn primary" id="btn-again" type="button">Rejouer</button>
-      <button class="btn" id="btn-home" type="button">Accueil</button>
+      <button class="btn primary" id="btn-again" type="button" data-en="Play again">Rejouer</button>
+      <button class="btn" id="btn-home" type="button" data-en="Home">Accueil</button>
     </div>
   </section>
 
@@ -214,18 +226,18 @@
        rules.js : la page ne peut pas mentir sur les règles appliquées.
        ==================================================================== -->
   <section id="screen-rules" class="screen" aria-label="Règles du jeu">
-    <h2>Règles</h2>
+    <h2 data-en="Rules">Règles</h2>
     <div class="doc">
-      <h3>Le principe</h3>
-      <p>
+      <h3 data-en="The idea">Le principe</h3>
+      <p data-en-html="Two duelists face to face. Each turn you both choose <b>at the same time</b>, without seeing the other's move. <b>There are no hit points</b>: a shot that lands ends the round instantly.">
         Deux duellistes face à face. À chaque tour, vous choisissez
         <b>en même temps</b>, sans voir le coup de l'autre.
         <b>Il n'y a pas de points de vie</b> : un tir qui touche met fin à la
         manche immédiatement.
       </p>
 
-      <h3>Les trois actions</h3>
-      <ul>
+      <h3 data-en="The three actions">Les trois actions</h3>
+      <ul data-en-html="<li><b>Charge</b> — gain 1 bullet. Always available, but leaves you wide open this turn.</li><li><b>Shoot</b> — costs 1 bullet. Kills unless the opponent guarded. Impossible with no bullet.</li><li><b>Guard</b> — immune to an ordinary shot. The <b><span id='rules-free'>2</span> first in a row</b> are free; after that each costs 1 bullet. Charging or shooting resets the count.</li>">
         <li><b>Charger</b> — gagne 1 balle. Toujours possible, mais te laisse
             sans défense pendant ce tour.</li>
         <li><b>Tirer</b> — coûte 1 balle. Tue si l'adversaire ne s'est pas
@@ -236,8 +248,8 @@
             le compteur à zéro.</li>
       </ul>
 
-      <h3>Les deux coups spéciaux</h3>
-      <ul>
+      <h3 data-en="The two special moves">Les deux coups spéciaux</h3>
+      <ul data-en-html="<li><b>Super shot</b> — shooting with <b><span id='rules-super'>4</span> bullets or more</b> punches through the guard. That is the reward for taking the risk of hoarding.</li><li><b>Clash</b> — if you both shoot on the same turn, the bullets collide in mid-air. Nobody falls, but you have each spent a bullet.</li>">
         <li><b>Super tir</b> — tirer avec <b><span id="rules-super">4</span> balles
             ou plus</b> traverse la protection. C'est la récompense de qui prend
             le risque d'accumuler.</li>
@@ -246,21 +258,21 @@
             dépensé une balle.</li>
       </ul>
 
-      <h3>Mourir bêtement</h3>
-      <p>
+      <h3 data-en="Dying stupidly">Mourir bêtement</h3>
+      <p data-en="Attempting an impossible action — shooting with no bullet, guarding with no way to pay — loses the round on the spot. The game stops you by disabling those buttons, but the rule is there.">
         Tenter une action impossible — tirer sans balle, se protéger sans
         pouvoir payer — fait perdre la manche sur-le-champ. Le jeu t'en empêche
         en désactivant les boutons concernés, mais la règle existe.
       </p>
 
-      <h3>Gagner</h3>
-      <p>
+      <h3 data-en="Winning">Gagner</h3>
+      <p data-en-html="Each round starts with <b><span id='rules-start'>1</span> bullet</b>. First to <b><span id='rules-manches'>2</span> rounds</b> wins the duel.">
         Chaque manche commence avec <b><span id="rules-start">1</span> balle</b>.
         Le premier à <b><span id="rules-manches">2</span> manches</b> remporte le duel.
       </p>
 
-      <h3>Les modes</h3>
-      <ul>
+      <h3 data-en="The modes">Les modes</h3>
+      <ul data-en-html="<li><b>Duel</b> — one confrontation, then back to the home screen.</li><li><b>Arcade</b> — duels follow one another. Every win extends your streak, the first loss ends it. Your best score is kept per difficulty.</li><li><b>Blitz</b> — arcade, but the clock runs, and the difficulty tightens it: <b>5 seconds</b> on easy, <b>3</b> on hard, <b>2</b> on extreme. Miss the deadline and a legal action is played at random: not deciding is a decision too, and it costs you.</li><li><b>Blind</b> — arcade, but <b>you no longer see the opponent's bullets</b>, whatever the level. You have to track them yourself. This is the mode that foreshadows PVP.</li>">
         <li><b>Duel</b> — un affrontement, puis retour à l'accueil.</li>
         <li><b>Arcade</b> — les duels s'enchaînent. Chaque victoire prolonge ta
             série, la première défaite y met fin. Ton meilleur score est
@@ -274,8 +286,8 @@
             tête. C'est le mode qui préfigure le PVP.</li>
       </ul>
 
-      <h3>L'information cachée</h3>
-      <p>
+      <h3 data-en="Hidden information">L'information cachée</h3>
+      <p data-en-html="In <b>Blind</b> mode, and against the <b>Extreme</b> opponent whatever the mode — so also in <b>Blitz extreme</b>, where you must count in 2 seconds — the opposite cylinder is replaced by question marks. Track it yourself: it starts at 1 bullet, gains one on every charge, spends one on every shot, and one more from its 3<sup>rd</sup> consecutive guard.">
         En mode <b>Aveugle</b>, et face à l'adversaire <b>Extrême</b> quel que
         soit le mode — donc aussi en <b>Blitz extrême</b>, où il faut compter en
         2 secondes —, le barillet d'en face est remplacé par des points
@@ -284,20 +296,22 @@
         chaque tir, et une de plus à partir de sa 3<sup>e</sup> protection
         d'affilée.
       </p>
-      <p>
+      <p data-en="The AI plays under the same terms: when you cannot see its bullets, it cannot see yours either and has to estimate them just as you do.">
         L'IA joue à la même enseigne : quand tu ne vois pas ses balles, elle ne
         voit pas les tiennes non plus et doit les estimer comme toi.
       </p>
 
-      <h3>Les personnages</h3>
-      <p>
+      <h3 data-en="The characters">Les personnages</h3>
+      <p data-en-html="The duelist you pick is <b>purely cosmetic</b>. Everyone has the same bullets, the same actions and the same rules: what decides a duel is reading your opponent. The <b>opponent's</b> character, however, is a tell — it sets their temperament, never their statistics.">
         Le duelliste que tu choisis est <b>purement esthétique</b>. Tout le
         monde a les mêmes balles, les mêmes actions et les mêmes règles : ce
-        qui départage, c'est la lecture de l'adversaire.
+        qui départage, c'est la lecture de l'adversaire. Le personnage
+        <b>adverse</b>, lui, est un indice : il fixe son tempérament, jamais
+        ses statistiques.
       </p>
     </div>
     <div class="row">
-      <button class="btn" id="btn-rules-back" type="button">Retour</button>
+      <button class="btn" id="btn-rules-back" type="button" data-en="Back">Retour</button>
     </div>
   </section>
 
@@ -306,14 +320,14 @@
        Comptées sur cet appareil uniquement (voir src/stats.js).
        ==================================================================== -->
   <section id="screen-stats" class="screen" aria-label="Statistiques">
-    <h2>Statistiques</h2>
+    <h2 data-en="Statistics">Statistiques</h2>
     <div class="doc" id="stats-body"></div>
     <div class="row">
-      <button class="btn" id="btn-stats-copy" type="button">Copier</button>
-      <button class="btn" id="btn-stats-reset" type="button">Remettre à zéro</button>
+      <button class="btn" id="btn-stats-copy" type="button" data-en="Copy">Copier</button>
+      <button class="btn" id="btn-stats-reset" type="button" data-en="Reset">Remettre à zéro</button>
     </div>
     <div class="row">
-      <button class="btn" id="btn-stats-back" type="button">Retour</button>
+      <button class="btn" id="btn-stats-back" type="button" data-en="Back">Retour</button>
     </div>
   </section>
 
@@ -325,15 +339,16 @@
        joueur quelque chose à viser. Seule leur couleur change.
        ==================================================================== -->
   <section id="screen-progress" class="screen" aria-label="Progression">
-    <h2>Progression</h2>
+    <h2 data-en="Progress">Progression</h2>
 
     <div class="progress-tabs" role="tablist">
-      <button class="tabbtn on" id="tab-levels" type="button" role="tab">Duellistes</button>
-      <button class="tabbtn" id="tab-feats" type="button" role="tab">Hauts faits <span id="feat-count" class="tab-count"></span></button>
+      <button class="tabbtn on" id="tab-levels" type="button" role="tab" data-en="Duelists">Duellistes</button>
+      <button class="tabbtn" id="tab-feats" type="button" role="tab"><span data-en="Achievements">Hauts faits</span> <span id="feat-count" class="tab-count"></span></button>
     </div>
 
     <div id="panel-levels" class="tabpanel">
-      <p class="footnote">
+      <p class="footnote"
+         data-en="Levels are a title, not an advantage: they change neither your bullets nor the rules. Playing on Extreme levels you up twice as fast.">
         Les niveaux sont un titre, pas un avantage : ils ne changent ni tes
         balles ni les règles. Jouer en Extrême fait monter deux fois plus vite.
       </p>
@@ -345,7 +360,7 @@
     </div>
 
     <div class="row">
-      <button class="btn" id="btn-progress-back" type="button">Retour</button>
+      <button class="btn" id="btn-progress-back" type="button" data-en="Back">Retour</button>
     </div>
   </section>
 
@@ -353,6 +368,7 @@
 
 <!--
   Ordre de chargement IMPOSÉ : chaque fichier utilise ceux d'avant.
+    i18n       français et anglais, ne dépend de rien
     rules      données et constantes, ne dépend de rien
     combat     moteur d'un tour, a besoin de rules
     ai         les trois adversaires, a besoin de combat
@@ -365,6 +381,7 @@
     ui         interface, a besoin de tout le reste
     main       démarrage
 -->
+<script src="src/i18n.js"></script>
 <script src="src/rules.js"></script>
 <script src="src/combat.js"></script>
 <script src="src/ai.js"></script>

@@ -102,24 +102,28 @@
       key: "neutre",
       name: "Méthodique",
       tell: "joue au livre, sans excès",
+      en: { name: "Methodical", tell: "plays it by the book, no excess" },
       shoot: 1.0, defend: 1.0, patience: 1.0,
     },
     {
       key: "agressif",
       name: "Impatient",
       tell: "tire dès qu'il peut, se protège peu",
+      en: { name: "Impatient", tell: "shoots the moment it can, rarely guards" },
       shoot: 1.15, defend: 0.6, patience: 0.8,
     },
     {
       key: "prudent",
       name: "Prudent",
       tell: "se protège beaucoup, attend son heure",
+      en: { name: "Cautious", tell: "guards a lot and waits for its moment" },
       shoot: 0.85, defend: 1.6, patience: 1.25,
     },
     {
       key: "joueur",
       name: "Parieur",
       tell: "accumule pour le super tir, quitte à se découvrir",
+      en: { name: "Gambler", tell: "hoards for the super shot, even wide open" },
       shoot: 0.8, defend: 0.85, patience: 1.6,
     },
   ];

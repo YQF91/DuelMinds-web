@@ -36,7 +36,14 @@
   "use strict";
 
   const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
-  const { RULES, ACTIONS, ACTION_LABEL, MODES, DIFFICULTIES } = DUELMINDS;
+  const { RULES, ACTIONS, MODES, DIFFICULTIES } = DUELMINDS;
+
+  /* Raccourcis de traduction, voir i18n.js.
+   *   t(cle, params) une phrase du dictionnaire
+   *   L(objet, champ) un champ traduit d'une donnee de jeu
+   *   actionLabel(a)  le nom d'une action dans la langue courante */
+  const { t, L } = DUELMINDS.i18n;
+  const actionLabel = DUELMINDS.actionLabel;
   const { canDo, defenceCost, isSuperShot } = DUELMINDS.combat;
   const { drawDuelist, drawEffect } = DUELMINDS.sprites;
   const audio = DUELMINDS.audio;
@@ -148,8 +155,8 @@
       button.className = "choice";
       button.dataset.mode = mode.key;
       button.innerHTML =
-        "<span class='choice-title'>" + mode.label + "</span>" +
-        "<span class='choice-desc'>" + mode.blurb + "</span>";
+        "<span class='choice-title'>" + L(mode, "label") + "</span>" +
+        "<span class='choice-desc'>" + L(mode, "blurb") + "</span>";
       button.addEventListener("click", () => selectMode(mode.key));
       modeList.appendChild(button);
     }
@@ -163,8 +170,8 @@
       button.dataset.difficulty = difficulty.key;
       button.style.setProperty("--accent", "var(" + difficulty.accent + ")");
       button.innerHTML =
-        "<span class='choice-title'>" + difficulty.label + "</span>" +
-        "<span class='choice-desc'>" + difficulty.blurb + "</span>" +
+        "<span class='choice-title'>" + L(difficulty, "label") + "</span>" +
+        "<span class='choice-desc'>" + L(difficulty, "blurb") + "</span>" +
         "<span class='choice-record' data-record='" + difficulty.key + "'></span>";
       button.addEventListener("click", () => selectDifficulty(difficulty.key));
       difficultyList.appendChild(button);
@@ -188,24 +195,24 @@
       slot.type = "button";
       slot.className = "roster-slot";
       slot.dataset.character = character.key;
-      slot.title = character.name + " — " + character.blurb;
+      slot.title = L(character, "name") + " — " + L(character, "blurb");
 
       // L'image se remplace toute seule par l'initiale si le fichier manque.
       const image = document.createElement("img");
-      image.alt = character.name;
+      image.alt = L(character, "name");
       image.src = "assets/characters/" + character.key + ".png";
       image.addEventListener("error", () => {
         image.remove();
         const initial = document.createElement("span");
         initial.className = "initial";
-        initial.textContent = character.name.charAt(0);
+        initial.textContent = L(character, "name").charAt(0);
         slot.prepend(initial);
       });
       slot.appendChild(image);
 
       const label = document.createElement("span");
       label.className = "roster-name";
-      label.textContent = character.name;
+      label.textContent = L(character, "name");
       slot.appendChild(label);
 
       slot.addEventListener("click", () => {
@@ -250,7 +257,7 @@
     for (const span of document.querySelectorAll("[data-record]")) {
       const best = stats.bestStreak(span.dataset.record);
       const show = state.mode === "arcade" && best > 0;
-      span.textContent = show ? "record " + best : "";
+      span.textContent = show ? t("home.record", { n: best }) : "";
     }
 
     for (const slot of document.querySelectorAll("[data-character]")) {
@@ -277,7 +284,7 @@
   /** Le nom affiché d'un personnage, à partir de sa clé. */
   function characterName(key) {
     const character = DUELMINDS.CHARACTERS.find((c) => c.key === key);
-    return character ? character.name : "Duelliste";
+    return character ? L(character, "name") : t("duelist.default");
   }
 
   /* ---------------------------------------------------------------------------
@@ -332,10 +339,10 @@
     stats.recordSessionStart(state.mode, state.difficulty);
 
     const intro = [];
-    if (isStreakMode()) intro.push("Chaque duel gagné prolonge la série.");
-    else intro.push("Premier à " + RULES.MANCHES_TO_WIN + " manches remporte le duel.");
-    if (isTimed()) intro.push(blitzSeconds() + " secondes pour choisir.");
-    if (bulletsHidden()) intro.push("Les balles adverses sont cachées : compte-les.");
+    if (isStreakMode()) intro.push(t("intro.streak"));
+    else intro.push(t("intro.duel", { n: RULES.MANCHES_TO_WIN }));
+    if (isTimed()) intro.push(t("intro.timer", { n: blitzSeconds() }));
+    if (bulletsHidden()) intro.push(t("intro.hidden"));
     setLog(intro.join(" "));
 
     renderDuel();
@@ -350,8 +357,8 @@
 
     // Bandeau : mode, difficulté, et série en cours si on est en arcade
     const difficulty = DIFFICULTIES.find((d) => d.key === s.difficulty);
-    $("hud-mode").textContent = MODES.find((m) => m.key === s.mode).label;
-    $("hud-difficulty").textContent = difficulty.label;
+    $("hud-mode").textContent = L(MODES.find((m) => m.key === s.mode), "label");
+    $("hud-difficulty").textContent = L(difficulty, "label");
     $("hud-difficulty").style.setProperty("--accent", "var(" + difficulty.accent + ")");
 
     const arcade = isStreakMode();
@@ -379,11 +386,15 @@
     }
 
     // Le bouton de tir annonce quand le coup traversera la protection.
-    $("shoot-note").textContent = isSuperShot(s.player) ? "SUPER TIR" : "coûte 1 balle";
+    $("shoot-note").textContent = isSuperShot(s.player)
+      ? t("action.super") : t("action.costOne");
     $("btn-shoot").classList.toggle("super", isSuperShot(s.player));
 
     const cost = defenceCost(s.player);
-    $("defend-note").textContent = cost === 0 ? "gratuit" : "coûte " + cost + " balle";
+    $("defend-note").textContent =
+      cost === 0 ? t("action.free")
+      : cost === 1 ? t("action.costOne")
+      : t("action.costMany", { n: cost });
   }
 
   function renderScore(container, won) {
@@ -521,8 +532,8 @@
   function showReveal(turn) {
     const band = $("reveal");
     band.innerHTML = "";
-    band.appendChild(revealCard("Adversaire", turn.actionB, turn.resultB, "from-left"));
-    band.appendChild(revealCard("Toi", turn.actionA, turn.resultA, "from-right"));
+    band.appendChild(revealCard(t("duelist.opponent"), turn.actionB, turn.resultB, "from-left"));
+    band.appendChild(revealCard(t("duelist.you"), turn.actionA, turn.resultA, "from-right"));
 
     // Un seul effet par tour : le plus marquant.
     if (turn.resultA === "clash" && turn.resultB === "clash") {
@@ -553,9 +564,9 @@
       (result === "clash" ? " clash" : "");
     card.innerHTML =
       "<span class='reveal-who'>" + who + "</span>" +
-      "<span class='reveal-action'>" + ACTION_LABEL[action] + "</span>" +
-      (result === "super_shot" ? "<span class='reveal-tag'>super tir</span>" : "") +
-      (result === "death" ? "<span class='reveal-tag'>impossible</span>" : "");
+      "<span class='reveal-action'>" + actionLabel(action) + "</span>" +
+      (result === "super_shot" ? "<span class='reveal-tag'>" + t("reveal.super") + "</span>" : "") +
+      (result === "death" ? "<span class='reveal-tag'>" + t("reveal.impossible") + "</span>" : "");
     return card;
   }
 
@@ -620,8 +631,8 @@
   }
 
   function describeTurn(turn) {
-    const lines = ["Toi : " + ACTION_LABEL[turn.actionA] +
-                   "  ·  Adversaire : " + ACTION_LABEL[turn.actionB] + "."];
+    const lines = [t("reveal.log", { you: actionLabel(turn.actionA),
+                                    foe: actionLabel(turn.actionB) }) + "."];
     if (turn.reason) lines.push(turn.reason);
     return lines.join(" ");
   }
@@ -652,9 +663,9 @@
     if (!result.duelOver) {
       // Manche suivante du même duel
       announce(
-        playerWonManche ? "Manche gagnée" : "Manche perdue",
+        t(playerWonManche ? "manche.won" : "manche.lost"),
         s.lastReason,
-        "Manche " + (s.mancheNumber),
+        t("manche.next", { n: s.mancheNumber }),
         () => {
           DUELMINDS.match.startManche(s);
           setPose("player", "idle");
@@ -711,11 +722,11 @@
       const nextCharacter = pickBotCharacter(state.botCharacter);
       const next = DUELMINDS.ai.personalityForCharacter(nextCharacter);
       announce(
-        "Duel remporté",
-        "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") + ". " +
-        characterName(nextCharacter) + " prend sa place — il " + next.tell + "." +
+        t("duel.won"),
+        t(s.streak > 1 ? "streak.countMany" : "streak.countOne", { n: s.streak }) + " " +
+        t("opponent.next", { name: characterName(nextCharacter), tell: L(next, "tell") }) +
         progressLine(),
-        "Duel " + (s.streak + 1),
+        t("duel.next", { n: s.streak + 1 }),
         () => {
           state.botCharacter = nextCharacter;
           DUELMINDS.match.startNextDuel(s, nextCharacter);
@@ -746,12 +757,15 @@
 
     const parts = [];
     if (p.levelUp) {
-      parts.push(characterName(state.character) + " passe niveau " +
-                 p.level.level + " — " + p.level.title + ".");
+      parts.push(t("progress.levelUp", {
+        name: characterName(state.character),
+        level: p.level.level,
+        title: p.level.title,
+      }));
     }
     if (p.unlocked.length) {
-      parts.push((p.unlocked.length > 1 ? "Hauts faits : " : "Haut fait : ") +
-                 p.unlocked.map((a) => a.name).join(", ") + ".");
+      parts.push(t(p.unlocked.length > 1 ? "progress.featMany" : "progress.featOne",
+                   { names: p.unlocked.map((a) => a.name).join(", ") }));
     }
     return parts.length ? " " + parts.join(" ") : "";
   }
@@ -778,13 +792,13 @@
 
     if (isStreakMode()) {
       const isRecord = stats.recordStreak(s.difficulty, s.streak);
-      title = s.streak === 0 ? "Série terminée" : "Série de " + s.streak;
+      title = s.streak === 0 ? t("streak.ended") : t("streak.title", { n: s.streak });
       detail = s.lastReason + " " +
         (isRecord && s.streak > 0
-          ? "Nouveau record sur ce niveau."
-          : "Ton record ici est de " + stats.bestStreak(s.difficulty) + ".");
+          ? t("streak.recordNew")
+          : t("streak.recordOld", { n: stats.bestStreak(s.difficulty) }));
     } else {
-      title = playerWonDuel ? "Duel remporté" : "Duel perdu";
+      title = t(playerWonDuel ? "duel.won" : "duel.lost");
       detail = s.lastReason;
     }
 
@@ -792,8 +806,9 @@
      * souvent là qu'on comprend ce qui nous a manqué. */
     if (isStreakMode()) {
       const last = DUELMINDS.ai.personalityOf(s.brain);
-      detail += " Le dernier adversaire, " + characterName(state.botCharacter) +
-                ", " + last.tell + ".";
+      detail += " " + t("opponent.last", {
+        name: characterName(state.botCharacter), tell: L(last, "tell"),
+      });
     }
 
     detail += progressLine();
@@ -805,16 +820,16 @@
     const summary = $("end-summary");
     summary.innerHTML = "";
     const rows = [
-      ["Mode", MODES.find((m) => m.key === s.mode).label],
-      ["Difficulté", DIFFICULTIES.find((d) => d.key === s.difficulty).label],
-      ["Duels joués", state.log.duels],
-      ["Manches", state.log.manches],
-      ["Tours", state.log.turns],
-      ["Clashs", state.log.clashes],
-      ["Super tirs", state.log.superShots],
+      [t("end.mode"), L(MODES.find((m) => m.key === s.mode), "label")],
+      [t("end.difficulty"), L(DIFFICULTIES.find((d) => d.key === s.difficulty), "label")],
+      [t("end.duels"), state.log.duels],
+      [t("end.manches"), state.log.manches],
+      [t("end.turns"), state.log.turns],
+      [t("end.clashes"), state.log.clashes],
+      [t("end.superShots"), state.log.superShots],
     ];
-    if (isStreakMode()) rows.splice(2, 0, ["Série", s.streak]);
-    if (isTimed()) rows.push(["Temps écoulé", state.timedOut + " fois"]);
+    if (isStreakMode()) rows.splice(2, 0, [t("end.streak"), s.streak]);
+    if (isTimed()) rows.push([t("end.timedOut"), t("end.times", { n: state.timedOut })]);
 
     // Où en est le personnage joué : c'est l'écran qu'on regarde le plus, donc
     // celui où la progression a le plus de chances d'être vue.
@@ -822,7 +837,7 @@
       .find((entry) => entry.key === state.character);
     if (mine) {
       rows.push([characterName(state.character),
-                 "niv. " + mine.level + " · " + mine.title]);
+                 t("progress.rank", { level: mine.level, title: mine.title })]);
     }
     for (const [label, value] of rows) {
       const row = document.createElement("div");
@@ -904,11 +919,11 @@
       head.className = "level-head";
 
       const name = document.createElement("b");
-      name.textContent = entry.name;
+      name.textContent = entry.name;   // deja traduit par progress.js
 
       const rank = document.createElement("span");
       rank.className = "level-rank";
-      rank.textContent = "niv. " + entry.level + " · " + entry.title;
+      rank.textContent = t("progress.rank", { level: entry.level, title: entry.title });
 
       head.appendChild(name);
       head.appendChild(rank);
@@ -922,9 +937,9 @@
       const note = document.createElement("span");
       note.className = "level-note";
       note.textContent = entry.isMax
-        ? "niveau maximum · " + entry.duels + " duels"
-        : entry.intoLevel + " / " + entry.needed + " points · " +
-          entry.duels + " duels, " + entry.wins + " gagnés";
+        ? t("progress.maxNote", { duels: entry.duels })
+        : t("progress.note", { into: entry.intoLevel, needed: entry.needed,
+                               duels: entry.duels, wins: entry.wins });
 
       row.appendChild(head);
       row.appendChild(bar);
@@ -1002,8 +1017,7 @@
     const body = $("stats-body");
 
     if (!stats.hasData()) {
-      body.innerHTML = "<p>Aucune partie jouée pour l'instant. Les compteurs se " +
-        "remplissent au fil des duels.</p>";
+      body.innerHTML = "<p>" + t("stats.empty") + "</p>";
       return;
     }
 
@@ -1011,47 +1025,49 @@
 
     const modeRows = MODES.map((mode) => {
       const m = s.byMode[mode.key];
-      return "<tr><td>" + mode.label + "</td><td class='n'>" + m.sessions + "</td>" +
+      return "<tr><td>" + L(mode, "label") + "</td><td class='n'>" + m.sessions + "</td>" +
         "<td class='n'>" + m.duelsPlayed + "</td>" +
         "<td class='n'>" + pct(m.duelsWon, m.duelsPlayed) + " %</td></tr>";
     }).join("");
 
     const difficultyRows = DIFFICULTIES.map((difficulty) => {
       const d = s.byDifficulty[difficulty.key];
-      return "<tr><td>" + difficulty.label + "</td>" +
+      return "<tr><td>" + L(difficulty, "label") + "</td>" +
         "<td class='n'>" + pct(d.duelsWon, d.duelsPlayed) + " %</td>" +
         "<td class='n'>" + pct(d.manchesWon, d.manchesPlayed) + " %</td>" +
         "<td class='n'>" + d.bestStreak + "</td></tr>";
     }).join("");
 
     const actionRows = ACTIONS.map((action) =>
-      "<tr><td>" + ACTION_LABEL[action] + "</td>" +
+      "<tr><td>" + actionLabel(action) + "</td>" +
       "<td class='n'>" + s.byAction[action] + "</td>" +
       "<td class='n'>" + pct(s.byAction[action], s.turns) + " %</td></tr>").join("");
 
+    const th = (key, numeric) =>
+      "<th" + (numeric ? " class='n'" : "") + ">" + t(key) + "</th>";
+
     body.innerHTML =
-      "<h3>Modes</h3><div class='table-wrap'><table>" +
-        "<thead><tr><th>Mode</th><th class='n'>Parties</th><th class='n'>Duels</th>" +
-        "<th class='n'>Gagnés</th></tr></thead><tbody>" + modeRows + "</tbody></table></div>" +
+      "<h3>" + t("stats.modes") + "</h3><div class='table-wrap'><table><thead><tr>" +
+        th("stats.colMode") + th("stats.colGames", 1) + th("stats.colDuels", 1) +
+        th("stats.colWon", 1) +
+        "</tr></thead><tbody>" + modeRows + "</tbody></table></div>" +
 
-      "<h3>Difficultés</h3><div class='table-wrap'><table>" +
-        "<thead><tr><th>Niveau</th><th class='n'>Duels</th><th class='n'>Manches</th>" +
-        "<th class='n'>Record</th></tr></thead><tbody>" + difficultyRows + "</tbody></table></div>" +
+      "<h3>" + t("stats.difficulties") + "</h3><div class='table-wrap'><table><thead><tr>" +
+        th("stats.colLevel") + th("stats.colDuels", 1) + th("stats.colManches", 1) +
+        th("stats.colRecord", 1) +
+        "</tr></thead><tbody>" + difficultyRows + "</tbody></table></div>" +
 
-      "<h3>Tes actions</h3><div class='table-wrap'><table>" +
-        "<thead><tr><th>Action</th><th class='n'>Fois</th><th class='n'>Part</th></tr></thead>" +
-        "<tbody>" + actionRows + "</tbody></table></div>" +
+      "<h3>" + t("stats.actions") + "</h3><div class='table-wrap'><table><thead><tr>" +
+        th("stats.colAction") + th("stats.colTimes", 1) + th("stats.colShare", 1) +
+        "</tr></thead><tbody>" + actionRows + "</tbody></table></div>" +
 
-      "<h3>Mécaniques</h3><ul>" +
-        "<li><b>" + s.turns + "</b> tours joués</li>" +
-        "<li>" + pct(s.clashes, s.turns) + " % de clashs</li>" +
-        "<li><b>" + s.superShots + "</b> super tirs</li>" +
+      "<h3>" + t("stats.mechanics") + "</h3><ul>" +
+        "<li>" + t("stats.turnsPlayed", { n: "<b>" + s.turns + "</b>" }) + "</li>" +
+        "<li>" + t("stats.clashShare", { n: pct(s.clashes, s.turns) }) + "</li>" +
+        "<li>" + t("stats.superShots", { n: "<b>" + s.superShots + "</b>" }) + "</li>" +
       "</ul>" +
 
-      (stats.isPersistent()
-        ? "<p>Ces chiffres ne concernent que cet appareil et sont conservés entre deux sessions.</p>"
-        : "<p>Le stockage du navigateur est indisponible : ces chiffres seront perdus " +
-          "en fermant l'onglet.</p>");
+      "<p>" + t(stats.isPersistent() ? "stats.deviceOnly" : "stats.noStorage") + "</p>";
   }
 
   /** `navigator.clipboard` n'existe pas partout : on prévoit un repli. */
@@ -1059,7 +1075,7 @@
     const text = stats.toText();
     const done = () => {
       const original = button.textContent;
-      button.textContent = "Copié";
+      button.textContent = t("stats.copied");
       window.setTimeout(() => { button.textContent = original; }, 1600);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1157,10 +1173,34 @@
   /* =========================================================================
    * DÉMARRAGE
    * ====================================================================== */
+  /**
+   * Applique la langue à toute l'interface.
+   *
+   * Deux temps, et l'ordre compte :
+   *   1. i18n remplace les textes écrits dans le HTML ;
+   *   2. on RECONSTRUIT ce que le JavaScript avait fabriqué — listes de modes,
+   *      règles, écrans de progression — car ces éléments-là ne portent pas
+   *      d'attribut `data-en` : ils sont créés à la volée.
+   *
+   * `buildRules` doit repasser après `applyDom` : la version anglaise de l'aide
+   * réinstalle les `<span id="rules-super">` vides, qu'il faut re-remplir.
+   */
+  function applyLanguage() {
+    DUELMINDS.i18n.applyDom(document);
+    buildHome();
+    buildRules();
+    if ($("screen-progress").classList.contains("on")) renderProgress();
+    if ($("screen-stats").classList.contains("on")) renderStats();
+    if (state.session) renderDuel();
+    $("btn-lang").textContent = DUELMINDS.i18n.lang() === "fr" ? "English" : "Français";
+  }
+
   function init() {
     audio.loadFiles();
     buildHome();
     buildRules();
+    document.documentElement.setAttribute("lang", DUELMINDS.i18n.lang());
+    applyLanguage();
 
     // On ne collecte jamais de données sans le dire.
     if (DUELMINDS.telemetry && DUELMINDS.telemetry.isEnabled()) {
@@ -1175,6 +1215,12 @@
     $("btn-quit").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
     $("btn-again").addEventListener("click", () => { audio.play("click"); startSession(); });
     $("btn-home").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
+
+    $("btn-lang").addEventListener("click", () => {
+      audio.play("click");
+      DUELMINDS.i18n.setLang(DUELMINDS.i18n.lang() === "fr" ? "en" : "fr");
+      applyLanguage();
+    });
 
     $("btn-rules").addEventListener("click", () => showScreen("screen-rules"));
     $("btn-rules-back").addEventListener("click", () => showScreen("screen-home"));

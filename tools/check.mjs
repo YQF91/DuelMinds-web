@@ -23,7 +23,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
 const SRC = join(ROOT, "src");
 
-const SCRIPTS = ["rules.js", "combat.js", "ai.js", "match.js", "sprites.js",
+const SCRIPTS = ["i18n.js", "rules.js", "combat.js", "ai.js", "match.js", "sprites.js",
                  "audio.js", "stats.js", "progress.js", "telemetry.js",
                  "ui.js", "main.js"];
 
@@ -58,7 +58,7 @@ report(missingIds.length === 0,
     : "IDENTIFIANTS ABSENTS du HTML : " + missingIds.join(", "));
 
 /* --- 3. Les actions des boutons correspondent-elles au moteur ? --- */
-for (const file of ["rules.js", "combat.js", "ai.js", "match.js"]) new Function(sources[file])();
+for (const file of ["i18n.js", "rules.js", "combat.js", "ai.js", "match.js"]) new Function(sources[file])();
 const D = globalThis.DUELMINDS;
 
 const buttonActions = [...html.matchAll(/data-action="([^"]+)"/g)].map((m) => m[1]);
@@ -151,6 +151,60 @@ try {
   ok.push(`${sessions} sessions complètes jouées (${duels} duels, ${turns} tours) sans erreur`);
 } catch (e) {
   problems.push("MOTEUR — " + e.message);
+}
+
+/* -----------------------------------------------------------------------------
+ * LA TRADUCTION EST-ELLE COMPLÈTE ?
+ * -----------------------------------------------------------------------------
+ * Trois trous possibles, invisibles en jeu si on ne les cherche pas :
+ *   1. une clé `t("…")` que le dictionnaire ne connaît pas — l'écran affiche
+ *      alors la clé brute ;
+ *   2. une entrée du dictionnaire sans version anglaise — l'anglophone lit du
+ *      français sans comprendre pourquoi ;
+ *   3. une donnée de jeu (mode, difficulté, personnage) sans bloc `en`.
+ * -------------------------------------------------------------------------- */
+try {
+  const i18n = globalThis.DUELMINDS.i18n;
+
+  // 1. Clés appelées mais absentes du dictionnaire.
+  const used = new Set();
+  for (const file of ["ui.js", "stats.js", "combat.js", "match.js"]) {
+    for (const m of sources[file].matchAll(/\bt\(\s*"([^"]+)"/g)) used.add(m[1]);
+  }
+  const unknown = [...used].filter((key) => !i18n.TEXT[key]);
+  report(unknown.length === 0,
+    unknown.length === 0
+      ? used.size + " clés de traduction utilisées, toutes connues du dictionnaire"
+      : "CLÉS DE TRADUCTION INCONNUES : " + unknown.join(", "));
+
+  // 2. Entrées sans anglais.
+  const untranslated = Object.keys(i18n.TEXT).filter((key) => !i18n.TEXT[key].en);
+  report(untranslated.length === 0,
+    untranslated.length === 0
+      ? "les " + Object.keys(i18n.TEXT).length + " entrées du dictionnaire ont leur version anglaise"
+      : "ENTRÉES SANS ANGLAIS : " + untranslated.join(", "));
+
+  // 3. Données de jeu sans bloc `en`.
+  const D = globalThis.DUELMINDS;
+  const missing = [];
+  for (const mode of D.MODES) if (!mode.en) missing.push("mode " + mode.key);
+  for (const d of D.DIFFICULTIES) if (!d.en) missing.push("difficulté " + d.key);
+  for (const c of D.CHARACTERS) if (!c.en) missing.push("personnage " + c.key);
+  for (const p of D.ai.PERSONALITIES) if (!p.en) missing.push("tempérament " + p.key);
+  report(missing.length === 0,
+    missing.length === 0
+      ? "modes, difficultés, personnages et tempéraments sont tous traduits"
+      : "DONNÉES SANS TRADUCTION : " + missing.join(", "));
+
+  // 4. Textes du HTML sans version anglaise.
+  const plain = [...html.matchAll(/<(h2|h3)(?![^>]*data-en)[^>]*>([^<]{3,})</g)]
+    .map((m) => m[2].trim());
+  report(plain.length === 0,
+    plain.length === 0
+      ? "les titres du HTML portent tous leur data-en"
+      : "TITRES HTML SANS ANGLAIS : " + plain.join(" | "));
+} catch (e) {
+  problems.push("TRADUCTION — " + e.message);
 }
 
 /* --- Résultat --- */

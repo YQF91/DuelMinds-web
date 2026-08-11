@@ -33,7 +33,9 @@
   "use strict";
 
   const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
-  const { MODES, DIFFICULTIES, ACTIONS, ACTION_LABEL } = DUELMINDS;
+  const { MODES, DIFFICULTIES, ACTIONS } = DUELMINDS;
+  const { t, L } = DUELMINDS.i18n;
+  const actionLabel = DUELMINDS.actionLabel;
 
   // Le numéro de version fait partie de la clé : le jour où la forme des
   // données changera, les anciennes seront ignorées plutôt que de faire
@@ -208,39 +210,45 @@
   function toText() {
     const s = stats;
     const lines = [];
-    lines.push("DUELMINDS — statistiques de test");
+    lines.push(t("text.title"));
     if (s.firstPlayed) {
-      lines.push("Du " + s.firstPlayed.slice(0, 10) + " au " + (s.lastPlayed || "").slice(0, 10));
+      lines.push(t("text.period", {
+        from: s.firstPlayed.slice(0, 10),
+        to: (s.lastPlayed || "").slice(0, 10),
+      }));
     }
     lines.push("");
-    lines.push("MODES");
+    lines.push(t("text.modes"));
     for (const mode of MODES) {
       const m = s.byMode[mode.key];
-      lines.push("  " + mode.label.padEnd(9) + String(m.sessions).padStart(4) + " parties · " +
-        m.duelsPlayed + " duels · " + percent(m.duelsWon, m.duelsPlayed) + " % gagnés");
+      lines.push("  " + L(mode, "label").padEnd(9) + t("text.modeLine", {
+        games: m.sessions, duels: m.duelsPlayed,
+        percent: percent(m.duelsWon, m.duelsPlayed),
+      }));
     }
     lines.push("");
-    lines.push("DIFFICULTÉS");
+    lines.push(t("text.difficulties"));
     for (const difficulty of DIFFICULTIES) {
       const d = s.byDifficulty[difficulty.key];
-      lines.push("  " + difficulty.label.padEnd(10) +
-        percent(d.duelsWon, d.duelsPlayed) + " % de duels gagnés · " +
-        percent(d.manchesWon, d.manchesPlayed) + " % de manches · " +
-        "record arcade " + d.bestStreak);
+      lines.push("  " + L(difficulty, "label").padEnd(10) + t("text.difficultyLine", {
+        duels: percent(d.duelsWon, d.duelsPlayed),
+        manches: percent(d.manchesWon, d.manchesPlayed),
+        record: d.bestStreak,
+      }));
     }
     lines.push("");
-    lines.push("ACTIONS   (" + s.turns + " tours joués)");
+    lines.push(t("text.actionsHeader", { n: s.turns }));
     for (const action of ACTIONS) {
-      lines.push("  " + ACTION_LABEL[action].padEnd(10) +
+      lines.push("  " + actionLabel(action).padEnd(10) +
         String(s.byAction[action]).padStart(5) +
         "  (" + percent(s.byAction[action], s.turns) + " %)");
     }
     lines.push("");
-    lines.push("  clashs      " + percent(s.clashes, s.turns) + " % des tours");
-    lines.push("  super tirs  " + s.superShots);
+    lines.push("  " + t("text.clashes", { n: percent(s.clashes, s.turns) }));
+    lines.push("  " + t("text.superShots", { n: s.superShots }));
     if (!storageWorks) {
       lines.push("");
-      lines.push("(stockage indisponible : ces chiffres ne survivront pas à la fermeture)");
+      lines.push(t("text.noStorage"));
     }
     return lines.join("\n");
   }

@@ -29,6 +29,17 @@
   "use strict";
 
   const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+
+  /* Les verdicts sont des phrases lues par le joueur : elles passent par le
+   * dictionnaire. Repli en français si i18n.js n'est pas chargé — c'est le cas
+   * des outils de simulation, qui ne chargent que le moteur. */
+  const t = (key, params) => (DUELMINDS.i18n ? DUELMINDS.i18n.t(key, params) : key);
+
+  /* Le verdict d'un duelliste, conjugue selon qu'il s'agit du joueur ou de
+   * l'adversaire. Sans ca on lit « Toi est touche » ou « You punches » : le
+   * sujet impose sa conjugaison, il ne peut pas etre un simple trou. */
+  const verdict = (base, duelist) =>
+    t(base + (duelist.isBot ? "Foe" : "You"), { name: duelist.name });
   const { RULES } = DUELMINDS;
 
   /* ---------------------------------------------------------------------------
@@ -217,23 +228,23 @@
    */
   function judge(a, b, actionA, actionB, resultA, resultB) {
     // 1. Celui qui a tenté l'impossible perd sur-le-champ
-    if (resultA === "death") return { winner: "b", reason: a.name + " tente l'impossible et s'effondre." };
-    if (resultB === "death") return { winner: "a", reason: b.name + " tente l'impossible et s'effondre." };
+    if (resultA === "death") return { winner: "b", reason: verdict("combat.impossible", a) };
+    if (resultB === "death") return { winner: "a", reason: verdict("combat.impossible", b) };
 
     // 2. Les deux ont tiré : les balles se percutent en vol
     if (resultA === "clash" && resultB === "clash") {
-      return { winner: null, reason: "Les balles se percutent en plein vol." };
+      return { winner: null, reason: t("combat.clash") };
     }
 
     // 3. Super tir : la protection ne sert à rien
-    if (resultA === "super_shot") return { winner: "a", reason: a.name + " traverse la protection." };
-    if (resultB === "super_shot") return { winner: "b", reason: b.name + " traverse la protection." };
+    if (resultA === "super_shot") return { winner: "a", reason: verdict("combat.superShot", a) };
+    if (resultB === "super_shot") return { winner: "b", reason: verdict("combat.superShot", b) };
 
     // 4. Tir ordinaire : ne touche que si la cible ne s'est pas protégée.
     //    `isDefending` vient d'être mis à jour par executeAction, il reflète
     //    donc bien l'action de CE tour.
-    if (actionA === "shoot" && !b.isDefending) return { winner: "a", reason: b.name + " est touché." };
-    if (actionB === "shoot" && !a.isDefending) return { winner: "b", reason: a.name + " est touché." };
+    if (actionA === "shoot" && !b.isDefending) return { winner: "a", reason: verdict("combat.hit", b) };
+    if (actionB === "shoot" && !a.isDefending) return { winner: "b", reason: verdict("combat.hit", a) };
 
     return { winner: null, reason: "" };
   }

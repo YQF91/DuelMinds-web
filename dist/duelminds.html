@@ -7,6 +7,7 @@
 -->
 
 <html lang="fr">
+<!-- L'attribut lang ci-dessus est remplace au chargement par src/i18n.js. -->
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -861,42 +862,50 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
        ==================================================================== -->
   <section id="screen-home" class="screen on" aria-label="Accueil">
     <header class="title">
-      <p class="eyebrow">Duel tactique · actions simultanées</p>
+      <p class="eyebrow" data-en="Tactical duel · simultaneous actions">Duel tactique · actions simultanées</p>
       <h1>DuelMinds</h1>
-      <p class="tagline">Vous choisissez en même temps. Une balle suffit.</p>
+      <p class="tagline" data-en="You both choose at once. One bullet is enough.">Vous choisissez en même temps. Une balle suffit.</p>
     </header>
 
     <div>
-      <p class="section-label">Mode de jeu</p>
+      <p class="section-label" data-en="Game mode">Mode de jeu</p>
       <div class="choices" id="modes"></div>
     </div>
 
     <div>
-      <p class="section-label">Adversaire</p>
+      <p class="section-label" data-en="Opponent">Adversaire</p>
       <div class="choices" id="difficulties"></div>
     </div>
 
     <div>
-      <p class="section-label">Ton duelliste</p>
+      <p class="section-label" data-en="Your duelist">Ton duelliste</p>
       <!-- Grille de portraits, remplie par ui.js depuis rules.js -->
       <div class="roster" id="roster"></div>
-      <p class="footnote roster-note">
+      <p class="footnote roster-note"
+         data-en="Your character changes nothing about the rules: everyone has the same bullets and the same actions.">
         Le personnage ne change rien aux règles : tout le monde a les mêmes
         balles et les mêmes actions.
       </p>
     </div>
 
     <div class="row">
-      <button class="btn" id="btn-rules" type="button">Règles</button>
-      <button class="btn" id="btn-progress" type="button">Progression</button>
-      <button class="btn" id="btn-stats" type="button">Stats</button>
+      <button class="btn" id="btn-rules" type="button" data-en="Rules">Règles</button>
+      <button class="btn" id="btn-progress" type="button" data-en="Progress">Progression</button>
+      <button class="btn" id="btn-stats" type="button" data-en="Stats">Stats</button>
     </div>
     <div class="row">
-      <button class="btn primary" id="btn-start" type="button" disabled>Commencer</button>
+      <button class="btn primary" id="btn-start" type="button" disabled data-en="Start">Commencer</button>
+    </div>
+
+    <!-- Choix de la langue. Placé en bas : un joueur anglophone tombe déjà sur
+         un jeu en anglais (voir i18n.js), le bouton ne sert qu'à corriger. -->
+    <div class="row">
+      <button class="btn ghost" id="btn-lang" type="button">English</button>
     </div>
 
     <!-- Affiché uniquement si un point de collecte est configuré (telemetry.js) -->
-    <p class="footnote" id="privacy-note" hidden>
+    <p class="footnote" id="privacy-note" hidden
+       data-en="Test phase: the outcome of your games is sent anonymously to help balance the game. No personal data.">
       Phase de test : le résultat de tes parties est envoyé de façon anonyme
       pour aider à équilibrer le jeu. Aucune donnée personnelle.
     </p>
@@ -914,9 +923,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
         <span class="tag accent" id="hud-difficulty">—</span>
       </div>
       <div class="hud-right" id="hud-streak" hidden>
-        <span class="streak-label">Série</span>
+        <span class="streak-label" data-en="Streak">Série</span>
         <b class="num" id="streak-value">0</b>
-        <span class="streak-best">record <b class="num" id="streak-best">0</b></span>
+        <span class="streak-best" data-en-html="best <b class='num' id='streak-best'>0</b>">record <b class="num" id="streak-best">0</b></span>
       </div>
     </div>
 
@@ -927,7 +936,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
         <span class="nameplate-name" id="bot-name">Adversaire</span>
         <span class="score" id="score-bot"></span>
       </div>
-      <div class="manche-badge">Manche <b class="num" id="manche-number">1</b></div>
+      <div class="manche-badge" data-en-html="Round <b class='num' id='manche-number'>1</b>">Manche <b class="num" id="manche-number">1</b></div>
       <div class="nameplate right">
         <span class="score" id="score-me"></span>
         <span class="nameplate-name" id="me-name">Toi</span>
@@ -955,19 +964,19 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
       <!-- LA RÉVÉLATION — les deux choix simultanés apparaissent au centre -->
       <div class="reveal" id="reveal" aria-live="polite">
-        <p class="hint">Vous choisissez en même temps.<br>Il ne voit pas ton coup.</p>
+        <p class="hint" data-en-html="You both choose at once.<br>It cannot see your move.">Vous choisissez en même temps.<br>Il ne voit pas ton coup.</p>
       </div>
     </div>
 
     <!-- PANNEAUX D'INFORMATION, un par duelliste, sous son côté -->
     <div class="panels">
       <div class="panel">
-        <span class="panel-label">Adversaire</span>
+        <span class="panel-label" data-en="Opponent">Adversaire</span>
         <span class="bullets" id="bot-bullets" title="Balles"></span>
         <span class="guard" id="bot-guard"></span>
       </div>
       <div class="panel right">
-        <span class="panel-label">Toi</span>
+        <span class="panel-label" data-en="You">Toi</span>
         <span class="bullets" id="me-bullets" title="Balles"></span>
         <span class="guard" id="me-guard"></span>
       </div>
@@ -976,21 +985,24 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     <!-- LES ACTIONS. `data-action` fait le lien avec le moteur : ces valeurs
          doivent rester celles de DUELMINDS.ACTIONS dans rules.js. -->
     <div class="actions">
-      <button class="action" data-action="charge" type="button">
+      <button class="action" data-action="charge" type="button"
+              data-en-html="Charge<small>+ 1 bullet</small>">
         Charger<small>+ 1 balle</small>
       </button>
-      <button class="action" id="btn-shoot" data-action="shoot" type="button">
+      <button class="action" id="btn-shoot" data-action="shoot" type="button"
+              data-en-html="Shoot<small id='shoot-note'>costs 1 bullet</small>">
         Tirer<small id="shoot-note">coûte 1 balle</small>
       </button>
-      <button class="action" data-action="defend" type="button">
+      <button class="action" data-action="defend" type="button"
+              data-en-html="Guard<small id='defend-note'>free</small>">
         Protéger<small id="defend-note">gratuit</small>
       </button>
     </div>
 
-    <p class="log" id="log" aria-live="polite">La manche commence.</p>
+    <p class="log" id="log" aria-live="polite" data-en="The round begins.">La manche commence.</p>
 
     <div class="row">
-      <button class="btn ghost" id="btn-quit" type="button">Abandonner</button>
+      <button class="btn ghost" id="btn-quit" type="button" data-en="Give up">Abandonner</button>
     </div>
   </section>
 
@@ -1005,7 +1017,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       </div>
     </div>
     <div class="row">
-      <button class="btn primary" id="btn-announce" type="button">Continuer</button>
+      <button class="btn primary" id="btn-announce" type="button" data-en="Continue">Continuer</button>
     </div>
   </section>
 
@@ -1021,8 +1033,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       <div class="summary" id="end-summary"></div>
     </div>
     <div class="row">
-      <button class="btn primary" id="btn-again" type="button">Rejouer</button>
-      <button class="btn" id="btn-home" type="button">Accueil</button>
+      <button class="btn primary" id="btn-again" type="button" data-en="Play again">Rejouer</button>
+      <button class="btn" id="btn-home" type="button" data-en="Home">Accueil</button>
     </div>
   </section>
 
@@ -1032,18 +1044,18 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
        rules.js : la page ne peut pas mentir sur les règles appliquées.
        ==================================================================== -->
   <section id="screen-rules" class="screen" aria-label="Règles du jeu">
-    <h2>Règles</h2>
+    <h2 data-en="Rules">Règles</h2>
     <div class="doc">
-      <h3>Le principe</h3>
-      <p>
+      <h3 data-en="The idea">Le principe</h3>
+      <p data-en-html="Two duelists face to face. Each turn you both choose <b>at the same time</b>, without seeing the other's move. <b>There are no hit points</b>: a shot that lands ends the round instantly.">
         Deux duellistes face à face. À chaque tour, vous choisissez
         <b>en même temps</b>, sans voir le coup de l'autre.
         <b>Il n'y a pas de points de vie</b> : un tir qui touche met fin à la
         manche immédiatement.
       </p>
 
-      <h3>Les trois actions</h3>
-      <ul>
+      <h3 data-en="The three actions">Les trois actions</h3>
+      <ul data-en-html="<li><b>Charge</b> — gain 1 bullet. Always available, but leaves you wide open this turn.</li><li><b>Shoot</b> — costs 1 bullet. Kills unless the opponent guarded. Impossible with no bullet.</li><li><b>Guard</b> — immune to an ordinary shot. The <b><span id='rules-free'>2</span> first in a row</b> are free; after that each costs 1 bullet. Charging or shooting resets the count.</li>">
         <li><b>Charger</b> — gagne 1 balle. Toujours possible, mais te laisse
             sans défense pendant ce tour.</li>
         <li><b>Tirer</b> — coûte 1 balle. Tue si l'adversaire ne s'est pas
@@ -1054,8 +1066,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
             le compteur à zéro.</li>
       </ul>
 
-      <h3>Les deux coups spéciaux</h3>
-      <ul>
+      <h3 data-en="The two special moves">Les deux coups spéciaux</h3>
+      <ul data-en-html="<li><b>Super shot</b> — shooting with <b><span id='rules-super'>4</span> bullets or more</b> punches through the guard. That is the reward for taking the risk of hoarding.</li><li><b>Clash</b> — if you both shoot on the same turn, the bullets collide in mid-air. Nobody falls, but you have each spent a bullet.</li>">
         <li><b>Super tir</b> — tirer avec <b><span id="rules-super">4</span> balles
             ou plus</b> traverse la protection. C'est la récompense de qui prend
             le risque d'accumuler.</li>
@@ -1064,21 +1076,21 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
             dépensé une balle.</li>
       </ul>
 
-      <h3>Mourir bêtement</h3>
-      <p>
+      <h3 data-en="Dying stupidly">Mourir bêtement</h3>
+      <p data-en="Attempting an impossible action — shooting with no bullet, guarding with no way to pay — loses the round on the spot. The game stops you by disabling those buttons, but the rule is there.">
         Tenter une action impossible — tirer sans balle, se protéger sans
         pouvoir payer — fait perdre la manche sur-le-champ. Le jeu t'en empêche
         en désactivant les boutons concernés, mais la règle existe.
       </p>
 
-      <h3>Gagner</h3>
-      <p>
+      <h3 data-en="Winning">Gagner</h3>
+      <p data-en-html="Each round starts with <b><span id='rules-start'>1</span> bullet</b>. First to <b><span id='rules-manches'>2</span> rounds</b> wins the duel.">
         Chaque manche commence avec <b><span id="rules-start">1</span> balle</b>.
         Le premier à <b><span id="rules-manches">2</span> manches</b> remporte le duel.
       </p>
 
-      <h3>Les modes</h3>
-      <ul>
+      <h3 data-en="The modes">Les modes</h3>
+      <ul data-en-html="<li><b>Duel</b> — one confrontation, then back to the home screen.</li><li><b>Arcade</b> — duels follow one another. Every win extends your streak, the first loss ends it. Your best score is kept per difficulty.</li><li><b>Blitz</b> — arcade, but the clock runs, and the difficulty tightens it: <b>5 seconds</b> on easy, <b>3</b> on hard, <b>2</b> on extreme. Miss the deadline and a legal action is played at random: not deciding is a decision too, and it costs you.</li><li><b>Blind</b> — arcade, but <b>you no longer see the opponent's bullets</b>, whatever the level. You have to track them yourself. This is the mode that foreshadows PVP.</li>">
         <li><b>Duel</b> — un affrontement, puis retour à l'accueil.</li>
         <li><b>Arcade</b> — les duels s'enchaînent. Chaque victoire prolonge ta
             série, la première défaite y met fin. Ton meilleur score est
@@ -1092,8 +1104,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
             tête. C'est le mode qui préfigure le PVP.</li>
       </ul>
 
-      <h3>L'information cachée</h3>
-      <p>
+      <h3 data-en="Hidden information">L'information cachée</h3>
+      <p data-en-html="In <b>Blind</b> mode, and against the <b>Extreme</b> opponent whatever the mode — so also in <b>Blitz extreme</b>, where you must count in 2 seconds — the opposite cylinder is replaced by question marks. Track it yourself: it starts at 1 bullet, gains one on every charge, spends one on every shot, and one more from its 3<sup>rd</sup> consecutive guard.">
         En mode <b>Aveugle</b>, et face à l'adversaire <b>Extrême</b> quel que
         soit le mode — donc aussi en <b>Blitz extrême</b>, où il faut compter en
         2 secondes —, le barillet d'en face est remplacé par des points
@@ -1102,20 +1114,22 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
         chaque tir, et une de plus à partir de sa 3<sup>e</sup> protection
         d'affilée.
       </p>
-      <p>
+      <p data-en="The AI plays under the same terms: when you cannot see its bullets, it cannot see yours either and has to estimate them just as you do.">
         L'IA joue à la même enseigne : quand tu ne vois pas ses balles, elle ne
         voit pas les tiennes non plus et doit les estimer comme toi.
       </p>
 
-      <h3>Les personnages</h3>
-      <p>
+      <h3 data-en="The characters">Les personnages</h3>
+      <p data-en-html="The duelist you pick is <b>purely cosmetic</b>. Everyone has the same bullets, the same actions and the same rules: what decides a duel is reading your opponent. The <b>opponent's</b> character, however, is a tell — it sets their temperament, never their statistics.">
         Le duelliste que tu choisis est <b>purement esthétique</b>. Tout le
         monde a les mêmes balles, les mêmes actions et les mêmes règles : ce
-        qui départage, c'est la lecture de l'adversaire.
+        qui départage, c'est la lecture de l'adversaire. Le personnage
+        <b>adverse</b>, lui, est un indice : il fixe son tempérament, jamais
+        ses statistiques.
       </p>
     </div>
     <div class="row">
-      <button class="btn" id="btn-rules-back" type="button">Retour</button>
+      <button class="btn" id="btn-rules-back" type="button" data-en="Back">Retour</button>
     </div>
   </section>
 
@@ -1124,14 +1138,14 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
        Comptées sur cet appareil uniquement (voir src/stats.js).
        ==================================================================== -->
   <section id="screen-stats" class="screen" aria-label="Statistiques">
-    <h2>Statistiques</h2>
+    <h2 data-en="Statistics">Statistiques</h2>
     <div class="doc" id="stats-body"></div>
     <div class="row">
-      <button class="btn" id="btn-stats-copy" type="button">Copier</button>
-      <button class="btn" id="btn-stats-reset" type="button">Remettre à zéro</button>
+      <button class="btn" id="btn-stats-copy" type="button" data-en="Copy">Copier</button>
+      <button class="btn" id="btn-stats-reset" type="button" data-en="Reset">Remettre à zéro</button>
     </div>
     <div class="row">
-      <button class="btn" id="btn-stats-back" type="button">Retour</button>
+      <button class="btn" id="btn-stats-back" type="button" data-en="Back">Retour</button>
     </div>
   </section>
 
@@ -1143,15 +1157,16 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
        joueur quelque chose à viser. Seule leur couleur change.
        ==================================================================== -->
   <section id="screen-progress" class="screen" aria-label="Progression">
-    <h2>Progression</h2>
+    <h2 data-en="Progress">Progression</h2>
 
     <div class="progress-tabs" role="tablist">
-      <button class="tabbtn on" id="tab-levels" type="button" role="tab">Duellistes</button>
-      <button class="tabbtn" id="tab-feats" type="button" role="tab">Hauts faits <span id="feat-count" class="tab-count"></span></button>
+      <button class="tabbtn on" id="tab-levels" type="button" role="tab" data-en="Duelists">Duellistes</button>
+      <button class="tabbtn" id="tab-feats" type="button" role="tab"><span data-en="Achievements">Hauts faits</span> <span id="feat-count" class="tab-count"></span></button>
     </div>
 
     <div id="panel-levels" class="tabpanel">
-      <p class="footnote">
+      <p class="footnote"
+         data-en="Levels are a title, not an advantage: they change neither your bullets nor the rules. Playing on Extreme levels you up twice as fast.">
         Les niveaux sont un titre, pas un avantage : ils ne changent ni tes
         balles ni les règles. Jouer en Extrême fait monter deux fois plus vite.
       </p>
@@ -1163,7 +1178,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     </div>
 
     <div class="row">
-      <button class="btn" id="btn-progress-back" type="button">Retour</button>
+      <button class="btn" id="btn-progress-back" type="button" data-en="Back">Retour</button>
     </div>
   </section>
 
@@ -1171,6 +1186,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
 <!--
   Ordre de chargement IMPOSÉ : chaque fichier utilise ceux d'avant.
+    i18n       français et anglais, ne dépend de rien
     rules      données et constantes, ne dépend de rien
     combat     moteur d'un tour, a besoin de rules
     ai         les trois adversaires, a besoin de combat
@@ -1184,6 +1200,298 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     main       démarrage
 -->
 <script>
+/* ---------- src/i18n.js ---------- */
+/* =============================================================================
+ * DUELMINDS — FRANÇAIS ET ANGLAIS
+ * =============================================================================
+ *
+ * POURQUOI
+ * Le jeu part en test chez des joueurs qui ne lisent pas le français. Un
+ * prototype qu'on ne comprend pas ne renvoie aucun retour exploitable : on
+ * mesurerait la barrière de la langue, pas la qualité du jeu.
+ *
+ * TROIS MÉCANISMES, CHACUN LÀ OÙ IL EST NATUREL
+ *
+ *   1. LES PHRASES DU CODE      `t("cle", { n: 3 })`
+ *      Le dictionnaire ci-dessous. Chaque entrée porte ses deux versions côte
+ *      à côte, ce qui rend une traduction manquante visible à l'œil nu.
+ *      Les phrases sont ENTIÈRES, avec des trous `{comme_ceci}`. Surtout ne
+ *      pas traduire des morceaux à recoller : l'ordre des mots change d'une
+ *      langue à l'autre et on obtient du charabia.
+ *
+ *   2. LES DONNÉES DU JEU       `L(objet, "label")`
+ *      Modes, difficultés, personnages, tempéraments. Leur traduction vit
+ *      DANS l'objet, sous une clé `en`, juste à côté du texte français : on
+ *      voit immédiatement ce qui manque en ajoutant un mode.
+ *
+ *   3. LES TEXTES DU HTML       attribut `data-en`
+ *      L'aide, les titres, les boutons. Le français reste dans la page — elle
+ *      est lisible telle quelle — et l'anglais l'accompagne. Aucun
+ *      dictionnaire à tenir en parallèle, donc rien à désynchroniser.
+ *
+ * CHOIX DE LA LANGUE
+ * Ce que le joueur a choisi, sinon la langue du navigateur, sinon le français.
+ * Un joueur anglophone tombe donc sur un jeu en anglais sans rien faire.
+ *
+ * VÉRIFICATION
+ * `node tools/check.mjs` signale les clés utilisées mais absentes du
+ * dictionnaire, et les textes du HTML sans `data-en`.
+ *
+ * DÉPENDANCES : aucune. Ce fichier se charge en PREMIER.
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+
+  const STORAGE_KEY = "duelminds.lang.v1";
+  const LANGS = ["fr", "en"];
+
+  /* ---------------------------------------------------------------------------
+   * LE DICTIONNAIRE
+   * ---------------------------------------------------------------------------
+   * Les trous s'écrivent {nom} et sont remplacés par `t(cle, { nom: valeur })`.
+   * Quand une phrase change au pluriel, on met deux clés (`...One`, `...Many`)
+   * plutôt qu'une règle générale : DuelMinds n'a que des petits nombres, et
+   * une règle de pluriel serait plus de code que de service.
+   * ------------------------------------------------------------------------ */
+  const TEXT = {
+    /* --- Écran d'accueil et navigation --- */
+    "home.play":            { fr: "Commencer",  en: "Start" },
+    "home.record":          { fr: "record {n}", en: "record {n}" },
+    "nav.back":             { fr: "Retour",     en: "Back" },
+
+    /* --- Introduction d'une partie --- */
+    "intro.streak":         { fr: "Chaque duel gagné prolonge la série.",
+                              en: "Every duel you win extends the streak." },
+    "intro.duel":           { fr: "Premier à {n} manches remporte le duel.",
+                              en: "First to {n} rounds wins the duel." },
+    "intro.timer":          { fr: "{n} secondes pour choisir.",
+                              en: "{n} seconds to choose." },
+    "intro.hidden":         { fr: "Les balles adverses sont cachées : compte-les.",
+                              en: "Enemy bullets are hidden — keep count yourself." },
+
+    /* --- Duellistes --- */
+    "duelist.you":          { fr: "Toi",        en: "You" },
+    "duelist.opponent":     { fr: "Adversaire", en: "Opponent" },
+    "duelist.default":      { fr: "Duelliste",  en: "Duelist" },
+
+    /* --- Résolution d'un tour (combat.js) ---
+     * Chaque verdict existe en DEUX versions, selon qu'il parle de toi ou de
+     * l'adversaire. Ce n'est pas un luxe : avec une seule phrase à trou, on
+     * obtenait « Toi est touché » en français et « You punches » en anglais.
+     * Le sujet impose sa conjugaison, il ne peut pas être un simple trou. */
+    "combat.impossibleYou": { fr: "Tu tentes l'impossible et t'effondres.",
+                              en: "You attempt the impossible and collapse." },
+    "combat.impossibleFoe": { fr: "{name} tente l'impossible et s'effondre.",
+                              en: "{name} attempts the impossible and collapses." },
+    "combat.clash":         { fr: "Les balles se percutent en plein vol.",
+                              en: "The bullets collide in mid-air." },
+    "combat.superShotYou":  { fr: "Tu traverses la protection.",
+                              en: "You punch straight through the guard." },
+    "combat.superShotFoe":  { fr: "{name} traverse la protection.",
+                              en: "{name} punches straight through the guard." },
+    "combat.hitYou":        { fr: "Tu es touché.",
+                              en: "You are hit." },
+    "combat.hitFoe":        { fr: "{name} est touché.",
+                              en: "{name} is hit." },
+
+    /* --- Bandeau de révélation --- */
+    "reveal.super":         { fr: "super tir",  en: "super shot" },
+    "reveal.impossible":    { fr: "impossible", en: "impossible" },
+    "reveal.log":           { fr: "Toi : {you}  ·  Adversaire : {foe}",
+                              en: "You: {you}  ·  Opponent: {foe}" },
+
+    /* --- Boutons d'action --- */
+    "action.super":         { fr: "SUPER TIR",  en: "SUPER SHOT" },
+    "action.free":          { fr: "gratuit",       en: "free" },
+    "action.costOne":       { fr: "coûte 1 balle", en: "costs 1 bullet" },
+    "action.costMany":      { fr: "coûte {n} balles", en: "costs {n} bullets" },
+
+    /* --- Annonces entre manches et duels --- */
+    "manche.won":           { fr: "Manche gagnée", en: "Round won" },
+    "manche.lost":          { fr: "Manche perdue", en: "Round lost" },
+    "manche.next":          { fr: "Manche {n}",    en: "Round {n}" },
+    "duel.won":             { fr: "Duel remporté", en: "Duel won" },
+    "duel.lost":            { fr: "Duel perdu",    en: "Duel lost" },
+    "duel.next":            { fr: "Duel {n}",      en: "Duel {n}" },
+
+    "streak.ended":         { fr: "Série terminée", en: "Streak over" },
+    "streak.title":         { fr: "Série de {n}",   en: "Streak of {n}" },
+    "streak.countOne":      { fr: "Série de {n} duel.",  en: "Streak of {n} duel." },
+    "streak.countMany":     { fr: "Série de {n} duels.", en: "Streak of {n} duels." },
+    "streak.recordNew":     { fr: "Nouveau record sur ce niveau.",
+                              en: "New record at this level." },
+    "streak.recordOld":     { fr: "Ton record ici est de {n}.",
+                              en: "Your record here is {n}." },
+
+    "opponent.next":        { fr: "{name} prend sa place — il {tell}.",
+                              en: "{name} steps up — {tell}." },
+    "opponent.last":        { fr: "Le dernier adversaire, {name}, {tell}.",
+                              en: "Your last opponent, {name}, {tell}." },
+
+    /* --- Progression --- */
+    "progress.levelUp":     { fr: "{name} passe niveau {level} — {title}.",
+                              en: "{name} reaches level {level} — {title}." },
+    "progress.featOne":     { fr: "Haut fait : {names}.",
+                              en: "Achievement unlocked: {names}." },
+    "progress.featMany":    { fr: "Hauts faits : {names}.",
+                              en: "Achievements unlocked: {names}." },
+    "progress.rank":        { fr: "niv. {level} · {title}",
+                              en: "lv. {level} · {title}" },
+    "progress.maxNote":     { fr: "niveau maximum · {duels} duels",
+                              en: "max level · {duels} duels" },
+    "progress.note":        { fr: "{into} / {needed} points · {duels} duels, {wins} gagnés",
+                              en: "{into} / {needed} points · {duels} duels, {wins} won" },
+
+    /* --- Écran de fin --- */
+    "end.mode":             { fr: "Mode",        en: "Mode" },
+    "end.difficulty":       { fr: "Difficulté",  en: "Difficulty" },
+    "end.duels":            { fr: "Duels joués", en: "Duels played" },
+    "end.manches":          { fr: "Manches",     en: "Rounds" },
+    "end.turns":            { fr: "Tours",       en: "Turns" },
+    "end.clashes":          { fr: "Clashs",      en: "Clashes" },
+    "end.superShots":       { fr: "Super tirs",  en: "Super shots" },
+    "end.streak":           { fr: "Série",       en: "Streak" },
+    "end.timedOut":         { fr: "Temps écoulé", en: "Ran out of time" },
+    "end.times":            { fr: "{n} fois",    en: "{n} times" },
+
+    /* --- Écran des statistiques --- */
+    "stats.empty":          { fr: "Aucune partie jouée pour l'instant. Les compteurs se remplissent au fil des duels.",
+                              en: "No games played yet. The counters fill up as you duel." },
+    "stats.modes":          { fr: "Modes",        en: "Modes" },
+    "stats.difficulties":   { fr: "Difficultés",  en: "Difficulties" },
+    "stats.actions":        { fr: "Tes actions",  en: "Your actions" },
+    "stats.mechanics":      { fr: "Mécaniques",   en: "Mechanics" },
+    "stats.colMode":        { fr: "Mode",     en: "Mode" },
+    "stats.colGames":       { fr: "Parties",  en: "Games" },
+    "stats.colDuels":       { fr: "Duels",    en: "Duels" },
+    "stats.colWon":         { fr: "Gagnés",   en: "Won" },
+    "stats.colLevel":       { fr: "Niveau",   en: "Level" },
+    "stats.colManches":     { fr: "Manches",  en: "Rounds" },
+    "stats.colRecord":      { fr: "Record",   en: "Record" },
+    "stats.colAction":      { fr: "Action",   en: "Action" },
+    "stats.colTimes":       { fr: "Fois",     en: "Times" },
+    "stats.colShare":       { fr: "Part",     en: "Share" },
+    "stats.turnsPlayed":    { fr: "{n} tours joués",   en: "{n} turns played" },
+    "stats.clashShare":     { fr: "{n} % de clashs",   en: "{n} % clashes" },
+    "stats.superShots":     { fr: "{n} super tirs",    en: "{n} super shots" },
+    "stats.deviceOnly":     { fr: "Ces chiffres ne concernent que cet appareil et sont conservés entre deux sessions.",
+                              en: "These figures cover this device only, and are kept between sessions." },
+    "stats.noStorage":      { fr: "Le stockage du navigateur est indisponible : ces chiffres seront perdus en fermant l'onglet.",
+                              en: "Browser storage is unavailable: these figures will be lost when you close the tab." },
+    "stats.copied":         { fr: "Copié",    en: "Copied" },
+
+    /* --- Résumé en texte brut (stats.js) --- */
+    "text.title":           { fr: "DUELMINDS — statistiques de test",
+                              en: "DUELMINDS — test statistics" },
+    "text.period":          { fr: "Du {from} au {to}", en: "From {from} to {to}" },
+    "text.modeLine":        { fr: "{games} parties · {duels} duels · {percent} % gagnés",
+                              en: "{games} games · {duels} duels · {percent} % won" },
+    "text.difficultyLine":  { fr: "{duels} % de duels gagnés · {manches} % de manches · record arcade {record}",
+                              en: "{duels} % of duels won · {manches} % of rounds · arcade record {record}" },
+    "text.actionsHeader":   { fr: "ACTIONS   ({n} tours joués)",
+                              en: "ACTIONS   ({n} turns played)" },
+    "text.clashes":         { fr: "clashs      {n} % des tours",
+                              en: "clashes     {n} % of turns" },
+    "text.superShots":      { fr: "super tirs  {n}", en: "super shots {n}" },
+    "text.noStorage":       { fr: "(stockage indisponible : ces chiffres ne survivront pas à la fermeture)",
+                              en: "(storage unavailable: these figures will not survive closing the tab)" },
+    "text.modes":           { fr: "MODES",        en: "MODES" },
+    "text.difficulties":    { fr: "DIFFICULTÉS",  en: "DIFFICULTIES" },
+  };
+
+  /* ---------------------------------------------------------------------------
+   * CHOIX ET MÉMORISATION DE LA LANGUE
+   * ------------------------------------------------------------------------ */
+
+  function detect() {
+    try {
+      const saved = root.localStorage.getItem(STORAGE_KEY);
+      if (LANGS.indexOf(saved) !== -1) return saved;
+    } catch (e) { /* navigation privée : on se rabat sur le navigateur */ }
+
+    const nav = (root.navigator && (root.navigator.language ||
+                 (root.navigator.languages || [])[0])) || "";
+    // Tout ce qui n'est pas explicitement français part en anglais : c'est le
+    // choix qui laisse le moins de testeurs devant une langue inconnue.
+    return String(nav).toLowerCase().indexOf("fr") === 0 ? "fr" : "en";
+  }
+
+  let current = detect();
+
+  function lang() { return current; }
+
+  function setLang(next) {
+    if (LANGS.indexOf(next) === -1) return;
+    current = next;
+    try { root.localStorage.setItem(STORAGE_KEY, next); } catch (e) { /* tant pis */ }
+    if (root.document) {
+      root.document.documentElement.setAttribute("lang", next);
+      applyDom(root.document);
+    }
+  }
+
+  function toggle() { setLang(current === "fr" ? "en" : "fr"); }
+
+  /* ---------------------------------------------------------------------------
+   * LES TROIS ACCÈS
+   * ------------------------------------------------------------------------ */
+
+  /**
+   * Une phrase du dictionnaire, trous remplis.
+   * Clé inconnue : on renvoie la clé elle-même. C'est volontairement laid, et
+   * donc repérable en un coup d'œil — bien mieux qu'un texte vide.
+   */
+  function t(key, params) {
+    const entry = TEXT[key];
+    if (!entry) return key;
+    let out = entry[current] || entry.fr || key;
+    if (params) {
+      for (const name of Object.keys(params)) {
+        out = out.split("{" + name + "}").join(String(params[name]));
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Un champ d'un objet de données (mode, difficulté, personnage, tempérament).
+   * L'anglais vit sous `obj.en`; à défaut, on garde le français, ce qui vaut
+   * toujours mieux qu'un trou dans l'interface.
+   */
+  function L(object, field) {
+    if (!object) return "";
+    if (current !== "fr" && object.en && object.en[field] !== undefined) {
+      return object.en[field];
+    }
+    return object[field];
+  }
+
+  /**
+   * Applique la langue aux textes écrits dans le HTML.
+   *   data-en      remplace le texte de l'élément
+   *   data-en-html remplace son contenu HTML (pour les textes avec du gras)
+   * Le français d'origine est mémorisé au premier passage, sinon revenir en
+   * arrière serait impossible.
+   */
+  function applyDom(scope) {
+    if (!scope || !scope.querySelectorAll) return;
+
+    for (const node of scope.querySelectorAll("[data-en]")) {
+      if (node.dataset.fr === undefined) node.dataset.fr = node.textContent;
+      node.textContent = current === "fr" ? node.dataset.fr : node.dataset.en;
+    }
+    for (const node of scope.querySelectorAll("[data-en-html]")) {
+      if (node.dataset.frHtml === undefined) node.dataset.frHtml = node.innerHTML;
+      node.innerHTML = current === "fr" ? node.dataset.frHtml : node.dataset.enHtml;
+    }
+  }
+
+  DUELMINDS.i18n = { t, L, lang, setLang, toggle, applyDom, LANGS, TEXT };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
 /* ---------- src/rules.js ---------- */
 /* =============================================================================
  * DUELMINDS — RÈGLES ET ÉQUILIBRAGE
@@ -1279,6 +1587,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * ------------------------------------------------------------------------ */
   const ACTIONS = ["charge", "shoot", "defend"];
   const ACTION_LABEL = { charge: "Charger", shoot: "Tirer", defend: "Protéger" };
+  const ACTION_LABEL_EN = { charge: "Charge", shoot: "Shoot", defend: "Guard" };
+
+  /** Le nom d'une action dans la langue courante. Voir i18n.js. */
+  function actionLabel(action) {
+    const english = DUELMINDS.i18n && DUELMINDS.i18n.lang() !== "fr";
+    return (english ? ACTION_LABEL_EN : ACTION_LABEL)[action] || action;
+  }
 
   /* ---------------------------------------------------------------------------
    * 3. NIVEAUX DE DIFFICULTÉ
@@ -1297,6 +1612,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       label: "Facile",
       accent: "--easy",
       blurb: "Joue au hasard, avec un penchant pour la charge. Idéal pour comprendre le jeu.",
+      en: { label: "Easy",
+            blurb: "Plays at random, with a taste for charging. Ideal for learning the game." },
       blitzSeconds: 5,
     },
     {
@@ -1304,6 +1621,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       label: "Difficile",
       accent: "--medium",
       blurb: "Lit ton historique, estime tes balles et se protège quand tu deviens dangereux.",
+      en: { label: "Hard",
+            blurb: "Reads your history, counts your bullets and guards when you turn dangerous." },
       blitzSeconds: 3,
     },
     {
@@ -1311,6 +1630,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       label: "Extrême",
       accent: "--hard",
       blurb: "Cherche la faille, punit la moindre habitude — et tu ne vois plus ses balles.",
+      en: { label: "Extreme",
+            blurb: "Hunts for the opening, punishes any habit — and its bullets are hidden from you." },
       blitzSeconds: 2,
       /* À ce niveau, le compteur de l'adversaire disparaît : il faut suivre
        * ses balles de tête. C'est la préparation du futur mode classé, où
@@ -1330,16 +1651,21 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       key: "duel",
       label: "Duel",
       blurb: "Un affrontement au meilleur des 3 manches.",
+      en: { label: "Duel", blurb: "A single confrontation, best of 3 rounds." },
     },
     {
       key: "arcade",
       label: "Arcade",
       blurb: "Enchaîne les duels. Combien en gagnes-tu d'affilée avant de tomber ?",
+      en: { label: "Arcade",
+            blurb: "One duel after another. How many in a row before you fall?" },
     },
     {
       key: "blitz",
       label: "Blitz",
       blurb: "Le chrono tourne : 5 s en facile, 3 s en difficile, 2 s en extrême. Sinon le hasard décide.",
+      en: { label: "Blitz",
+            blurb: "The clock runs: 5 s on easy, 3 s on hard, 2 s on extreme. Miss it and chance decides." },
       /* Le blitz est une série, comme l'arcade : c'est le nombre de duels
        * enchaînés qui fait le score. */
       isStreak: true,
@@ -1349,6 +1675,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       key: "aveugle",
       label: "Aveugle",
       blurb: "Tu ne vois plus les balles adverses : compte-les de tête. Duels enchaînés.",
+      en: { label: "Blind",
+            blurb: "Enemy bullets are hidden — count them in your head. Duels back to back." },
       isStreak: true,
       hidesBullets: true,
     },
@@ -1390,18 +1718,26 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     /* `ai` = le CARACTÈRE que prend ce personnage QUAND C'EST L'ADVERSAIRE qui
      * le joue. Voir le commentaire au-dessus : ça ne change rien à tes règles
      * quand c'est toi qui le choisis. */
-    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu.",        ai: "prudent"  },
-    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience.",      ai: "agressif" },
-    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé.",  ai: "neutre"   },
-    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent.",  ai: "joueur"   },
-    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues.",          ai: "agressif" },
-    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre"   },
+    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu.",        ai: "prudent",
+      en: { name: "Archer",      blurb: "Wolf hood, bow drawn." } },
+    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience.",      ai: "agressif",
+      en: { name: "Berserker",   blurb: "Two axes, no patience whatsoever." } },
+    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé.",  ai: "neutre",
+      en: { name: "Cowboy",      blurb: "Revolver in hand, hat pulled down." } },
+    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent.",  ai: "joueur",
+      en: { name: "Enchantress", blurb: "Hair of flame, whip of fire." } },
+    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues.",          ai: "agressif",
+      en: { name: "Goblin",      blurb: "Small, green, two daggers." } },
+    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre",
+      en: { name: "Samurai",     blurb: "Straw hat, katana across the back." } },
   ];
 
   DUELMINDS.RULES = RULES;
   DUELMINDS.CHARACTERS = CHARACTERS;
   DUELMINDS.ACTIONS = ACTIONS;
   DUELMINDS.ACTION_LABEL = ACTION_LABEL;
+  DUELMINDS.ACTION_LABEL_EN = ACTION_LABEL_EN;
+  DUELMINDS.actionLabel = actionLabel;
   DUELMINDS.DIFFICULTIES = DIFFICULTIES;
   DUELMINDS.MODES = MODES;
   DUELMINDS.VERSION = "web-1.0";
@@ -1439,6 +1775,17 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   "use strict";
 
   const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+
+  /* Les verdicts sont des phrases lues par le joueur : elles passent par le
+   * dictionnaire. Repli en français si i18n.js n'est pas chargé — c'est le cas
+   * des outils de simulation, qui ne chargent que le moteur. */
+  const t = (key, params) => (DUELMINDS.i18n ? DUELMINDS.i18n.t(key, params) : key);
+
+  /* Le verdict d'un duelliste, conjugue selon qu'il s'agit du joueur ou de
+   * l'adversaire. Sans ca on lit « Toi est touche » ou « You punches » : le
+   * sujet impose sa conjugaison, il ne peut pas etre un simple trou. */
+  const verdict = (base, duelist) =>
+    t(base + (duelist.isBot ? "Foe" : "You"), { name: duelist.name });
   const { RULES } = DUELMINDS;
 
   /* ---------------------------------------------------------------------------
@@ -1627,23 +1974,23 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    */
   function judge(a, b, actionA, actionB, resultA, resultB) {
     // 1. Celui qui a tenté l'impossible perd sur-le-champ
-    if (resultA === "death") return { winner: "b", reason: a.name + " tente l'impossible et s'effondre." };
-    if (resultB === "death") return { winner: "a", reason: b.name + " tente l'impossible et s'effondre." };
+    if (resultA === "death") return { winner: "b", reason: verdict("combat.impossible", a) };
+    if (resultB === "death") return { winner: "a", reason: verdict("combat.impossible", b) };
 
     // 2. Les deux ont tiré : les balles se percutent en vol
     if (resultA === "clash" && resultB === "clash") {
-      return { winner: null, reason: "Les balles se percutent en plein vol." };
+      return { winner: null, reason: t("combat.clash") };
     }
 
     // 3. Super tir : la protection ne sert à rien
-    if (resultA === "super_shot") return { winner: "a", reason: a.name + " traverse la protection." };
-    if (resultB === "super_shot") return { winner: "b", reason: b.name + " traverse la protection." };
+    if (resultA === "super_shot") return { winner: "a", reason: verdict("combat.superShot", a) };
+    if (resultB === "super_shot") return { winner: "b", reason: verdict("combat.superShot", b) };
 
     // 4. Tir ordinaire : ne touche que si la cible ne s'est pas protégée.
     //    `isDefending` vient d'être mis à jour par executeAction, il reflète
     //    donc bien l'action de CE tour.
-    if (actionA === "shoot" && !b.isDefending) return { winner: "a", reason: b.name + " est touché." };
-    if (actionB === "shoot" && !a.isDefending) return { winner: "b", reason: a.name + " est touché." };
+    if (actionA === "shoot" && !b.isDefending) return { winner: "a", reason: verdict("combat.hit", b) };
+    if (actionB === "shoot" && !a.isDefending) return { winner: "b", reason: verdict("combat.hit", a) };
 
     return { winner: null, reason: "" };
   }
@@ -1767,24 +2114,28 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       key: "neutre",
       name: "Méthodique",
       tell: "joue au livre, sans excès",
+      en: { name: "Methodical", tell: "plays it by the book, no excess" },
       shoot: 1.0, defend: 1.0, patience: 1.0,
     },
     {
       key: "agressif",
       name: "Impatient",
       tell: "tire dès qu'il peut, se protège peu",
+      en: { name: "Impatient", tell: "shoots the moment it can, rarely guards" },
       shoot: 1.15, defend: 0.6, patience: 0.8,
     },
     {
       key: "prudent",
       name: "Prudent",
       tell: "se protège beaucoup, attend son heure",
+      en: { name: "Cautious", tell: "guards a lot and waits for its moment" },
       shoot: 0.85, defend: 1.6, patience: 1.25,
     },
     {
       key: "joueur",
       name: "Parieur",
       tell: "accumule pour le super tir, quitte à se découvrir",
+      en: { name: "Gambler", tell: "hoards for the super shot, even wide open" },
       shoot: 0.8, defend: 0.85, patience: 1.6,
     },
   ];
@@ -2233,8 +2584,12 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       difficulty,
 
       // Duel en cours
-      player: makeDuelist("Toi", false),
-      bot: makeDuelist("Adversaire", true),
+      /* Les noms apparaissent dans les verdicts (« Adversaire est touché »),
+       * ils sont donc traduits dès la création. Changer de langue en plein
+       * duel ne les met pas à jour : c'est assumé, la partie suivante repart
+       * dans la bonne langue. */
+      player: makeDuelist(DUELMINDS.i18n.t("duelist.you"), false),
+      bot: makeDuelist(DUELMINDS.i18n.t("duelist.opponent"), true),
       brain: makeBrain(difficulty, opts.blind,
         opts.characterKey ? DUELMINDS.ai.personalityForCharacter(opts.characterKey) : undefined),
       turn: 1,
@@ -3182,7 +3537,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   "use strict";
 
   const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
-  const { MODES, DIFFICULTIES, ACTIONS, ACTION_LABEL } = DUELMINDS;
+  const { MODES, DIFFICULTIES, ACTIONS } = DUELMINDS;
+  const { t, L } = DUELMINDS.i18n;
+  const actionLabel = DUELMINDS.actionLabel;
 
   // Le numéro de version fait partie de la clé : le jour où la forme des
   // données changera, les anciennes seront ignorées plutôt que de faire
@@ -3357,39 +3714,45 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   function toText() {
     const s = stats;
     const lines = [];
-    lines.push("DUELMINDS — statistiques de test");
+    lines.push(t("text.title"));
     if (s.firstPlayed) {
-      lines.push("Du " + s.firstPlayed.slice(0, 10) + " au " + (s.lastPlayed || "").slice(0, 10));
+      lines.push(t("text.period", {
+        from: s.firstPlayed.slice(0, 10),
+        to: (s.lastPlayed || "").slice(0, 10),
+      }));
     }
     lines.push("");
-    lines.push("MODES");
+    lines.push(t("text.modes"));
     for (const mode of MODES) {
       const m = s.byMode[mode.key];
-      lines.push("  " + mode.label.padEnd(9) + String(m.sessions).padStart(4) + " parties · " +
-        m.duelsPlayed + " duels · " + percent(m.duelsWon, m.duelsPlayed) + " % gagnés");
+      lines.push("  " + L(mode, "label").padEnd(9) + t("text.modeLine", {
+        games: m.sessions, duels: m.duelsPlayed,
+        percent: percent(m.duelsWon, m.duelsPlayed),
+      }));
     }
     lines.push("");
-    lines.push("DIFFICULTÉS");
+    lines.push(t("text.difficulties"));
     for (const difficulty of DIFFICULTIES) {
       const d = s.byDifficulty[difficulty.key];
-      lines.push("  " + difficulty.label.padEnd(10) +
-        percent(d.duelsWon, d.duelsPlayed) + " % de duels gagnés · " +
-        percent(d.manchesWon, d.manchesPlayed) + " % de manches · " +
-        "record arcade " + d.bestStreak);
+      lines.push("  " + L(difficulty, "label").padEnd(10) + t("text.difficultyLine", {
+        duels: percent(d.duelsWon, d.duelsPlayed),
+        manches: percent(d.manchesWon, d.manchesPlayed),
+        record: d.bestStreak,
+      }));
     }
     lines.push("");
-    lines.push("ACTIONS   (" + s.turns + " tours joués)");
+    lines.push(t("text.actionsHeader", { n: s.turns }));
     for (const action of ACTIONS) {
-      lines.push("  " + ACTION_LABEL[action].padEnd(10) +
+      lines.push("  " + actionLabel(action).padEnd(10) +
         String(s.byAction[action]).padStart(5) +
         "  (" + percent(s.byAction[action], s.turns) + " %)");
     }
     lines.push("");
-    lines.push("  clashs      " + percent(s.clashes, s.turns) + " % des tours");
-    lines.push("  super tirs  " + s.superShots);
+    lines.push("  " + t("text.clashes", { n: percent(s.clashes, s.turns) }));
+    lines.push("  " + t("text.superShots", { n: s.superShots }));
     if (!storageWorks) {
       lines.push("");
-      lines.push("(stockage indisponible : ces chiffres ne survivront pas à la fermeture)");
+      lines.push(t("text.noStorage"));
     }
     return lines.join("\n");
   }
@@ -3477,6 +3840,16 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     "Novice", "Recrue", "Duelliste", "Vétéran", "Tireur",
     "Bretteur", "Maître", "Virtuose", "Légende", "Mythe",
   ];
+  const TITLES_EN = [
+    "Novice", "Recruit", "Duelist", "Veteran", "Gunhand",
+    "Blade", "Master", "Virtuoso", "Legend", "Myth",
+  ];
+
+  /** Le titre d'un niveau dans la langue courante. Voir i18n.js. */
+  function titleFor(level) {
+    const english = DUELMINDS.i18n && DUELMINDS.i18n.lang() !== "fr";
+    return (english ? TITLES_EN : TITLES)[level - 1];
+  }
 
   const MAX_LEVEL = LEVELS.length;
 
@@ -3497,7 +3870,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     const next = level < MAX_LEVEL ? LEVELS[level] : null;
     return {
       level,
-      title: TITLES[level - 1],
+      title: titleFor(level),
       xp,
       intoLevel: xp - floor,
       needed: next === null ? 0 : next - floor,
@@ -3546,6 +3919,23 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     };
   }
 
+  /* Les six familles de hauts faits. Rangées ici plutôt que traduites dans
+   * chaque entrée : elles se répètent, une seule table évite d'avoir à les
+   * retraduire vingt-quatre fois. */
+  const GROUPS_EN = {
+    "Premiers pas": "First steps",
+    "Maîtrise":     "Mastery",
+    "Difficulté":   "Difficulty",
+    "Séries":       "Streaks",
+    "Progression":  "Progression",
+    "Adversaires":  "Opponents",
+  };
+
+  function groupName(group) {
+    const english = DUELMINDS.i18n && DUELMINDS.i18n.lang() !== "fr";
+    return english ? (GROUPS_EN[group] || group) : group;
+  }
+
   /* ---------------------------------------------------------------------------
    * 3. LES HAUTS FAITS
    * ---------------------------------------------------------------------------
@@ -3559,100 +3949,142 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     /* --- Premiers pas --- */
     { id: "premier-duel", group: "Premiers pas", name: "Sur le pré",
       hint: "Jouer un duel jusqu'au bout.",
+      en: { name: "First Steps",
+            hint: "Play a duel through to the end." },
       check: (c) => c.duelsPlayed >= 1 },
 
     { id: "premiere-victoire", group: "Premiers pas", name: "Premier sang",
       hint: "Remporter un duel.",
+      en: { name: "First Blood",
+            hint: "Win a duel." },
       check: (c) => c.duelsWon >= 1 },
 
     { id: "tous-modes", group: "Premiers pas", name: "Touche-à-tout",
       hint: "Essayer les quatre modes de jeu.",
+      en: { name: "Jack of All",
+            hint: "Try all four game modes." },
       goal: () => MODES.length, progress: (c) => c.modesPlayed.length,
       check: (c) => c.modesPlayed.length >= MODES.length },
 
     { id: "tous-personnages", group: "Premiers pas", name: "Garde-robe",
       hint: "Jouer une fois chaque personnage.",
+      en: { name: "Full Wardrobe",
+            hint: "Play every character once." },
       goal: () => CHARACTERS.length, progress: (c) => c.charactersPlayed.length,
       check: (c) => c.charactersPlayed.length >= CHARACTERS.length },
 
     /* --- Maîtrise --- */
     { id: "sans-appel", group: "Maîtrise", name: "Sans appel",
       hint: "Gagner un duel deux manches à zéro.",
+      en: { name: "Flawless",
+            hint: "Win a duel two rounds to nil." },
       check: (c) => c.perfectWins >= 1 },
 
     { id: "remontee", group: "Maîtrise", name: "Remontée",
       hint: "Gagner un duel après avoir été mené.",
+      en: { name: "Comeback",
+            hint: "Win a duel after falling behind." },
       check: (c) => c.comebacks >= 1 },
 
     { id: "sang-froid", group: "Maîtrise", name: "Sang-froid",
       hint: "Gagner un duel sans te protéger une seule fois.",
+      en: { name: "Cold Blood",
+            hint: "Win a duel without guarding once." },
       check: (c) => c.noDefenceWins >= 1 },
 
     { id: "expeditif", group: "Maîtrise", name: "Expéditif",
       hint: "Gagner un duel en six tours ou moins.",
+      en: { name: "Swift",
+            hint: "Win a duel in six turns or fewer." },
       check: (c) => c.fastWins >= 1 },
 
     { id: "mur", group: "Maîtrise", name: "Mur",
       hint: "Arrêter 25 tirs adverses avec ta protection.",
+      en: { name: "Wall",
+            hint: "Stop 25 enemy shots with your guard." },
       goal: () => 25, progress: (c) => c.blockedShots,
       check: (c) => c.blockedShots >= 25 },
 
     { id: "perce-muraille", group: "Maîtrise", name: "Perce-muraille",
       hint: "Emporter une manche d'un super tir, à travers la protection.",
+      en: { name: "Wallbreaker",
+            hint: "Take a round with a super shot, straight through the guard." },
       check: (c) => c.superShotWins >= 1 },
 
     { id: "etincelles", group: "Maîtrise", name: "Étincelles",
       hint: "Percuter 20 balles en plein vol.",
+      en: { name: "Sparks",
+            hint: "Collide 20 bullets in mid-air." },
       goal: () => 20, progress: (c) => c.clashes,
       check: (c) => c.clashes >= 20 },
 
     /* --- Difficulté --- */
     { id: "victoire-difficile", group: "Difficulté", name: "Elle lit ton jeu",
       hint: "Gagner un duel en Difficile.",
+      en: { name: "It Reads You",
+            hint: "Win a duel on Hard." },
       check: (c) => (c.winsByDifficulty.difficile || 0) >= 1 },
 
     { id: "victoire-extreme", group: "Difficulté", name: "Elle cherche la faille",
       hint: "Gagner un duel en Extrême.",
+      en: { name: "It Hunts You",
+            hint: "Win a duel on Extreme." },
       check: (c) => (c.winsByDifficulty.extreme || 0) >= 1 },
 
     { id: "extreme-dix", group: "Difficulté", name: "Habitué de l'Extrême",
       hint: "Gagner dix duels en Extrême.",
+      en: { name: "Extreme Regular",
+            hint: "Win ten duels on Extreme." },
       goal: () => 10, progress: (c) => c.winsByDifficulty.extreme || 0,
       check: (c) => (c.winsByDifficulty.extreme || 0) >= 10 },
 
     /* --- Séries --- */
     { id: "serie-3", group: "Séries", name: "Trois d'affilée",
       hint: "Enchaîner 3 duels gagnés en Arcade.",
+      en: { name: "Three in a Row",
+            hint: "Chain 3 wins in Arcade." },
       goal: () => 3, progress: (c) => c.bestStreakByMode.arcade || 0,
       check: (c) => (c.bestStreakByMode.arcade || 0) >= 3 },
 
     { id: "serie-5", group: "Séries", name: "En forme",
       hint: "Enchaîner 5 duels gagnés en Arcade.",
+      en: { name: "On Form",
+            hint: "Chain 5 wins in Arcade." },
       goal: () => 5, progress: (c) => c.bestStreakByMode.arcade || 0,
       check: (c) => (c.bestStreakByMode.arcade || 0) >= 5 },
 
     { id: "serie-10", group: "Séries", name: "Intouchable",
       hint: "Enchaîner 10 duels gagnés en Arcade.",
+      en: { name: "Untouchable",
+            hint: "Chain 10 wins in Arcade." },
       goal: () => 10, progress: (c) => c.bestStreakByMode.arcade || 0,
       check: (c) => (c.bestStreakByMode.arcade || 0) >= 10 },
 
     { id: "blitz-5", group: "Séries", name: "Réflexes",
       hint: "Enchaîner 5 duels gagnés en Blitz, chrono en main.",
+      en: { name: "Reflexes",
+            hint: "Chain 5 wins in Blitz, clock running." },
       goal: () => 5, progress: (c) => c.bestStreakByMode.blitz || 0,
       check: (c) => (c.bestStreakByMode.blitz || 0) >= 5 },
 
     { id: "aveugle-3", group: "Séries", name: "De tête",
       hint: "Enchaîner 3 duels gagnés en Aveugle, sans voir les balles adverses.",
+      en: { name: "From Memory",
+            hint: "Chain 3 wins in Blind, without seeing enemy bullets." },
       goal: () => 3, progress: (c) => c.bestStreakByMode.aveugle || 0,
       check: (c) => (c.bestStreakByMode.aveugle || 0) >= 3 },
 
     { id: "blitz-extreme", group: "Séries", name: "Deux secondes",
       hint: "Gagner un duel en Blitz extrême : 2 secondes par choix, balles cachées.",
+      en: { name: "Two Seconds",
+            hint: "Win a duel in Blitz extreme: 2 seconds per choice, bullets hidden." },
       check: (c) => c.blitzExtremeWins >= 1 },
 
     /* --- Progression --- */
     { id: "niveau-5", group: "Progression", name: "Tireur confirmé",
       hint: "Amener un personnage au niveau 5.",
+      en: { name: "Seasoned",
+            hint: "Take a character to level 5." },
       check: (c, p) => bestLevel(p) >= 5 },
 
     { id: "niveau-max", group: "Progression", name: "Jusqu'au bout",
@@ -3661,6 +4093,10 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     { id: "tous-niveau-3", group: "Progression", name: "Écurie complète",
       hint: "Amener chaque personnage au niveau 3.",
+      en: { name: "Full Stable",
+            hint: "Take every character to level 3." },
+      en: { name: "All the Way",
+            hint: "Take a character to level 10." },
       goal: () => CHARACTERS.length,
       progress: (c, p) => CHARACTERS.filter((ch) => levelFromXp(xpOf(p, ch.key)) >= 3).length,
       check: (c, p) => CHARACTERS.every((ch) => levelFromXp(xpOf(p, ch.key)) >= 3) },
@@ -3668,6 +4104,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     /* --- Adversaires --- */
     { id: "battre-tous", group: "Adversaires", name: "Tous au tapis",
       hint: "Battre au moins une fois chacun des adversaires possibles.",
+      en: { name: "All Comers",
+            hint: "Beat each possible opponent at least once." },
       goal: () => CHARACTERS.length, progress: (c) => c.botsBeaten.length,
       check: (c) => c.botsBeaten.length >= CHARACTERS.length },
   ];
@@ -3862,7 +4300,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   function characterProgress() {
     return CHARACTERS.map((character) => {
       const entry = state.characters[character.key] || { xp: 0, duels: 0, wins: 0 };
-      return Object.assign({ key: character.key, name: character.name,
+      const name = DUELMINDS.i18n ? DUELMINDS.i18n.L(character, "name") : character.name;
+      return Object.assign({ key: character.key, name: name,
                              duels: entry.duels, wins: entry.wins },
                            levelInfo(entry.xp));
     }).sort((a, b) => b.xp - a.xp);
@@ -3878,11 +4317,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
         try { progress = achievement.progress(state.counters, state); }
         catch (e) { progress = null; }
       }
+      const tr = (field) => (DUELMINDS.i18n
+        ? DUELMINDS.i18n.L(achievement, field) : achievement[field]);
       return {
         id: achievement.id,
-        group: achievement.group,
-        name: achievement.name,
-        hint: achievement.hint,
+        group: groupName(achievement.group),
+        name: tr("name"),
+        hint: tr("hint"),
         done,
         date: done ? state.unlocked[achievement.id] : null,
         goal,
@@ -3907,8 +4348,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
   DUELMINDS.progress = {
     recordDuel, characterProgress, achievements, summary, reset, isPersistent,
-    levelInfo, levelFromXp, xpForDuel,
-    LEVELS, TITLES, MAX_LEVEL, XP, DIFFICULTY_XP,
+    levelInfo, levelFromXp, xpForDuel, titleFor,
+    LEVELS, TITLES, TITLES_EN, MAX_LEVEL, XP, DIFFICULTY_XP, ACHIEVEMENTS,
   };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
@@ -4056,7 +4497,14 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   "use strict";
 
   const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
-  const { RULES, ACTIONS, ACTION_LABEL, MODES, DIFFICULTIES } = DUELMINDS;
+  const { RULES, ACTIONS, MODES, DIFFICULTIES } = DUELMINDS;
+
+  /* Raccourcis de traduction, voir i18n.js.
+   *   t(cle, params) une phrase du dictionnaire
+   *   L(objet, champ) un champ traduit d'une donnee de jeu
+   *   actionLabel(a)  le nom d'une action dans la langue courante */
+  const { t, L } = DUELMINDS.i18n;
+  const actionLabel = DUELMINDS.actionLabel;
   const { canDo, defenceCost, isSuperShot } = DUELMINDS.combat;
   const { drawDuelist, drawEffect } = DUELMINDS.sprites;
   const audio = DUELMINDS.audio;
@@ -4168,8 +4616,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       button.className = "choice";
       button.dataset.mode = mode.key;
       button.innerHTML =
-        "<span class='choice-title'>" + mode.label + "</span>" +
-        "<span class='choice-desc'>" + mode.blurb + "</span>";
+        "<span class='choice-title'>" + L(mode, "label") + "</span>" +
+        "<span class='choice-desc'>" + L(mode, "blurb") + "</span>";
       button.addEventListener("click", () => selectMode(mode.key));
       modeList.appendChild(button);
     }
@@ -4183,8 +4631,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       button.dataset.difficulty = difficulty.key;
       button.style.setProperty("--accent", "var(" + difficulty.accent + ")");
       button.innerHTML =
-        "<span class='choice-title'>" + difficulty.label + "</span>" +
-        "<span class='choice-desc'>" + difficulty.blurb + "</span>" +
+        "<span class='choice-title'>" + L(difficulty, "label") + "</span>" +
+        "<span class='choice-desc'>" + L(difficulty, "blurb") + "</span>" +
         "<span class='choice-record' data-record='" + difficulty.key + "'></span>";
       button.addEventListener("click", () => selectDifficulty(difficulty.key));
       difficultyList.appendChild(button);
@@ -4208,24 +4656,24 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       slot.type = "button";
       slot.className = "roster-slot";
       slot.dataset.character = character.key;
-      slot.title = character.name + " — " + character.blurb;
+      slot.title = L(character, "name") + " — " + L(character, "blurb");
 
       // L'image se remplace toute seule par l'initiale si le fichier manque.
       const image = document.createElement("img");
-      image.alt = character.name;
+      image.alt = L(character, "name");
       image.src = "assets/characters/" + character.key + ".png";
       image.addEventListener("error", () => {
         image.remove();
         const initial = document.createElement("span");
         initial.className = "initial";
-        initial.textContent = character.name.charAt(0);
+        initial.textContent = L(character, "name").charAt(0);
         slot.prepend(initial);
       });
       slot.appendChild(image);
 
       const label = document.createElement("span");
       label.className = "roster-name";
-      label.textContent = character.name;
+      label.textContent = L(character, "name");
       slot.appendChild(label);
 
       slot.addEventListener("click", () => {
@@ -4270,7 +4718,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     for (const span of document.querySelectorAll("[data-record]")) {
       const best = stats.bestStreak(span.dataset.record);
       const show = state.mode === "arcade" && best > 0;
-      span.textContent = show ? "record " + best : "";
+      span.textContent = show ? t("home.record", { n: best }) : "";
     }
 
     for (const slot of document.querySelectorAll("[data-character]")) {
@@ -4297,7 +4745,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   /** Le nom affiché d'un personnage, à partir de sa clé. */
   function characterName(key) {
     const character = DUELMINDS.CHARACTERS.find((c) => c.key === key);
-    return character ? character.name : "Duelliste";
+    return character ? L(character, "name") : t("duelist.default");
   }
 
   /* ---------------------------------------------------------------------------
@@ -4352,10 +4800,10 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     stats.recordSessionStart(state.mode, state.difficulty);
 
     const intro = [];
-    if (isStreakMode()) intro.push("Chaque duel gagné prolonge la série.");
-    else intro.push("Premier à " + RULES.MANCHES_TO_WIN + " manches remporte le duel.");
-    if (isTimed()) intro.push(blitzSeconds() + " secondes pour choisir.");
-    if (bulletsHidden()) intro.push("Les balles adverses sont cachées : compte-les.");
+    if (isStreakMode()) intro.push(t("intro.streak"));
+    else intro.push(t("intro.duel", { n: RULES.MANCHES_TO_WIN }));
+    if (isTimed()) intro.push(t("intro.timer", { n: blitzSeconds() }));
+    if (bulletsHidden()) intro.push(t("intro.hidden"));
     setLog(intro.join(" "));
 
     renderDuel();
@@ -4370,8 +4818,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     // Bandeau : mode, difficulté, et série en cours si on est en arcade
     const difficulty = DIFFICULTIES.find((d) => d.key === s.difficulty);
-    $("hud-mode").textContent = MODES.find((m) => m.key === s.mode).label;
-    $("hud-difficulty").textContent = difficulty.label;
+    $("hud-mode").textContent = L(MODES.find((m) => m.key === s.mode), "label");
+    $("hud-difficulty").textContent = L(difficulty, "label");
     $("hud-difficulty").style.setProperty("--accent", "var(" + difficulty.accent + ")");
 
     const arcade = isStreakMode();
@@ -4399,11 +4847,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     }
 
     // Le bouton de tir annonce quand le coup traversera la protection.
-    $("shoot-note").textContent = isSuperShot(s.player) ? "SUPER TIR" : "coûte 1 balle";
+    $("shoot-note").textContent = isSuperShot(s.player)
+      ? t("action.super") : t("action.costOne");
     $("btn-shoot").classList.toggle("super", isSuperShot(s.player));
 
     const cost = defenceCost(s.player);
-    $("defend-note").textContent = cost === 0 ? "gratuit" : "coûte " + cost + " balle";
+    $("defend-note").textContent =
+      cost === 0 ? t("action.free")
+      : cost === 1 ? t("action.costOne")
+      : t("action.costMany", { n: cost });
   }
 
   function renderScore(container, won) {
@@ -4541,8 +4993,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   function showReveal(turn) {
     const band = $("reveal");
     band.innerHTML = "";
-    band.appendChild(revealCard("Adversaire", turn.actionB, turn.resultB, "from-left"));
-    band.appendChild(revealCard("Toi", turn.actionA, turn.resultA, "from-right"));
+    band.appendChild(revealCard(t("duelist.opponent"), turn.actionB, turn.resultB, "from-left"));
+    band.appendChild(revealCard(t("duelist.you"), turn.actionA, turn.resultA, "from-right"));
 
     // Un seul effet par tour : le plus marquant.
     if (turn.resultA === "clash" && turn.resultB === "clash") {
@@ -4573,9 +5025,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       (result === "clash" ? " clash" : "");
     card.innerHTML =
       "<span class='reveal-who'>" + who + "</span>" +
-      "<span class='reveal-action'>" + ACTION_LABEL[action] + "</span>" +
-      (result === "super_shot" ? "<span class='reveal-tag'>super tir</span>" : "") +
-      (result === "death" ? "<span class='reveal-tag'>impossible</span>" : "");
+      "<span class='reveal-action'>" + actionLabel(action) + "</span>" +
+      (result === "super_shot" ? "<span class='reveal-tag'>" + t("reveal.super") + "</span>" : "") +
+      (result === "death" ? "<span class='reveal-tag'>" + t("reveal.impossible") + "</span>" : "");
     return card;
   }
 
@@ -4640,8 +5092,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   }
 
   function describeTurn(turn) {
-    const lines = ["Toi : " + ACTION_LABEL[turn.actionA] +
-                   "  ·  Adversaire : " + ACTION_LABEL[turn.actionB] + "."];
+    const lines = [t("reveal.log", { you: actionLabel(turn.actionA),
+                                    foe: actionLabel(turn.actionB) }) + "."];
     if (turn.reason) lines.push(turn.reason);
     return lines.join(" ");
   }
@@ -4672,9 +5124,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     if (!result.duelOver) {
       // Manche suivante du même duel
       announce(
-        playerWonManche ? "Manche gagnée" : "Manche perdue",
+        t(playerWonManche ? "manche.won" : "manche.lost"),
         s.lastReason,
-        "Manche " + (s.mancheNumber),
+        t("manche.next", { n: s.mancheNumber }),
         () => {
           DUELMINDS.match.startManche(s);
           setPose("player", "idle");
@@ -4731,11 +5183,11 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       const nextCharacter = pickBotCharacter(state.botCharacter);
       const next = DUELMINDS.ai.personalityForCharacter(nextCharacter);
       announce(
-        "Duel remporté",
-        "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") + ". " +
-        characterName(nextCharacter) + " prend sa place — il " + next.tell + "." +
+        t("duel.won"),
+        t(s.streak > 1 ? "streak.countMany" : "streak.countOne", { n: s.streak }) + " " +
+        t("opponent.next", { name: characterName(nextCharacter), tell: L(next, "tell") }) +
         progressLine(),
-        "Duel " + (s.streak + 1),
+        t("duel.next", { n: s.streak + 1 }),
         () => {
           state.botCharacter = nextCharacter;
           DUELMINDS.match.startNextDuel(s, nextCharacter);
@@ -4766,12 +5218,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     const parts = [];
     if (p.levelUp) {
-      parts.push(characterName(state.character) + " passe niveau " +
-                 p.level.level + " — " + p.level.title + ".");
+      parts.push(t("progress.levelUp", {
+        name: characterName(state.character),
+        level: p.level.level,
+        title: p.level.title,
+      }));
     }
     if (p.unlocked.length) {
-      parts.push((p.unlocked.length > 1 ? "Hauts faits : " : "Haut fait : ") +
-                 p.unlocked.map((a) => a.name).join(", ") + ".");
+      parts.push(t(p.unlocked.length > 1 ? "progress.featMany" : "progress.featOne",
+                   { names: p.unlocked.map((a) => a.name).join(", ") }));
     }
     return parts.length ? " " + parts.join(" ") : "";
   }
@@ -4798,13 +5253,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     if (isStreakMode()) {
       const isRecord = stats.recordStreak(s.difficulty, s.streak);
-      title = s.streak === 0 ? "Série terminée" : "Série de " + s.streak;
+      title = s.streak === 0 ? t("streak.ended") : t("streak.title", { n: s.streak });
       detail = s.lastReason + " " +
         (isRecord && s.streak > 0
-          ? "Nouveau record sur ce niveau."
-          : "Ton record ici est de " + stats.bestStreak(s.difficulty) + ".");
+          ? t("streak.recordNew")
+          : t("streak.recordOld", { n: stats.bestStreak(s.difficulty) }));
     } else {
-      title = playerWonDuel ? "Duel remporté" : "Duel perdu";
+      title = t(playerWonDuel ? "duel.won" : "duel.lost");
       detail = s.lastReason;
     }
 
@@ -4812,8 +5267,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
      * souvent là qu'on comprend ce qui nous a manqué. */
     if (isStreakMode()) {
       const last = DUELMINDS.ai.personalityOf(s.brain);
-      detail += " Le dernier adversaire, " + characterName(state.botCharacter) +
-                ", " + last.tell + ".";
+      detail += " " + t("opponent.last", {
+        name: characterName(state.botCharacter), tell: L(last, "tell"),
+      });
     }
 
     detail += progressLine();
@@ -4825,16 +5281,16 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     const summary = $("end-summary");
     summary.innerHTML = "";
     const rows = [
-      ["Mode", MODES.find((m) => m.key === s.mode).label],
-      ["Difficulté", DIFFICULTIES.find((d) => d.key === s.difficulty).label],
-      ["Duels joués", state.log.duels],
-      ["Manches", state.log.manches],
-      ["Tours", state.log.turns],
-      ["Clashs", state.log.clashes],
-      ["Super tirs", state.log.superShots],
+      [t("end.mode"), L(MODES.find((m) => m.key === s.mode), "label")],
+      [t("end.difficulty"), L(DIFFICULTIES.find((d) => d.key === s.difficulty), "label")],
+      [t("end.duels"), state.log.duels],
+      [t("end.manches"), state.log.manches],
+      [t("end.turns"), state.log.turns],
+      [t("end.clashes"), state.log.clashes],
+      [t("end.superShots"), state.log.superShots],
     ];
-    if (isStreakMode()) rows.splice(2, 0, ["Série", s.streak]);
-    if (isTimed()) rows.push(["Temps écoulé", state.timedOut + " fois"]);
+    if (isStreakMode()) rows.splice(2, 0, [t("end.streak"), s.streak]);
+    if (isTimed()) rows.push([t("end.timedOut"), t("end.times", { n: state.timedOut })]);
 
     // Où en est le personnage joué : c'est l'écran qu'on regarde le plus, donc
     // celui où la progression a le plus de chances d'être vue.
@@ -4842,7 +5298,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       .find((entry) => entry.key === state.character);
     if (mine) {
       rows.push([characterName(state.character),
-                 "niv. " + mine.level + " · " + mine.title]);
+                 t("progress.rank", { level: mine.level, title: mine.title })]);
     }
     for (const [label, value] of rows) {
       const row = document.createElement("div");
@@ -4924,11 +5380,11 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       head.className = "level-head";
 
       const name = document.createElement("b");
-      name.textContent = entry.name;
+      name.textContent = entry.name;   // deja traduit par progress.js
 
       const rank = document.createElement("span");
       rank.className = "level-rank";
-      rank.textContent = "niv. " + entry.level + " · " + entry.title;
+      rank.textContent = t("progress.rank", { level: entry.level, title: entry.title });
 
       head.appendChild(name);
       head.appendChild(rank);
@@ -4942,9 +5398,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       const note = document.createElement("span");
       note.className = "level-note";
       note.textContent = entry.isMax
-        ? "niveau maximum · " + entry.duels + " duels"
-        : entry.intoLevel + " / " + entry.needed + " points · " +
-          entry.duels + " duels, " + entry.wins + " gagnés";
+        ? t("progress.maxNote", { duels: entry.duels })
+        : t("progress.note", { into: entry.intoLevel, needed: entry.needed,
+                               duels: entry.duels, wins: entry.wins });
 
       row.appendChild(head);
       row.appendChild(bar);
@@ -5022,8 +5478,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     const body = $("stats-body");
 
     if (!stats.hasData()) {
-      body.innerHTML = "<p>Aucune partie jouée pour l'instant. Les compteurs se " +
-        "remplissent au fil des duels.</p>";
+      body.innerHTML = "<p>" + t("stats.empty") + "</p>";
       return;
     }
 
@@ -5031,47 +5486,49 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     const modeRows = MODES.map((mode) => {
       const m = s.byMode[mode.key];
-      return "<tr><td>" + mode.label + "</td><td class='n'>" + m.sessions + "</td>" +
+      return "<tr><td>" + L(mode, "label") + "</td><td class='n'>" + m.sessions + "</td>" +
         "<td class='n'>" + m.duelsPlayed + "</td>" +
         "<td class='n'>" + pct(m.duelsWon, m.duelsPlayed) + " %</td></tr>";
     }).join("");
 
     const difficultyRows = DIFFICULTIES.map((difficulty) => {
       const d = s.byDifficulty[difficulty.key];
-      return "<tr><td>" + difficulty.label + "</td>" +
+      return "<tr><td>" + L(difficulty, "label") + "</td>" +
         "<td class='n'>" + pct(d.duelsWon, d.duelsPlayed) + " %</td>" +
         "<td class='n'>" + pct(d.manchesWon, d.manchesPlayed) + " %</td>" +
         "<td class='n'>" + d.bestStreak + "</td></tr>";
     }).join("");
 
     const actionRows = ACTIONS.map((action) =>
-      "<tr><td>" + ACTION_LABEL[action] + "</td>" +
+      "<tr><td>" + actionLabel(action) + "</td>" +
       "<td class='n'>" + s.byAction[action] + "</td>" +
       "<td class='n'>" + pct(s.byAction[action], s.turns) + " %</td></tr>").join("");
 
+    const th = (key, numeric) =>
+      "<th" + (numeric ? " class='n'" : "") + ">" + t(key) + "</th>";
+
     body.innerHTML =
-      "<h3>Modes</h3><div class='table-wrap'><table>" +
-        "<thead><tr><th>Mode</th><th class='n'>Parties</th><th class='n'>Duels</th>" +
-        "<th class='n'>Gagnés</th></tr></thead><tbody>" + modeRows + "</tbody></table></div>" +
+      "<h3>" + t("stats.modes") + "</h3><div class='table-wrap'><table><thead><tr>" +
+        th("stats.colMode") + th("stats.colGames", 1) + th("stats.colDuels", 1) +
+        th("stats.colWon", 1) +
+        "</tr></thead><tbody>" + modeRows + "</tbody></table></div>" +
 
-      "<h3>Difficultés</h3><div class='table-wrap'><table>" +
-        "<thead><tr><th>Niveau</th><th class='n'>Duels</th><th class='n'>Manches</th>" +
-        "<th class='n'>Record</th></tr></thead><tbody>" + difficultyRows + "</tbody></table></div>" +
+      "<h3>" + t("stats.difficulties") + "</h3><div class='table-wrap'><table><thead><tr>" +
+        th("stats.colLevel") + th("stats.colDuels", 1) + th("stats.colManches", 1) +
+        th("stats.colRecord", 1) +
+        "</tr></thead><tbody>" + difficultyRows + "</tbody></table></div>" +
 
-      "<h3>Tes actions</h3><div class='table-wrap'><table>" +
-        "<thead><tr><th>Action</th><th class='n'>Fois</th><th class='n'>Part</th></tr></thead>" +
-        "<tbody>" + actionRows + "</tbody></table></div>" +
+      "<h3>" + t("stats.actions") + "</h3><div class='table-wrap'><table><thead><tr>" +
+        th("stats.colAction") + th("stats.colTimes", 1) + th("stats.colShare", 1) +
+        "</tr></thead><tbody>" + actionRows + "</tbody></table></div>" +
 
-      "<h3>Mécaniques</h3><ul>" +
-        "<li><b>" + s.turns + "</b> tours joués</li>" +
-        "<li>" + pct(s.clashes, s.turns) + " % de clashs</li>" +
-        "<li><b>" + s.superShots + "</b> super tirs</li>" +
+      "<h3>" + t("stats.mechanics") + "</h3><ul>" +
+        "<li>" + t("stats.turnsPlayed", { n: "<b>" + s.turns + "</b>" }) + "</li>" +
+        "<li>" + t("stats.clashShare", { n: pct(s.clashes, s.turns) }) + "</li>" +
+        "<li>" + t("stats.superShots", { n: "<b>" + s.superShots + "</b>" }) + "</li>" +
       "</ul>" +
 
-      (stats.isPersistent()
-        ? "<p>Ces chiffres ne concernent que cet appareil et sont conservés entre deux sessions.</p>"
-        : "<p>Le stockage du navigateur est indisponible : ces chiffres seront perdus " +
-          "en fermant l'onglet.</p>");
+      "<p>" + t(stats.isPersistent() ? "stats.deviceOnly" : "stats.noStorage") + "</p>";
   }
 
   /** `navigator.clipboard` n'existe pas partout : on prévoit un repli. */
@@ -5079,7 +5536,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     const text = stats.toText();
     const done = () => {
       const original = button.textContent;
-      button.textContent = "Copié";
+      button.textContent = t("stats.copied");
       window.setTimeout(() => { button.textContent = original; }, 1600);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -5177,10 +5634,34 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   /* =========================================================================
    * DÉMARRAGE
    * ====================================================================== */
+  /**
+   * Applique la langue à toute l'interface.
+   *
+   * Deux temps, et l'ordre compte :
+   *   1. i18n remplace les textes écrits dans le HTML ;
+   *   2. on RECONSTRUIT ce que le JavaScript avait fabriqué — listes de modes,
+   *      règles, écrans de progression — car ces éléments-là ne portent pas
+   *      d'attribut `data-en` : ils sont créés à la volée.
+   *
+   * `buildRules` doit repasser après `applyDom` : la version anglaise de l'aide
+   * réinstalle les `<span id="rules-super">` vides, qu'il faut re-remplir.
+   */
+  function applyLanguage() {
+    DUELMINDS.i18n.applyDom(document);
+    buildHome();
+    buildRules();
+    if ($("screen-progress").classList.contains("on")) renderProgress();
+    if ($("screen-stats").classList.contains("on")) renderStats();
+    if (state.session) renderDuel();
+    $("btn-lang").textContent = DUELMINDS.i18n.lang() === "fr" ? "English" : "Français";
+  }
+
   function init() {
     audio.loadFiles();
     buildHome();
     buildRules();
+    document.documentElement.setAttribute("lang", DUELMINDS.i18n.lang());
+    applyLanguage();
 
     // On ne collecte jamais de données sans le dire.
     if (DUELMINDS.telemetry && DUELMINDS.telemetry.isEnabled()) {
@@ -5195,6 +5676,12 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     $("btn-quit").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
     $("btn-again").addEventListener("click", () => { audio.play("click"); startSession(); });
     $("btn-home").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
+
+    $("btn-lang").addEventListener("click", () => {
+      audio.play("click");
+      DUELMINDS.i18n.setLang(DUELMINDS.i18n.lang() === "fr" ? "en" : "fr");
+      applyLanguage();
+    });
 
     $("btn-rules").addEventListener("click", () => showScreen("screen-rules"));
     $("btn-rules-back").addEventListener("click", () => showScreen("screen-home"));

@@ -59,8 +59,12 @@
       difficulty,
 
       // Duel en cours
-      player: makeDuelist("Toi", false),
-      bot: makeDuelist("Adversaire", true),
+      /* Les noms apparaissent dans les verdicts (« Adversaire est touché »),
+       * ils sont donc traduits dès la création. Changer de langue en plein
+       * duel ne les met pas à jour : c'est assumé, la partie suivante repart
+       * dans la bonne langue. */
+      player: makeDuelist(DUELMINDS.i18n.t("duelist.you"), false),
+      bot: makeDuelist(DUELMINDS.i18n.t("duelist.opponent"), true),
       brain: makeBrain(difficulty, opts.blind,
         opts.characterKey ? DUELMINDS.ai.personalityForCharacter(opts.characterKey) : undefined),
       turn: 1,

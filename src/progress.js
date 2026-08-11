@@ -72,6 +72,16 @@
     "Novice", "Recrue", "Duelliste", "Vétéran", "Tireur",
     "Bretteur", "Maître", "Virtuose", "Légende", "Mythe",
   ];
+  const TITLES_EN = [
+    "Novice", "Recruit", "Duelist", "Veteran", "Gunhand",
+    "Blade", "Master", "Virtuoso", "Legend", "Myth",
+  ];
+
+  /** Le titre d'un niveau dans la langue courante. Voir i18n.js. */
+  function titleFor(level) {
+    const english = DUELMINDS.i18n && DUELMINDS.i18n.lang() !== "fr";
+    return (english ? TITLES_EN : TITLES)[level - 1];
+  }
 
   const MAX_LEVEL = LEVELS.length;
 
@@ -92,7 +102,7 @@
     const next = level < MAX_LEVEL ? LEVELS[level] : null;
     return {
       level,
-      title: TITLES[level - 1],
+      title: titleFor(level),
       xp,
       intoLevel: xp - floor,
       needed: next === null ? 0 : next - floor,
@@ -141,6 +151,23 @@
     };
   }
 
+  /* Les six familles de hauts faits. Rangées ici plutôt que traduites dans
+   * chaque entrée : elles se répètent, une seule table évite d'avoir à les
+   * retraduire vingt-quatre fois. */
+  const GROUPS_EN = {
+    "Premiers pas": "First steps",
+    "Maîtrise":     "Mastery",
+    "Difficulté":   "Difficulty",
+    "Séries":       "Streaks",
+    "Progression":  "Progression",
+    "Adversaires":  "Opponents",
+  };
+
+  function groupName(group) {
+    const english = DUELMINDS.i18n && DUELMINDS.i18n.lang() !== "fr";
+    return english ? (GROUPS_EN[group] || group) : group;
+  }
+
   /* ---------------------------------------------------------------------------
    * 3. LES HAUTS FAITS
    * ---------------------------------------------------------------------------
@@ -154,100 +181,142 @@
     /* --- Premiers pas --- */
     { id: "premier-duel", group: "Premiers pas", name: "Sur le pré",
       hint: "Jouer un duel jusqu'au bout.",
+      en: { name: "First Steps",
+            hint: "Play a duel through to the end." },
       check: (c) => c.duelsPlayed >= 1 },
 
     { id: "premiere-victoire", group: "Premiers pas", name: "Premier sang",
       hint: "Remporter un duel.",
+      en: { name: "First Blood",
+            hint: "Win a duel." },
       check: (c) => c.duelsWon >= 1 },
 
     { id: "tous-modes", group: "Premiers pas", name: "Touche-à-tout",
       hint: "Essayer les quatre modes de jeu.",
+      en: { name: "Jack of All",
+            hint: "Try all four game modes." },
       goal: () => MODES.length, progress: (c) => c.modesPlayed.length,
       check: (c) => c.modesPlayed.length >= MODES.length },
 
     { id: "tous-personnages", group: "Premiers pas", name: "Garde-robe",
       hint: "Jouer une fois chaque personnage.",
+      en: { name: "Full Wardrobe",
+            hint: "Play every character once." },
       goal: () => CHARACTERS.length, progress: (c) => c.charactersPlayed.length,
       check: (c) => c.charactersPlayed.length >= CHARACTERS.length },
 
     /* --- Maîtrise --- */
     { id: "sans-appel", group: "Maîtrise", name: "Sans appel",
       hint: "Gagner un duel deux manches à zéro.",
+      en: { name: "Flawless",
+            hint: "Win a duel two rounds to nil." },
       check: (c) => c.perfectWins >= 1 },
 
     { id: "remontee", group: "Maîtrise", name: "Remontée",
       hint: "Gagner un duel après avoir été mené.",
+      en: { name: "Comeback",
+            hint: "Win a duel after falling behind." },
       check: (c) => c.comebacks >= 1 },
 
     { id: "sang-froid", group: "Maîtrise", name: "Sang-froid",
       hint: "Gagner un duel sans te protéger une seule fois.",
+      en: { name: "Cold Blood",
+            hint: "Win a duel without guarding once." },
       check: (c) => c.noDefenceWins >= 1 },
 
     { id: "expeditif", group: "Maîtrise", name: "Expéditif",
       hint: "Gagner un duel en six tours ou moins.",
+      en: { name: "Swift",
+            hint: "Win a duel in six turns or fewer." },
       check: (c) => c.fastWins >= 1 },
 
     { id: "mur", group: "Maîtrise", name: "Mur",
       hint: "Arrêter 25 tirs adverses avec ta protection.",
+      en: { name: "Wall",
+            hint: "Stop 25 enemy shots with your guard." },
       goal: () => 25, progress: (c) => c.blockedShots,
       check: (c) => c.blockedShots >= 25 },
 
     { id: "perce-muraille", group: "Maîtrise", name: "Perce-muraille",
       hint: "Emporter une manche d'un super tir, à travers la protection.",
+      en: { name: "Wallbreaker",
+            hint: "Take a round with a super shot, straight through the guard." },
       check: (c) => c.superShotWins >= 1 },
 
     { id: "etincelles", group: "Maîtrise", name: "Étincelles",
       hint: "Percuter 20 balles en plein vol.",
+      en: { name: "Sparks",
+            hint: "Collide 20 bullets in mid-air." },
       goal: () => 20, progress: (c) => c.clashes,
       check: (c) => c.clashes >= 20 },
 
     /* --- Difficulté --- */
     { id: "victoire-difficile", group: "Difficulté", name: "Elle lit ton jeu",
       hint: "Gagner un duel en Difficile.",
+      en: { name: "It Reads You",
+            hint: "Win a duel on Hard." },
       check: (c) => (c.winsByDifficulty.difficile || 0) >= 1 },
 
     { id: "victoire-extreme", group: "Difficulté", name: "Elle cherche la faille",
       hint: "Gagner un duel en Extrême.",
+      en: { name: "It Hunts You",
+            hint: "Win a duel on Extreme." },
       check: (c) => (c.winsByDifficulty.extreme || 0) >= 1 },
 
     { id: "extreme-dix", group: "Difficulté", name: "Habitué de l'Extrême",
       hint: "Gagner dix duels en Extrême.",
+      en: { name: "Extreme Regular",
+            hint: "Win ten duels on Extreme." },
       goal: () => 10, progress: (c) => c.winsByDifficulty.extreme || 0,
       check: (c) => (c.winsByDifficulty.extreme || 0) >= 10 },
 
     /* --- Séries --- */
     { id: "serie-3", group: "Séries", name: "Trois d'affilée",
       hint: "Enchaîner 3 duels gagnés en Arcade.",
+      en: { name: "Three in a Row",
+            hint: "Chain 3 wins in Arcade." },
       goal: () => 3, progress: (c) => c.bestStreakByMode.arcade || 0,
       check: (c) => (c.bestStreakByMode.arcade || 0) >= 3 },
 
     { id: "serie-5", group: "Séries", name: "En forme",
       hint: "Enchaîner 5 duels gagnés en Arcade.",
+      en: { name: "On Form",
+            hint: "Chain 5 wins in Arcade." },
       goal: () => 5, progress: (c) => c.bestStreakByMode.arcade || 0,
       check: (c) => (c.bestStreakByMode.arcade || 0) >= 5 },
 
     { id: "serie-10", group: "Séries", name: "Intouchable",
       hint: "Enchaîner 10 duels gagnés en Arcade.",
+      en: { name: "Untouchable",
+            hint: "Chain 10 wins in Arcade." },
       goal: () => 10, progress: (c) => c.bestStreakByMode.arcade || 0,
       check: (c) => (c.bestStreakByMode.arcade || 0) >= 10 },
 
     { id: "blitz-5", group: "Séries", name: "Réflexes",
       hint: "Enchaîner 5 duels gagnés en Blitz, chrono en main.",
+      en: { name: "Reflexes",
+            hint: "Chain 5 wins in Blitz, clock running." },
       goal: () => 5, progress: (c) => c.bestStreakByMode.blitz || 0,
       check: (c) => (c.bestStreakByMode.blitz || 0) >= 5 },
 
     { id: "aveugle-3", group: "Séries", name: "De tête",
       hint: "Enchaîner 3 duels gagnés en Aveugle, sans voir les balles adverses.",
+      en: { name: "From Memory",
+            hint: "Chain 3 wins in Blind, without seeing enemy bullets." },
       goal: () => 3, progress: (c) => c.bestStreakByMode.aveugle || 0,
       check: (c) => (c.bestStreakByMode.aveugle || 0) >= 3 },
 
     { id: "blitz-extreme", group: "Séries", name: "Deux secondes",
       hint: "Gagner un duel en Blitz extrême : 2 secondes par choix, balles cachées.",
+      en: { name: "Two Seconds",
+            hint: "Win a duel in Blitz extreme: 2 seconds per choice, bullets hidden." },
       check: (c) => c.blitzExtremeWins >= 1 },
 
     /* --- Progression --- */
     { id: "niveau-5", group: "Progression", name: "Tireur confirmé",
       hint: "Amener un personnage au niveau 5.",
+      en: { name: "Seasoned",
+            hint: "Take a character to level 5." },
       check: (c, p) => bestLevel(p) >= 5 },
 
     { id: "niveau-max", group: "Progression", name: "Jusqu'au bout",
@@ -256,6 +325,10 @@
 
     { id: "tous-niveau-3", group: "Progression", name: "Écurie complète",
       hint: "Amener chaque personnage au niveau 3.",
+      en: { name: "Full Stable",
+            hint: "Take every character to level 3." },
+      en: { name: "All the Way",
+            hint: "Take a character to level 10." },
       goal: () => CHARACTERS.length,
       progress: (c, p) => CHARACTERS.filter((ch) => levelFromXp(xpOf(p, ch.key)) >= 3).length,
       check: (c, p) => CHARACTERS.every((ch) => levelFromXp(xpOf(p, ch.key)) >= 3) },
@@ -263,6 +336,8 @@
     /* --- Adversaires --- */
     { id: "battre-tous", group: "Adversaires", name: "Tous au tapis",
       hint: "Battre au moins une fois chacun des adversaires possibles.",
+      en: { name: "All Comers",
+            hint: "Beat each possible opponent at least once." },
       goal: () => CHARACTERS.length, progress: (c) => c.botsBeaten.length,
       check: (c) => c.botsBeaten.length >= CHARACTERS.length },
   ];
@@ -457,7 +532,8 @@
   function characterProgress() {
     return CHARACTERS.map((character) => {
       const entry = state.characters[character.key] || { xp: 0, duels: 0, wins: 0 };
-      return Object.assign({ key: character.key, name: character.name,
+      const name = DUELMINDS.i18n ? DUELMINDS.i18n.L(character, "name") : character.name;
+      return Object.assign({ key: character.key, name: name,
                              duels: entry.duels, wins: entry.wins },
                            levelInfo(entry.xp));
     }).sort((a, b) => b.xp - a.xp);
@@ -473,11 +549,13 @@
         try { progress = achievement.progress(state.counters, state); }
         catch (e) { progress = null; }
       }
+      const tr = (field) => (DUELMINDS.i18n
+        ? DUELMINDS.i18n.L(achievement, field) : achievement[field]);
       return {
         id: achievement.id,
-        group: achievement.group,
-        name: achievement.name,
-        hint: achievement.hint,
+        group: groupName(achievement.group),
+        name: tr("name"),
+        hint: tr("hint"),
         done,
         date: done ? state.unlocked[achievement.id] : null,
         goal,
@@ -502,7 +580,7 @@
 
   DUELMINDS.progress = {
     recordDuel, characterProgress, achievements, summary, reset, isPersistent,
-    levelInfo, levelFromXp, xpForDuel,
-    LEVELS, TITLES, MAX_LEVEL, XP, DIFFICULTY_XP,
+    levelInfo, levelFromXp, xpForDuel, titleFor,
+    LEVELS, TITLES, TITLES_EN, MAX_LEVEL, XP, DIFFICULTY_XP, ACHIEVEMENTS,
   };
 })(typeof globalThis !== "undefined" ? globalThis : window);
