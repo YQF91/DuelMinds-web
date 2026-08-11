@@ -142,6 +142,22 @@
     "progress.note":        { fr: "{into} / {needed} points · {duels} duels, {wins} gagnés",
                               en: "{into} / {needed} points · {duels} duels, {wins} won" },
 
+    /* --- Classement ---
+     * Chaque panne a son message : « indisponible » ne dit pas au joueur s'il
+     * doit réessayer, alors que « pas de réseau » et « pas encore déployé »
+     * lui disent quoi faire. */
+    "board.loading":        { fr: "Chargement du classement…",
+                              en: "Loading the ranking…" },
+    "board.empty":          { fr: "Personne n'a encore joué ce mode. À toi de l'ouvrir.",
+                              en: "Nobody has played this mode yet. Be the first." },
+    "board.offline":        { fr: "Classement injoignable — vérifie ta connexion.",
+                              en: "Ranking unreachable — check your connection." },
+    "board.notDeployed":    { fr: "Le classement n'est pas encore activé côté serveur.",
+                              en: "The ranking is not switched on server-side yet." },
+    "board.noEndpoint":     { fr: "Aucun point de collecte n'est configuré : pas de classement.",
+                              en: "No collection endpoint configured: no ranking." },
+    "board.anonymous":      { fr: "joueur {id}", en: "player {id}" },
+
     /* --- Écran de fin --- */
     "end.mode":             { fr: "Mode",        en: "Mode" },
     "end.difficulty":       { fr: "Difficulté",  en: "Difficulty" },
@@ -283,6 +299,14 @@
     for (const node of scope.querySelectorAll("[data-en-html]")) {
       if (node.dataset.frHtml === undefined) node.dataset.frHtml = node.innerHTML;
       node.innerHTML = current === "fr" ? node.dataset.frHtml : node.dataset.enHtml;
+    }
+    // Les champs de saisie n'ont pas de texte : c'est leur invite qui se traduit.
+    for (const node of scope.querySelectorAll("[data-en-placeholder]")) {
+      if (node.dataset.frPlaceholder === undefined) {
+        node.dataset.frPlaceholder = node.getAttribute("placeholder") || "";
+      }
+      node.setAttribute("placeholder", current === "fr"
+        ? node.dataset.frPlaceholder : node.dataset.enPlaceholder);
     }
   }
 

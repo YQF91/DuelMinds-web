@@ -787,7 +787,75 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 }
 
 /* =============================================================================
- * 10. ACCESSIBILITÉ
+ * 10. CLASSEMENT ET SAISIE DU PSEUDONYME
+ * -----------------------------------------------------------------------------
+ * La ligne du joueur est mise en valeur : c'est la première qu'il cherche dans
+ * un classement. Le podium reçoit le laiton, comme les balles — dans ce jeu,
+ * cette couleur veut toujours dire « ce qui compte ».
+ * ========================================================================== */
+
+.text-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+.text-input::placeholder { color: var(--dim); }
+.text-input:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+.board { display: flex; flex-direction: column; gap: 4px; }
+
+.board-row {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.board-row.podium .board-rank { color: var(--brass); }
+
+/* La ligne du joueur, repérable d'un coup d'œil. */
+.board-row.mine {
+  border-color: var(--brass);
+  background: var(--panel-2);
+}
+
+.board-rank {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--dim);
+  text-align: right;
+}
+
+.board-who {
+  font-family: var(--font-display);
+  letter-spacing: .03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-level { font-size: 12px; color: var(--muted); }
+
+.board-score { color: var(--brass); font-size: 18px; }
+
+.board-message {
+  padding: 18px 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* =============================================================================
+ * 11. ACCESSIBILITÉ
  * ========================================================================== */
 
 /* Le focus clavier doit toujours se voir : on ne supprime jamais l'anneau

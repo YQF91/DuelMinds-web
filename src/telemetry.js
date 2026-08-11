@@ -79,6 +79,8 @@
 
     const body = JSON.stringify(Object.assign({
       tester: testerId(),
+      // Pseudonyme choisi par le joueur, pour le classement. Vide par défaut.
+      name: (DUELMINDS.leaderboard && DUELMINDS.leaderboard.name()) || "",
       date: new Date().toISOString(),
       version: DUELMINDS.VERSION || "web",
     }, payload));
@@ -99,5 +101,9 @@
     }
   }
 
-  DUELMINDS.telemetry = { isEnabled, sendSession, testerId };
+  /** L'adresse du point de collecte, pour les modules qui en ont besoin
+   *  (leaderboard.js la relit pour aller chercher le classement). */
+  function endpoint() { return ENDPOINT; }
+
+  DUELMINDS.telemetry = { isEnabled, sendSession, testerId, endpoint };
 })(typeof globalThis !== "undefined" ? globalThis : window);

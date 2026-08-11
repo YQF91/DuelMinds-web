@@ -73,8 +73,19 @@
     <div class="row">
       <button class="btn" id="btn-rules" type="button" data-en="Rules">Règles</button>
       <button class="btn" id="btn-progress" type="button" data-en="Progress">Progression</button>
+      <button class="btn" id="btn-board" type="button" data-en="Ranking">Classement</button>
       <button class="btn" id="btn-stats" type="button" data-en="Stats">Stats</button>
     </div>
+    <!-- Pseudonyme du classement. Facultatif : sans lui, le joueur apparait
+         sous un identifiant aleatoire. Masque si aucun point de collecte
+         n'est configure (voir src/leaderboard.js). -->
+    <div id="name-block" hidden>
+      <p class="section-label" data-en="Your name in the ranking">Ton nom au classement</p>
+      <input class="text-input" id="player-name" type="text" maxlength="16"
+             autocomplete="off" spellcheck="false"
+             placeholder="facultatif" data-en-placeholder="optional">
+    </div>
+
     <div class="row">
       <button class="btn primary" id="btn-start" type="button" disabled data-en="Start">Commencer</button>
     </div>
@@ -332,6 +343,36 @@
   </section>
 
   <!-- ======================================================================
+       ÉCRAN 8 — CLASSEMENT
+       ----------------------------------------------------------------------
+       Les meilleures séries de tous les testeurs, relues depuis la feuille
+       Google (voir src/leaderboard.js et tools/google-apps-script.gs).
+       Ce n'est PAS du temps réel : on lit ce qui a déjà été enregistré.
+       ==================================================================== -->
+  <section id="screen-board" class="screen" aria-label="Classement">
+    <h2 data-en="Ranking">Classement</h2>
+
+    <div class="progress-tabs" role="tablist">
+      <button class="tabbtn on" id="board-arcade" type="button" role="tab">Arcade</button>
+      <button class="tabbtn" id="board-blitz" type="button" role="tab">Blitz</button>
+      <button class="tabbtn" id="board-aveugle" type="button" role="tab" data-en="Blind">Aveugle</button>
+    </div>
+
+    <div id="board-body" class="board"></div>
+
+    <p class="footnote"
+       data-en="Best streak per player, all difficulties combined. Updated after each game, not live.">
+      Meilleure série de chaque joueur, toutes difficultés confondues. Mis à
+      jour après coup, pas en direct.
+    </p>
+
+    <div class="row">
+      <button class="btn" id="btn-board-refresh" type="button" data-en="Refresh">Rafraîchir</button>
+      <button class="btn" id="btn-board-back" type="button" data-en="Back">Retour</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
        ÉCRAN 7 — PROGRESSION : niveaux des personnages et hauts faits
        ----------------------------------------------------------------------
        Deux listes remplies par ui.js depuis progress.js. Les hauts faits non
@@ -378,6 +419,7 @@
     stats      compteurs et records, a besoin de rules
     progress   niveaux et hauts faits, a besoin de rules
     telemetry  remontée optionnelle, a besoin de rules
+    leaderboard classement lu depuis la feuille, a besoin de telemetry
     ui         interface, a besoin de tout le reste
     main       démarrage
 -->
@@ -391,6 +433,7 @@
 <script src="src/stats.js"></script>
 <script src="src/progress.js"></script>
 <script src="src/telemetry.js"></script>
+<script src="src/leaderboard.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/main.js"></script>
 </body>

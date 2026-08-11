@@ -804,7 +804,75 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 }
 
 /* =============================================================================
- * 10. ACCESSIBILITÉ
+ * 10. CLASSEMENT ET SAISIE DU PSEUDONYME
+ * -----------------------------------------------------------------------------
+ * La ligne du joueur est mise en valeur : c'est la première qu'il cherche dans
+ * un classement. Le podium reçoit le laiton, comme les balles — dans ce jeu,
+ * cette couleur veut toujours dire « ce qui compte ».
+ * ========================================================================== */
+
+.text-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+.text-input::placeholder { color: var(--dim); }
+.text-input:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+.board { display: flex; flex-direction: column; gap: 4px; }
+
+.board-row {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.board-row.podium .board-rank { color: var(--brass); }
+
+/* La ligne du joueur, repérable d'un coup d'œil. */
+.board-row.mine {
+  border-color: var(--brass);
+  background: var(--panel-2);
+}
+
+.board-rank {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--dim);
+  text-align: right;
+}
+
+.board-who {
+  font-family: var(--font-display);
+  letter-spacing: .03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-level { font-size: 12px; color: var(--muted); }
+
+.board-score { color: var(--brass); font-size: 18px; }
+
+.board-message {
+  padding: 18px 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* =============================================================================
+ * 11. ACCESSIBILITÉ
  * ========================================================================== */
 
 /* Le focus clavier doit toujours se voir : on ne supprime jamais l'anneau
@@ -891,8 +959,19 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     <div class="row">
       <button class="btn" id="btn-rules" type="button" data-en="Rules">Règles</button>
       <button class="btn" id="btn-progress" type="button" data-en="Progress">Progression</button>
+      <button class="btn" id="btn-board" type="button" data-en="Ranking">Classement</button>
       <button class="btn" id="btn-stats" type="button" data-en="Stats">Stats</button>
     </div>
+    <!-- Pseudonyme du classement. Facultatif : sans lui, le joueur apparait
+         sous un identifiant aleatoire. Masque si aucun point de collecte
+         n'est configure (voir src/leaderboard.js). -->
+    <div id="name-block" hidden>
+      <p class="section-label" data-en="Your name in the ranking">Ton nom au classement</p>
+      <input class="text-input" id="player-name" type="text" maxlength="16"
+             autocomplete="off" spellcheck="false"
+             placeholder="facultatif" data-en-placeholder="optional">
+    </div>
+
     <div class="row">
       <button class="btn primary" id="btn-start" type="button" disabled data-en="Start">Commencer</button>
     </div>
@@ -1150,6 +1229,36 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   </section>
 
   <!-- ======================================================================
+       ÉCRAN 8 — CLASSEMENT
+       ----------------------------------------------------------------------
+       Les meilleures séries de tous les testeurs, relues depuis la feuille
+       Google (voir src/leaderboard.js et tools/google-apps-script.gs).
+       Ce n'est PAS du temps réel : on lit ce qui a déjà été enregistré.
+       ==================================================================== -->
+  <section id="screen-board" class="screen" aria-label="Classement">
+    <h2 data-en="Ranking">Classement</h2>
+
+    <div class="progress-tabs" role="tablist">
+      <button class="tabbtn on" id="board-arcade" type="button" role="tab">Arcade</button>
+      <button class="tabbtn" id="board-blitz" type="button" role="tab">Blitz</button>
+      <button class="tabbtn" id="board-aveugle" type="button" role="tab" data-en="Blind">Aveugle</button>
+    </div>
+
+    <div id="board-body" class="board"></div>
+
+    <p class="footnote"
+       data-en="Best streak per player, all difficulties combined. Updated after each game, not live.">
+      Meilleure série de chaque joueur, toutes difficultés confondues. Mis à
+      jour après coup, pas en direct.
+    </p>
+
+    <div class="row">
+      <button class="btn" id="btn-board-refresh" type="button" data-en="Refresh">Rafraîchir</button>
+      <button class="btn" id="btn-board-back" type="button" data-en="Back">Retour</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
        ÉCRAN 7 — PROGRESSION : niveaux des personnages et hauts faits
        ----------------------------------------------------------------------
        Deux listes remplies par ui.js depuis progress.js. Les hauts faits non
@@ -1196,6 +1305,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     stats      compteurs et records, a besoin de rules
     progress   niveaux et hauts faits, a besoin de rules
     telemetry  remontée optionnelle, a besoin de rules
+    leaderboard classement lu depuis la feuille, a besoin de telemetry
     ui         interface, a besoin de tout le reste
     main       démarrage
 -->
@@ -1345,6 +1455,22 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     "progress.note":        { fr: "{into} / {needed} points · {duels} duels, {wins} gagnés",
                               en: "{into} / {needed} points · {duels} duels, {wins} won" },
 
+    /* --- Classement ---
+     * Chaque panne a son message : « indisponible » ne dit pas au joueur s'il
+     * doit réessayer, alors que « pas de réseau » et « pas encore déployé »
+     * lui disent quoi faire. */
+    "board.loading":        { fr: "Chargement du classement…",
+                              en: "Loading the ranking…" },
+    "board.empty":          { fr: "Personne n'a encore joué ce mode. À toi de l'ouvrir.",
+                              en: "Nobody has played this mode yet. Be the first." },
+    "board.offline":        { fr: "Classement injoignable — vérifie ta connexion.",
+                              en: "Ranking unreachable — check your connection." },
+    "board.notDeployed":    { fr: "Le classement n'est pas encore activé côté serveur.",
+                              en: "The ranking is not switched on server-side yet." },
+    "board.noEndpoint":     { fr: "Aucun point de collecte n'est configuré : pas de classement.",
+                              en: "No collection endpoint configured: no ranking." },
+    "board.anonymous":      { fr: "joueur {id}", en: "player {id}" },
+
     /* --- Écran de fin --- */
     "end.mode":             { fr: "Mode",        en: "Mode" },
     "end.difficulty":       { fr: "Difficulté",  en: "Difficulty" },
@@ -1486,6 +1612,14 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     for (const node of scope.querySelectorAll("[data-en-html]")) {
       if (node.dataset.frHtml === undefined) node.dataset.frHtml = node.innerHTML;
       node.innerHTML = current === "fr" ? node.dataset.frHtml : node.dataset.enHtml;
+    }
+    // Les champs de saisie n'ont pas de texte : c'est leur invite qui se traduit.
+    for (const node of scope.querySelectorAll("[data-en-placeholder]")) {
+      if (node.dataset.frPlaceholder === undefined) {
+        node.dataset.frPlaceholder = node.getAttribute("placeholder") || "";
+      }
+      node.setAttribute("placeholder", current === "fr"
+        ? node.dataset.frPlaceholder : node.dataset.enPlaceholder);
     }
   }
 
@@ -4435,6 +4569,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     const body = JSON.stringify(Object.assign({
       tester: testerId(),
+      // Pseudonyme choisi par le joueur, pour le classement. Vide par défaut.
+      name: (DUELMINDS.leaderboard && DUELMINDS.leaderboard.name()) || "",
       date: new Date().toISOString(),
       version: DUELMINDS.VERSION || "web",
     }, payload));
@@ -4455,7 +4591,186 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     }
   }
 
-  DUELMINDS.telemetry = { isEnabled, sendSession, testerId };
+  /** L'adresse du point de collecte, pour les modules qui en ont besoin
+   *  (leaderboard.js la relit pour aller chercher le classement). */
+  function endpoint() { return ENDPOINT; }
+
+  DUELMINDS.telemetry = { isEnabled, sendSession, testerId, endpoint };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/leaderboard.js ---------- */
+/* =============================================================================
+ * DUELMINDS — CLASSEMENT DES SÉRIES
+ * =============================================================================
+ *
+ * LA QUESTION À LAQUELLE ÇA RÉPOND
+ * « On envoie déjà les parties vers Google Sheets ; peut-on faire l'inverse ? »
+ * Oui. Le même programme Apps Script qui reçoit les parties sait aussi relire
+ * les meilleures séries. GitHub Pages ne peut rien enregistrer, mais rien ne
+ * l'empêche d'ALLER CHERCHER des données ailleurs.
+ *
+ * CE N'EST PAS DU TEMPS RÉEL, ET C'EST VOULU
+ * On lit ce qui a déjà été enregistré. Un joueur qui bat le record le verra
+ * apparaître à son prochain passage, pas pendant sa partie. Pour comparer des
+ * scores entre testeurs, ça suffit largement, et ça évite tout serveur.
+ *
+ * POURQUOI JSONP PLUTÔT QUE fetch()
+ * Un navigateur refuse de lire une réponse venant d'un autre domaine (CORS), et
+ * Apps Script redirige ses réponses vers googleusercontent.com, ce qui rend le
+ * contournement propre difficile. Une balise <script>, elle, n'est pas soumise
+ * à cette règle : on demande donc au serveur d'enrober sa réponse dans un appel
+ * de fonction, qu'on récupère au vol. Technique ancienne, mais adaptée ici : la
+ * donnée est publique, en lecture seule, et sans aucun secret.
+ *
+ * TOLÉRANCE AUX PANNES — LE POINT IMPORTANT
+ * Ce module ne doit JAMAIS empêcher de jouer. Point de collecte non déployé,
+ * hors ligne, réponse illisible, script bloqué : dans tous les cas on renvoie
+ * une erreur douce et le jeu continue. Le classement est un bonus, pas une
+ * dépendance.
+ *
+ * DÉPENDANCES : telemetry.js (pour l'adresse du point de collecte)
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+
+  /* Au-delà, on considère que le point de collecte ne répondra pas. Assez long
+   * pour un réveil de Google Apps Script, assez court pour ne pas laisser le
+   * joueur devant un écran vide. */
+  const TIMEOUT_MS = 8000;
+
+  /* Le classement change lentement : on garde la réponse quelques minutes
+   * plutôt que de rappeler le serveur à chaque ouverture de l'écran. */
+  const CACHE_MS = 3 * 60 * 1000;
+
+  const NAME_KEY = "duelminds.name.v1";
+  const MAX_NAME = 16;
+
+  let counter = 0;
+  const cache = new Map();   // "mode|difficulté" -> { time, rows }
+
+  /* ---------------------------------------------------------------------------
+   * LE PSEUDONYME
+   * ---------------------------------------------------------------------------
+   * Sans nom, un classement n'affiche que des identifiants aléatoires et ne
+   * donne envie à personne. Il est FACULTATIF, choisi par le joueur, et vit
+   * dans son navigateur.
+   * ------------------------------------------------------------------------ */
+
+  /** Nettoie un pseudonyme : longueur bornée, pas de chevrons ni de retours. */
+  function cleanName(raw) {
+    return String(raw || "")
+      .replace(/[<>\r\n\t]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, MAX_NAME);
+  }
+
+  function name() {
+    try { return cleanName(root.localStorage.getItem(NAME_KEY)); }
+    catch (e) { return ""; }
+  }
+
+  function setName(value) {
+    const clean = cleanName(value);
+    try { root.localStorage.setItem(NAME_KEY, clean); } catch (e) { /* tant pis */ }
+    return clean;
+  }
+
+  /* ---------------------------------------------------------------------------
+   * LA LECTURE
+   * ------------------------------------------------------------------------ */
+
+  function endpoint() {
+    return (DUELMINDS.telemetry && DUELMINDS.telemetry.endpoint &&
+            DUELMINDS.telemetry.endpoint()) || "";
+  }
+
+  function isAvailable() { return !!endpoint(); }
+
+  /**
+   * Demande le classement d'un mode.
+   *
+   * @param {string} mode        clé de mode : arcade, blitz, aveugle
+   * @param {string} [difficulty] pour ne classer qu'un niveau
+   * @returns {Promise<{ok:boolean, rows:Array, reason?:string}>}
+   *          Ne rejette JAMAIS : une panne se lit dans `ok`.
+   */
+  function fetchTop(mode, difficulty) {
+    const key = mode + "|" + (difficulty || "");
+    const cached = cache.get(key);
+    if (cached && Date.now() - cached.time < CACHE_MS) {
+      return Promise.resolve({ ok: true, rows: cached.rows, cached: true });
+    }
+
+    const url = endpoint();
+    if (!url) return Promise.resolve({ ok: false, rows: [], reason: "no-endpoint" });
+
+    return new Promise(function (resolve) {
+      counter += 1;
+      const fname = "DUELMINDS_LB_" + counter;
+      const script = document.createElement("script");
+      let done = false;
+
+      /* Un seul chemin de sortie, appelé au plus une fois : sans ça, un
+       * serveur lent qui finit par répondre après le délai laisserait une
+       * fonction globale et une balise derrière lui. */
+      function finish(result) {
+        if (done) return;
+        done = true;
+        window.clearTimeout(timer);
+        try { delete root[fname]; } catch (e) { root[fname] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+        resolve(result);
+      }
+
+      const timer = window.setTimeout(function () {
+        finish({ ok: false, rows: [], reason: "timeout" });
+      }, TIMEOUT_MS);
+
+      root[fname] = function (payload) {
+        if (payload && payload.ok && payload.rows) {
+          cache.set(key, { time: Date.now(), rows: payload.rows });
+          finish({ ok: true, rows: payload.rows });
+        } else {
+          finish({ ok: false, rows: [], reason: (payload && payload.error) || "empty" });
+        }
+      };
+
+      script.onerror = function () {
+        finish({ ok: false, rows: [], reason: "network" });
+      };
+
+      /* Cas le plus fréquent au début : le point de collecte répond, mais avec
+       * l'ancienne version du script — du texte au lieu de JSONP. La balise se
+       * charge donc sans erreur ET sans appeler notre fonction. Sans ce test,
+       * on attendrait les 8 secondes du délai pour annoncer « pas de réseau »,
+       * ce qui est faux et n'aide pas : le vrai remède est de re-déployer.
+       * On laisse un tour d'horloge à la réponse pour s'exécuter avant de
+       * conclure. */
+      script.onload = function () {
+        window.setTimeout(function () {
+          finish({ ok: false, rows: [], reason: "not-jsonp" });
+        }, 0);
+      };
+
+      script.src = url +
+        (url.indexOf("?") === -1 ? "?" : "&") +
+        "mode=" + encodeURIComponent(mode) +
+        (difficulty ? "&difficulty=" + encodeURIComponent(difficulty) : "") +
+        "&callback=" + fname;
+      document.head.appendChild(script);
+    });
+  }
+
+  /** Oublie ce qui a été mis en cache — après avoir joué, par exemple. */
+  function forget() { cache.clear(); }
+
+  DUELMINDS.leaderboard = {
+    fetchTop, forget, isAvailable, name, setName, cleanName, MAX_NAME,
+  };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
 /* ---------- src/ui.js ---------- */
@@ -5321,6 +5636,10 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   /** Remonte la partie vers le point de collecte, s'il y en a un. */
   function reportSession(playerWonDuel) {
     if (!DUELMINDS.telemetry || !DUELMINDS.telemetry.isEnabled()) return;
+
+    /* La partie qu'on vient d'envoyer peut changer le classement : on jette le
+     * cache pour que le joueur voie son score s'il y va tout de suite. */
+    if (DUELMINDS.leaderboard) DUELMINDS.leaderboard.forget();
     const s = state.session;
     DUELMINDS.telemetry.sendSession({
       mode: s.mode,
@@ -5344,6 +5663,106 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       character: state.character,
       level: playerLevel(),
       feats: DUELMINDS.progress.summary().done,
+    });
+  }
+
+  /* =========================================================================
+   * ÉCRAN DU CLASSEMENT
+   * -------------------------------------------------------------------------
+   * Les meilleures séries de tous les testeurs, relues depuis la feuille
+   * Google. Ce n'est pas du temps réel — voir src/leaderboard.js.
+   *
+   * TROIS ÉTATS À TRAITER, ET AUCUN NE DOIT RESSEMBLER À UN BUG :
+   *   - chargement    on le dit, sinon l'écran paraît cassé ;
+   *   - indisponible  point de collecte absent ou pas encore redéployé ;
+   *   - vide          personne n'a encore joué ce mode.
+   * ====================================================================== */
+
+  const BOARD_MODES = ["arcade", "blitz", "aveugle"];
+  let boardMode = "arcade";
+
+  function showBoardTab(mode) {
+    boardMode = mode;
+    for (const key of BOARD_MODES) {
+      $("board-" + key).classList.toggle("on", key === mode);
+    }
+    renderBoard();
+  }
+
+  function boardMessage(text) {
+    const host = $("board-body");
+    host.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "board-message";
+    p.textContent = text;
+    host.appendChild(p);
+  }
+
+  function renderBoard() {
+    const board = DUELMINDS.leaderboard;
+
+    if (!board.isAvailable()) {
+      boardMessage(t("board.noEndpoint"));
+      return;
+    }
+
+    boardMessage(t("board.loading"));
+    const asked = boardMode;
+
+    board.fetchTop(asked).then(function (result) {
+      // L'utilisateur a pu changer d'onglet entre-temps : on ne réécrit pas
+      // par-dessus une demande plus récente.
+      if (asked !== boardMode) return;
+
+      if (!result.ok) {
+        // Chaque panne a son message : « pas de réseau » et « pas encore
+        // déployé » n'appellent pas du tout la même réaction.
+        boardMessage(
+          result.reason === "not-jsonp" ? t("board.notDeployed")
+          : result.reason === "no-endpoint" ? t("board.noEndpoint")
+          : t("board.offline"));
+        return;
+      }
+      if (!result.rows.length) {
+        boardMessage(t("board.empty"));
+        return;
+      }
+
+      const host = $("board-body");
+      host.innerHTML = "";
+      const mine = board.name();
+
+      result.rows.forEach(function (row, index) {
+        const line = document.createElement("div");
+        // On met en valeur la ligne du joueur : c'est la première qu'il cherche.
+        line.className = "board-row" +
+          (mine && row.name === mine ? " mine" : "") +
+          (index < 3 ? " podium" : "");
+
+        const rank = document.createElement("span");
+        rank.className = "board-rank";
+        rank.textContent = String(index + 1);
+
+        const who = document.createElement("span");
+        who.className = "board-who";
+        // textContent, jamais innerHTML : ce nom vient d'un autre joueur.
+        who.textContent = row.name || t("board.anonymous", { id: row.tester });
+
+        const score = document.createElement("b");
+        score.className = "board-score num";
+        score.textContent = row.streak;
+
+        const level = document.createElement("span");
+        level.className = "board-level";
+        const difficulty = DIFFICULTIES.find((d) => d.key === row.difficulty);
+        level.textContent = difficulty ? L(difficulty, "label") : "";
+
+        line.appendChild(rank);
+        line.appendChild(who);
+        line.appendChild(level);
+        line.appendChild(score);
+        host.appendChild(line);
+      });
     });
   }
 
@@ -5676,6 +6095,34 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     $("btn-quit").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
     $("btn-again").addEventListener("click", () => { audio.play("click"); startSession(); });
     $("btn-home").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
+
+    /* --- Classement --- */
+    $("btn-board").addEventListener("click", () => {
+      audio.play("click");
+      showBoardTab(boardMode);
+      showScreen("screen-board");
+    });
+    $("btn-board-back").addEventListener("click", () => showScreen("screen-home"));
+    $("btn-board-refresh").addEventListener("click", () => {
+      DUELMINDS.leaderboard.forget();   // sinon on relit le cache
+      renderBoard();
+    });
+    for (const key of BOARD_MODES) {
+      $("board-" + key).addEventListener("click", () => showBoardTab(key));
+    }
+
+    /* --- Pseudonyme --- */
+    const nameInput = $("player-name");
+    $("name-block").hidden = !DUELMINDS.leaderboard.isAvailable();
+    nameInput.value = DUELMINDS.leaderboard.name();
+    // À chaque frappe : il n'y a pas de bouton « valider », et un nom perdu
+    // parce qu'on a lancé la partie trop vite serait agaçant.
+    nameInput.addEventListener("input", () => {
+      DUELMINDS.leaderboard.setName(nameInput.value);
+    });
+    nameInput.addEventListener("blur", () => {
+      nameInput.value = DUELMINDS.leaderboard.name();
+    });
 
     $("btn-lang").addEventListener("click", () => {
       audio.play("click");

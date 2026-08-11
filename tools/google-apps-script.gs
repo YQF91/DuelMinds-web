@@ -78,6 +78,11 @@
  * 3. Sinon, Apps Script -> « Exécutions »  [ Executions ] montre les appels
  *    reçus et l'erreur éventuelle.
  *
+ * LE CLASSEMENT
+ * Ce script sait aussi RELIRE les meilleures séries, ce qui donne un classement
+ * au jeu (voir « LECTURE DU CLASSEMENT » plus bas). Rien à configurer : il
+ * suffit de re-déployer une fois ce fichier collé.
+ *
  * Si tu modifies ce script plus tard, il faut RE-DÉPLOYER :
  *   Déployer -> Gérer les déploiements -> crayon -> Version : Nouvelle
  *   [ Deploy -> Manage deployments -> ✏ -> Version: New version -> Deploy ]
@@ -87,7 +92,7 @@
 
 /** Colonnes de la feuille, dans l'ordre. */
 var COLUMNS = [
-  "date", "testeur", "version",
+  "date", "testeur", "pseudo", "version",
   "mode", "difficulte", "resultat", "serie",
   "ballesCachees",   // 1 si le joueur ne voyait pas le barillet adverse
   "tempsEcoule",     // mode blitz : nombre de fois où le chrono a decide
@@ -119,6 +124,7 @@ function doPost(e) {
     sheet.appendRow([
       data.date || new Date().toISOString(),
       data.tester || "",
+      String(data.name || "").slice(0, 16),
       data.version || "",
       data.mode || "",
       data.difficulty || "",
@@ -149,9 +155,124 @@ function doPost(e) {
   }
 }
 
-/** Permet de vérifier depuis un navigateur que le point de collecte répond. */
-function doGet() {
-  return ContentService.createTextOutput(
-    "Point de collecte DuelMinds actif. Les parties arrivent par POST."
-  );
+/**
+ * =============================================================================
+ * LECTURE DU CLASSEMENT
+ * =============================================================================
+ *
+ * OUI, ÇA MARCHE DANS LES DEUX SENS
+ * Le même programme qui reçoit les parties peut aussi les relire. GitHub Pages
+ * ne sait servir que des fichiers, mais rien ne l'empêche d'ALLER CHERCHER des
+ * données ailleurs : c'est ce qui donne un classement à un jeu hébergé sur un
+ * site sans serveur.
+ *
+ * POURQUOI JSONP ET PAS UN SIMPLE fetch()
+ * Un navigateur refuse par défaut de lire une réponse venant d'un autre domaine
+ * (CORS). Apps Script redirige ses réponses vers googleusercontent.com, ce qui
+ * rend ce blocage difficile à contourner proprement. La méthode JSONP, elle,
+ * passe par une balise <script>, à laquelle la règle ne s'applique pas. C'est
+ * une vieille technique, mais ici elle est parfaitement adaptée : la donnée est
+ * publique, en lecture seule, et sans aucun secret.
+ *
+ * CE QUI SORT D'ICI, ET RIEN D'AUTRE
+ * Uniquement le meilleur score de chaque joueur pour un mode donné : pseudonyme,
+ * série, difficulté, date. Jamais la feuille entière, jamais les colonnes de
+ * détail. Un curieux qui appelle l'adresse ne récupère pas tes données de test.
+ *
+ * ATTENTION — IL FAUT RE-DÉPLOYER
+ * Ajouter ce code ne suffit pas : Apps Script sert toujours la version
+ * déployée. Déployer -> Gérer les déploiements -> crayon -> Version : Nouvelle
+ * [ Deploy -> Manage deployments -> pencil -> Version: New version -> Deploy ].
+ * L'URL ne change pas. Tant que ce n'est pas fait, le jeu affiche simplement
+ * « classement indisponible » : il continue de fonctionner.
+ * =============================================================================
+ */
+
+/** Nombre de joueurs renvoyés au maximum. */
+var LEADERBOARD_SIZE = 20;
+
+/** Lignes lues au plus, en partant de la fin : borne le temps d'exécution. */
+var LEADERBOARD_SCAN = 4000;
+
+function doGet(e) {
+  var params = (e && e.parameter) || {};
+  var callback = String(params.callback || "");
+
+  // Sans paramètre : la page de vérification d'origine, ouverte au navigateur.
+  if (!params.mode && !callback) {
+    return ContentService.createTextOutput(
+      "Point de collecte DuelMinds actif. Les parties arrivent par POST, " +
+      "le classement se lit avec ?mode=arcade."
+    );
+  }
+
+  var payload;
+  try {
+    payload = { ok: true, mode: params.mode || "arcade",
+                difficulty: params.difficulty || "",
+                rows: leaderboard(params.mode || "arcade", params.difficulty || "") };
+  } catch (err) {
+    payload = { ok: false, error: String(err), rows: [] };
+  }
+
+  var body = JSON.stringify(payload);
+
+  // Appel JSONP : on enrobe la réponse dans la fonction demandée par la page.
+  if (callback) {
+    // Le nom de la fonction vient de l'extérieur : on n'accepte que des
+    // identifiants simples, pour ne rien pouvoir injecter d'autre.
+    if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(callback)) callback = "DUELMINDS_LB";
+    return ContentService
+      .createTextOutput(callback + "(" + body + ");")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(body)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Meilleure série de chaque joueur pour un mode.
+ * Un joueur n'apparaît qu'une fois, avec son record — sinon un habitué
+ * occuperait tout le tableau avec ses vingt meilleures parties.
+ */
+function leaderboard(mode, difficulty) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  var first = Math.max(2, lastRow - LEADERBOARD_SCAN + 1);
+  var values = sheet.getRange(first, 1, lastRow - first + 1, COLUMNS.length).getValues();
+
+  var iDate   = COLUMNS.indexOf("date");
+  var iTester = COLUMNS.indexOf("testeur");
+  var iName   = COLUMNS.indexOf("pseudo");
+  var iMode   = COLUMNS.indexOf("mode");
+  var iDiff   = COLUMNS.indexOf("difficulte");
+  var iStreak = COLUMNS.indexOf("serie");
+
+  var best = {};
+  for (var r = 0; r < values.length; r++) {
+    var row = values[r];
+    if (String(row[iMode]) !== String(mode)) continue;
+    if (difficulty && String(row[iDiff]) !== String(difficulty)) continue;
+
+    var streak = Number(row[iStreak]);
+    if (!streak || streak <= 0) continue;
+
+    var key = String(row[iTester] || "?");
+    if (!best[key] || streak > best[key].streak) {
+      best[key] = {
+        name: String(row[iName] || "").slice(0, 16),
+        tester: key.slice(0, 4),        // de quoi se reconnaitre, sans plus
+        streak: streak,
+        difficulty: String(row[iDiff] || ""),
+        date: String(row[iDate] || "").slice(0, 10),
+      };
+    }
+  }
+
+  var list = [];
+  for (var k in best) if (best.hasOwnProperty(k)) list.push(best[k]);
+  list.sort(function (a, b) { return b.streak - a.streak; });
+  return list.slice(0, LEADERBOARD_SIZE);
 }

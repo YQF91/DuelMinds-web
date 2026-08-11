@@ -860,6 +860,10 @@
   /** Remonte la partie vers le point de collecte, s'il y en a un. */
   function reportSession(playerWonDuel) {
     if (!DUELMINDS.telemetry || !DUELMINDS.telemetry.isEnabled()) return;
+
+    /* La partie qu'on vient d'envoyer peut changer le classement : on jette le
+     * cache pour que le joueur voie son score s'il y va tout de suite. */
+    if (DUELMINDS.leaderboard) DUELMINDS.leaderboard.forget();
     const s = state.session;
     DUELMINDS.telemetry.sendSession({
       mode: s.mode,
@@ -883,6 +887,106 @@
       character: state.character,
       level: playerLevel(),
       feats: DUELMINDS.progress.summary().done,
+    });
+  }
+
+  /* =========================================================================
+   * ÉCRAN DU CLASSEMENT
+   * -------------------------------------------------------------------------
+   * Les meilleures séries de tous les testeurs, relues depuis la feuille
+   * Google. Ce n'est pas du temps réel — voir src/leaderboard.js.
+   *
+   * TROIS ÉTATS À TRAITER, ET AUCUN NE DOIT RESSEMBLER À UN BUG :
+   *   - chargement    on le dit, sinon l'écran paraît cassé ;
+   *   - indisponible  point de collecte absent ou pas encore redéployé ;
+   *   - vide          personne n'a encore joué ce mode.
+   * ====================================================================== */
+
+  const BOARD_MODES = ["arcade", "blitz", "aveugle"];
+  let boardMode = "arcade";
+
+  function showBoardTab(mode) {
+    boardMode = mode;
+    for (const key of BOARD_MODES) {
+      $("board-" + key).classList.toggle("on", key === mode);
+    }
+    renderBoard();
+  }
+
+  function boardMessage(text) {
+    const host = $("board-body");
+    host.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "board-message";
+    p.textContent = text;
+    host.appendChild(p);
+  }
+
+  function renderBoard() {
+    const board = DUELMINDS.leaderboard;
+
+    if (!board.isAvailable()) {
+      boardMessage(t("board.noEndpoint"));
+      return;
+    }
+
+    boardMessage(t("board.loading"));
+    const asked = boardMode;
+
+    board.fetchTop(asked).then(function (result) {
+      // L'utilisateur a pu changer d'onglet entre-temps : on ne réécrit pas
+      // par-dessus une demande plus récente.
+      if (asked !== boardMode) return;
+
+      if (!result.ok) {
+        // Chaque panne a son message : « pas de réseau » et « pas encore
+        // déployé » n'appellent pas du tout la même réaction.
+        boardMessage(
+          result.reason === "not-jsonp" ? t("board.notDeployed")
+          : result.reason === "no-endpoint" ? t("board.noEndpoint")
+          : t("board.offline"));
+        return;
+      }
+      if (!result.rows.length) {
+        boardMessage(t("board.empty"));
+        return;
+      }
+
+      const host = $("board-body");
+      host.innerHTML = "";
+      const mine = board.name();
+
+      result.rows.forEach(function (row, index) {
+        const line = document.createElement("div");
+        // On met en valeur la ligne du joueur : c'est la première qu'il cherche.
+        line.className = "board-row" +
+          (mine && row.name === mine ? " mine" : "") +
+          (index < 3 ? " podium" : "");
+
+        const rank = document.createElement("span");
+        rank.className = "board-rank";
+        rank.textContent = String(index + 1);
+
+        const who = document.createElement("span");
+        who.className = "board-who";
+        // textContent, jamais innerHTML : ce nom vient d'un autre joueur.
+        who.textContent = row.name || t("board.anonymous", { id: row.tester });
+
+        const score = document.createElement("b");
+        score.className = "board-score num";
+        score.textContent = row.streak;
+
+        const level = document.createElement("span");
+        level.className = "board-level";
+        const difficulty = DIFFICULTIES.find((d) => d.key === row.difficulty);
+        level.textContent = difficulty ? L(difficulty, "label") : "";
+
+        line.appendChild(rank);
+        line.appendChild(who);
+        line.appendChild(level);
+        line.appendChild(score);
+        host.appendChild(line);
+      });
     });
   }
 
@@ -1215,6 +1319,34 @@
     $("btn-quit").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
     $("btn-again").addEventListener("click", () => { audio.play("click"); startSession(); });
     $("btn-home").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
+
+    /* --- Classement --- */
+    $("btn-board").addEventListener("click", () => {
+      audio.play("click");
+      showBoardTab(boardMode);
+      showScreen("screen-board");
+    });
+    $("btn-board-back").addEventListener("click", () => showScreen("screen-home"));
+    $("btn-board-refresh").addEventListener("click", () => {
+      DUELMINDS.leaderboard.forget();   // sinon on relit le cache
+      renderBoard();
+    });
+    for (const key of BOARD_MODES) {
+      $("board-" + key).addEventListener("click", () => showBoardTab(key));
+    }
+
+    /* --- Pseudonyme --- */
+    const nameInput = $("player-name");
+    $("name-block").hidden = !DUELMINDS.leaderboard.isAvailable();
+    nameInput.value = DUELMINDS.leaderboard.name();
+    // À chaque frappe : il n'y a pas de bouton « valider », et un nom perdu
+    // parce qu'on a lancé la partie trop vite serait agaçant.
+    nameInput.addEventListener("input", () => {
+      DUELMINDS.leaderboard.setName(nameInput.value);
+    });
+    nameInput.addEventListener("blur", () => {
+      nameInput.value = DUELMINDS.leaderboard.name();
+    });
 
     $("btn-lang").addEventListener("click", () => {
       audio.play("click");
