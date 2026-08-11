@@ -399,8 +399,17 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   z-index: 0;
 }
 
-/* Les duellistes, les noms et les effets passent devant le décor. */
-.arena > *:not(.backdrop) { position: relative; z-index: 1; }
+/* Les duellistes, les noms et les effets passent devant le décor.
+   
+   NE REMETS PAS `position` ICI. Cette règle a d'abord été écrite
+   `position: relative; z-index: 1`, ce qui a tout cassé : TOUS les enfants de
+   l'arène — bandeaux de nom, badge de manche, duellistes, révélation,
+   chronomètre — sont déjà en `position: absolute`, et cette ligne les
+   ramenait dans le flux. Les deux duellistes se retrouvaient empilés l'un
+   sous l'autre au lieu de se faire face, et le second débordait de l'arène.
+   
+   `z-index` seul suffit, précisément parce qu'ils sont déjà positionnés. */
+.arena > *:not(.backdrop) { z-index: 1; }
 
 /* LA SECOUSSE D'IMPACT.
    Elle déplace le CONTENU de l'arène, jamais son cadre : bouger la boîte

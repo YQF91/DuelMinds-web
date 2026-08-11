@@ -207,6 +207,54 @@ try {
   problems.push("TRADUCTION — " + e.message);
 }
 
+/* -----------------------------------------------------------------------------
+ * LA MISE EN PAGE DE L'ARÈNE TIENT-ELLE ?
+ * -----------------------------------------------------------------------------
+ * Une régression déjà arrivée, et invisible tant qu'on n'ouvre pas le jeu : une
+ * règle balayante sur les enfants de l'arène a remis `position: relative` sur
+ * des éléments qui doivent rester `absolute`. Les deux duellistes se sont
+ * retrouvés EMPILÉS au lieu de se faire face, et le second débordait.
+ *
+ * Aucun test JavaScript ne peut l'attraper — c'est du CSS pur — mais une
+ * lecture du fichier, si.
+ * -------------------------------------------------------------------------- */
+try {
+  const css = readFileSync(join(ROOT, "styles", "main.css"), "utf8");
+
+  // 1. Les pièces de l'arène se placent librement : elles DOIVENT être absolues.
+  //    Recherche littérale plutôt qu'expression régulière : la règle cherchée
+  //    est toujours écrite « .nom { … } », et un motif construit par
+  //    concaténation s'était déjà trompé d'un niveau d'échappement.
+  const declarationOf = (name) => {
+    const at = css.indexOf("." + name + " {");
+    if (at === -1) return null;
+    const close = css.indexOf("}", at);
+    return close === -1 ? null : css.slice(at, close);
+  };
+
+  const mustBeAbsolute = ["fighter", "nameplate", "manche-badge", "reveal", "timer",
+                          "backdrop", "effects"];
+  const notAbsolute = mustBeAbsolute.filter((name) => {
+    const body = declarationOf(name);
+    return !body || body.indexOf("position: absolute") === -1;
+  });
+  report(notAbsolute.length === 0,
+    notAbsolute.length === 0
+      ? "les " + mustBeAbsolute.length + " pièces de l'arène sont bien en position absolue"
+      : "MISE EN PAGE — ces pièces ne sont plus absolues : " + notAbsolute.join(", "));
+
+  // 2. Aucune règle balayante ne doit redéfinir leur position.
+  const sweeping = [...css.matchAll(/\.arena\s*>\s*\*[^{]*\{([^}]*)\}/g)]
+    .filter((m) => /position\s*:/.test(m[1]));
+  report(sweeping.length === 0,
+    sweeping.length === 0
+      ? "aucune règle balayante ne redéfinit la position des enfants de l'arène"
+      : "MISE EN PAGE — une règle « .arena > * » impose une position : elle " +
+        "remettrait les duellistes dans le flux, empilés au lieu de se faire face");
+} catch (e) {
+  problems.push("MISE EN PAGE — " + e.message);
+}
+
 /* --- Résultat --- */
 console.log("\nVérifications DuelMinds\n" + "-".repeat(62));
 for (const line of ok) console.log("  ok   " + line);
