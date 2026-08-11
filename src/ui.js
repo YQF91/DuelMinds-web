@@ -140,6 +140,52 @@
 
   const $ = (id) => document.getElementById(id);
 
+  /* ---------------------------------------------------------------------------
+   * EFFETS RÉDUITS
+   * ---------------------------------------------------------------------------
+   * POURQUOI CE RÉGLAGE EXISTE
+   * Les éclats lumineux répétés peuvent déclencher une crise chez une personne
+   * photosensible. Le seuil reconnu est de trois clignotements par seconde ;
+   * plus rien ici ne s'en approche, mais la quantité d'éclats reste une gêne
+   * réelle pour beaucoup de gens, y compris sans diagnostic.
+   *
+   * POURQUOI PAS SEULEMENT `prefers-reduced-motion`
+   * Ce réglage système ne couvre pas tout le monde : la plupart des gens gênés
+   * ne l'ont jamais activé, et sur téléphone il est enfoui dans les menus. Le
+   * jeu offre donc son propre interrupteur — coché d'office si le système le
+   * demande déjà.
+   *
+   * CE QUE ÇA COUPE
+   * L'éclat d'impact, la secousse de l'arène, la poussière projetée et toutes
+   * les animations. Le jeu reste entièrement lisible : rien d'important n'est
+   * porté par un effet.
+   * ------------------------------------------------------------------------ */
+  const EFFECTS_KEY = "duelminds.effects.v1";
+  let reduced = false;
+
+  function systemPrefersCalm() {
+    return !!(window.matchMedia &&
+              window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function loadEffectSetting() {
+    let saved = null;
+    try { saved = window.localStorage.getItem(EFFECTS_KEY); } catch (e) { /* tant pis */ }
+    // Jamais choisi : on suit le système.
+    reduced = saved === null ? systemPrefersCalm() : saved === "1";
+    document.body.classList.toggle("reduced-effects", reduced);
+    return reduced;
+  }
+
+  function setReducedEffects(on) {
+    reduced = !!on;
+    try { window.localStorage.setItem(EFFECTS_KEY, reduced ? "1" : "0"); }
+    catch (e) { /* tant pis */ }
+    document.body.classList.toggle("reduced-effects", reduced);
+  }
+
+  function effectsReduced() { return reduced; }
+
   function newLog() {
     return { turns: 0, clashes: 0, superShots: 0, duels: 0, manches: 0,
              actions: { charge: 0, shoot: 0, defend: 0 } };
@@ -600,9 +646,12 @@
       triggerEffect("charge", "player");
     }
 
-    // L'éclat blanc marque qui vient d'être touché.
-    if (turn.winner === "a") state.flash.bot = 1;
-    if (turn.winner === "b") state.flash.player = 1;
+    // L'éclat blanc marque qui vient d'être touché — sauf en effets réduits,
+    // où la pose de chute et le bandeau de révélation le disent déjà.
+    if (!effectsReduced()) {
+      if (turn.winner === "a") state.flash.bot = 1;
+      if (turn.winner === "b") state.flash.player = 1;
+    }
 
     reactScene(turn);
   }
@@ -616,6 +665,7 @@
    * se vaut, et plus rien ne marque.
    */
   function reactScene(turn) {
+    if (effectsReduced()) return;   // ni secousse ni poussière projetée
     const scene = DUELMINDS.scene;
     const zone = sceneZone();
     const groundY = scene.groundLine(zone.height);
@@ -1701,6 +1751,12 @@
     });
     nameInput.addEventListener("blur", () => {
       nameInput.value = DUELMINDS.leaderboard.name();
+    });
+
+    /* --- Effets réduits --- */
+    $("opt-effects").checked = loadEffectSetting();
+    $("opt-effects").addEventListener("change", (e) => {
+      setReducedEffects(e.target.checked);
     });
 
     $("btn-lang").addEventListener("click", () => {

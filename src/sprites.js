@@ -348,10 +348,15 @@
 
     ctx.restore();
 
-    // L'éclat marque qui vient d'être touché. Plus lisible qu'un clignotement,
-    // et ça ne demande pas un second jeu d'images.
+    /* L'éclat marque qui vient d'être touché.
+     *
+     * L'OPACITÉ EST VOLONTAIREMENT BASSE. Elle était à 0,7 : un aplat blanc
+     * couvrant tout le personnage, à chaque manche perdue ou gagnée. Sur un
+     * écran de téléphone dans le noir, c'est agressif, et ça s'ajoutait à tous
+     * les autres éclats. À 0,3 on voit toujours parfaitement QUI est touché —
+     * c'est la seule chose que cet éclat doit dire. */
     if (opts.flash > 0) {
-      ctx.globalAlpha = Math.min(1, opts.flash) * 0.7;
+      ctx.globalAlpha = Math.min(1, opts.flash) * 0.3;
       ctx.globalCompositeOperation = "source-atop";
       ctx.fillStyle = "#fff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -446,9 +451,11 @@
       ctx.arc(x, lineY, big ? 8 : 4.5, 0, Math.PI * 2);
       ctx.fill();
 
-      // Éclair de bouche, au tout début seulement
+      /* Éclair de bouche, au tout début seulement.
+       * Plafonné : à pleine opacité, c'était un disque jaune vif en plein
+       * milieu de l'écran à chaque tir — soit plusieurs fois par manche. */
       if (life > 0.72) {
-        const intensity = (life - 0.72) / 0.28;
+        const intensity = ((life - 0.72) / 0.28) * 0.55;
         ctx.fillStyle = "rgba(255,220,120," + intensity + ")";
         ctx.beginPath();
         ctx.arc(originX, lineY, big ? 30 : 18, 0, Math.PI * 2);

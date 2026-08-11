@@ -514,10 +514,20 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   transform-origin: left center;
   transition: none;
 }
-/* Dernière seconde : la barre vire au rouge et pulse. */
+/* Dernière seconde : la barre vire au rouge.
+ 
+   ELLE NE CLIGNOTE PLUS, ET C'EST UNE QUESTION DE SÉCURITÉ.
+   Elle pulsait à 2,86 clignotements par seconde — juste sous le seuil de 3/s
+   au-delà duquel un contenu présente un risque pour les personnes
+   photosensibles. Et surtout, ça se déclenchait à CHAQUE tour de blitz et de
+   duel en ligne : sur une partie entière, l'écran passait son temps à
+   clignoter.
+ 
+   L'urgence est déjà portée par deux signaux : la barre RÉTRÉCIT, et elle
+   change de couleur. Un troisième signal clignotant n'apprend rien de plus. */
 .timer-bar.urgent {
   background: var(--rust);
-  animation: throb .35s ease-in-out infinite;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--rust) 60%, transparent);
 }
 
 /* Balles cachées : on montre qu'il y a une information, mais pas laquelle. */
@@ -613,10 +623,12 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   color: var(--rust);
   border-color: var(--rust);
   background: color-mix(in srgb, var(--rust) 16%, var(--panel-2));
-  animation: throb 1.1s ease-in-out infinite;
+  /* Pas d'animation ici non plus. La couleur, le fond et le libellé
+     « SUPER TIR » suffisent largement à ne pas rater l'information ; un
+     clignotement de plus s'ajoutait à tous les autres. */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rust) 35%, transparent);
 }
 .action.super small { color: var(--rust); }
-@keyframes throb { 50% { border-color: color-mix(in srgb, var(--rust) 45%, transparent); } }
 
 /* =============================================================================
  * 7. ANNONCES ET FIN DE PARTIE
@@ -922,6 +934,27 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
 #lobby-error { color: var(--rust); }
 
+/* Interrupteur des effets réduits. Discret sur l'accueil, mais pas caché : il
+   doit se trouver sans chercher. */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brass);
+  cursor: pointer;
+}
+
+.toggle input:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
 /* =============================================================================
  * 12. ACCESSIBILITÉ
  * ========================================================================== */
@@ -937,6 +970,26 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
 /* Rien d'important n'est porté par le mouvement : on peut tout couper sans
    rendre le jeu incompréhensible. */
+/* -----------------------------------------------------------------------------
+   EFFETS RÉDUITS — réglage du joueur, indépendant du système
+   -----------------------------------------------------------------------------
+   `prefers-reduced-motion` ne couvre pas tout le monde : beaucoup de gens
+   gênés par les éclats n'ont jamais touché ce réglage système, et sur
+   téléphone il est difficile à trouver. Le jeu offre donc son propre
+   interrupteur, qui coupe en plus les éclats lumineux — que la règle système
+   ne concerne pas, puisqu'il ne s'agit pas de mouvement.
+   -------------------------------------------------------------------------- */
+body.reduced-effects .arena .backdrop,
+body.reduced-effects .arena .effects,
+body.reduced-effects .arena .fighter { transform: none !important; }
+
+body.reduced-effects *,
+body.reduced-effects *::before,
+body.reduced-effects *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;

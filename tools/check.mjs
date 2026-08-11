@@ -255,6 +255,50 @@ try {
   problems.push("MISE EN PAGE — " + e.message);
 }
 
+/* -----------------------------------------------------------------------------
+ * RIEN NE CLIGNOTE-T-IL TROP VITE ?
+ * -----------------------------------------------------------------------------
+ * Au-delà de TROIS clignotements par seconde, un contenu présente un risque
+ * réel pour les personnes photosensibles — c'est le seuil retenu par les règles
+ * d'accessibilité du web (WCAG 2.3.1). Ce n'est pas une préférence de confort.
+ *
+ * Le jeu avait exactement ce défaut : la barre du chronomètre pulsait à 2,86
+ * clignotements par seconde, sur la dernière seconde de CHAQUE tour de blitz et
+ * de duel en ligne. Signalé par Jude, qui en était gêné lui-même.
+ *
+ * On refuse donc toute animation RÉPÉTÉE dont un cycle dure moins d'une demi-
+ * seconde. Les animations jouées UNE FOIS — l'arrivée des cartes de révélation,
+ * par exemple — ne clignotent pas et ne sont pas concernées.
+ * -------------------------------------------------------------------------- */
+try {
+  const css = readFileSync(join(ROOT, "styles", "main.css"), "utf8");
+
+  /* Un cycle plus court que ça, répété, entre dans la zone à risque. On se
+   * garde une marge sous les 3/s réglementaires : 0,5 s = 2 clignotements par
+   * seconde au maximum. */
+  const MIN_CYCLE_S = 0.5;
+
+  const tooFast = [];
+  for (const rule of css.matchAll(/animation:\s*([^;]+);/g)) {
+    const value = rule[1];
+    if (!/infinite|alternate/.test(value)) continue;   // jouée une fois : sans risque
+
+    const duration = /([\d.]+)\s*(m?s)/.exec(value);
+    if (!duration) continue;
+    const seconds = duration[2] === "ms" ? Number(duration[1]) / 1000 : Number(duration[1]);
+    if (seconds < MIN_CYCLE_S) {
+      tooFast.push(value.trim() + "  (" + (1 / seconds).toFixed(1) + " clignotements/s)");
+    }
+  }
+
+  report(tooFast.length === 0,
+    tooFast.length === 0
+      ? "aucune animation répétée ne clignote plus vite que " + (1 / MIN_CYCLE_S) + " fois par seconde"
+      : "RISQUE PHOTOSENSIBLE — animation trop rapide : " + tooFast.join(" | "));
+} catch (e) {
+  problems.push("CLIGNOTEMENT — " + e.message);
+}
+
 /* --- Résultat --- */
 console.log("\nVérifications DuelMinds\n" + "-".repeat(62));
 for (const line of ok) console.log("  ok   " + line);
