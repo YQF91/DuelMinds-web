@@ -256,6 +256,68 @@ try {
 }
 
 /* -----------------------------------------------------------------------------
+ * LES FICHIERS DEMANDÉS EXISTENT-ILS, À LA CASSE PRÈS ?
+ * -----------------------------------------------------------------------------
+ * PIÈGE SPÉCIFIQUE À WINDOWS, ET IL A DÉJÀ MORDU.
+ * Windows ne distingue pas les majuscules dans les noms de fichiers. Un dossier
+ * livré sous « assets/Decors » se laisse donc ouvrir en écrivant
+ * « assets/decors » : tout marche en local, toutes les vérifications passent,
+ * et rien ne signale quoi que ce soit.
+ *
+ * GitHub Pages tourne sous Linux, où la casse compte. Les trois décors
+ * renvoyaient 404 en ligne — et comme le jeu se replie proprement sur son fond
+ * calculé, on n'aurait rien vu d'autre qu'un décor qui « ne marche pas ».
+ *
+ * On compare donc les dossiers écrits dans le code au contenu RÉEL du disque,
+ * en respectant la casse. `existsSync` ne servirait à rien ici : sous Windows,
+ * il répond « oui » même avec la mauvaise casse.
+ * -------------------------------------------------------------------------- */
+try {
+  const { readdirSync, statSync } = await import("node:fs");
+
+  const onDisk = new Set();
+  (function walk(dir, prefix) {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      const web = prefix + "/" + name;
+      if (statSync(full).isDirectory()) walk(full, web);
+      else onDisk.add(web);
+    }
+  })(join(ROOT, "assets"), "assets");
+
+  /* Les chemins sont écrits en dur ou construits par concaténation
+   * ("assets/characters/" + clé + ".png"). Dans les deux cas c'est la chaîne
+   * littérale qui porte la casse du dossier — et c'est le dossier qui pose
+   * problème, pas les clés, qui viennent des données. */
+  const wantedPaths = new Set();
+  for (const file of ["scene.js", "sprites.js", "audio.js", "ui.js"]) {
+    for (const found of sources[file].matchAll(/"(assets\/[^"]*)"/g)) {
+      wantedPaths.add(found[1]);
+    }
+  }
+
+  const wrongCase = [];
+  for (const path of wantedPaths) {
+    if (path.endsWith("/")) {
+      let present = false;
+      for (const have of onDisk) {
+        if (have.startsWith(path)) { present = true; break; }
+      }
+      if (!present) wrongCase.push(path + " (dossier)");
+    } else if (!onDisk.has(path)) {
+      wrongCase.push(path);
+    }
+  }
+
+  report(wrongCase.length === 0,
+    wrongCase.length === 0
+      ? "les " + wantedPaths.size + " chemins d'assets du code existent, casse comprise"
+      : "CASSE DES FICHIERS — introuvables sous Linux : " + wrongCase.join(", "));
+} catch (e) {
+  problems.push("ASSETS — " + e.message);
+}
+
+/* -----------------------------------------------------------------------------
  * LES DUELLISTES SE FONT-ILS FACE ?
  * -----------------------------------------------------------------------------
  * Les images n'ont pas toutes été dessinées dans le même sens : l'Archer, le
