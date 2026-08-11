@@ -660,7 +660,150 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 .doc td.n { text-align: right; color: var(--ink); font-variant-numeric: tabular-nums; }
 
 /* =============================================================================
- * 9. ACCESSIBILITÉ
+ * 9. PROGRESSION — niveaux des duellistes et hauts faits
+ * -----------------------------------------------------------------------------
+ * Deux principes tiennent cette section :
+ *   - un haut fait NON débloqué reste lisible, seulement plus sombre. On ne
+ *     cache pas les objectifs : c'est ce qui donne envie de les viser.
+ *   - la barre de niveau utilise le laiton, la même encre que les balles, pour
+ *     que « ce qui s'accumule » ait toujours la même couleur dans le jeu.
+ * ========================================================================== */
+
+.progress-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--gap);
+}
+
+.tabbtn {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--panel);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.tabbtn.on {
+  background: var(--panel-2);
+  color: var(--ink);
+  border-color: var(--brass);
+}
+
+.tab-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--brass);
+}
+
+/* --- Niveaux --- */
+
+.levels { display: flex; flex-direction: column; gap: 8px; }
+
+.level-row {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+
+/* Personnage jamais joué : présent, mais en retrait. */
+.level-row.untouched { opacity: .55; }
+
+.level-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.level-head b { font-family: var(--font-display); letter-spacing: .03em; }
+
+.level-rank {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--brass);
+  white-space: nowrap;
+}
+
+.level-bar {
+  margin: 8px 0 6px;
+  height: 6px;
+  background: var(--ground);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.level-bar i {
+  display: block;
+  height: 100%;
+  background: var(--brass);
+  border-radius: 3px;
+  transition: width .4s ease;
+}
+
+.level-note { font-size: 12px; color: var(--muted); }
+
+/* --- Hauts faits --- */
+
+.feats { display: flex; flex-direction: column; gap: 6px; }
+
+.feats .section-label { margin-top: 10px; }
+
+.feat {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+}
+
+.feat.done {
+  border-left-color: var(--brass);
+  background: var(--panel-2);
+}
+
+.feat-mark {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--dim);
+  width: 14px;
+  text-align: center;
+  flex: none;
+}
+
+.feat.done .feat-mark { color: var(--brass); }
+
+.feat-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.feat-body b {
+  font-family: var(--font-display);
+  letter-spacing: .03em;
+  color: var(--dim);
+}
+
+.feat.done .feat-body b { color: var(--ink); }
+
+.feat-hint { font-size: 12px; color: var(--muted); }
+
+.feat-gauge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--brass);
+  margin-top: 2px;
+}
+
+/* =============================================================================
+ * 10. ACCESSIBILITÉ
  * ========================================================================== */
 
 /* Le focus clavier doit toujours se voir : on ne supprime jamais l'anneau
@@ -745,6 +888,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     <div class="row">
       <button class="btn" id="btn-rules" type="button">Règles</button>
+      <button class="btn" id="btn-progress" type="button">Progression</button>
       <button class="btn" id="btn-stats" type="button">Stats</button>
     </div>
     <div class="row">
@@ -991,6 +1135,38 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     </div>
   </section>
 
+  <!-- ======================================================================
+       ÉCRAN 7 — PROGRESSION : niveaux des personnages et hauts faits
+       ----------------------------------------------------------------------
+       Deux listes remplies par ui.js depuis progress.js. Les hauts faits non
+       débloqués restent VISIBLES, avec leur consigne : c'est ce qui donne au
+       joueur quelque chose à viser. Seule leur couleur change.
+       ==================================================================== -->
+  <section id="screen-progress" class="screen" aria-label="Progression">
+    <h2>Progression</h2>
+
+    <div class="progress-tabs" role="tablist">
+      <button class="tabbtn on" id="tab-levels" type="button" role="tab">Duellistes</button>
+      <button class="tabbtn" id="tab-feats" type="button" role="tab">Hauts faits <span id="feat-count" class="tab-count"></span></button>
+    </div>
+
+    <div id="panel-levels" class="tabpanel">
+      <p class="footnote">
+        Les niveaux sont un titre, pas un avantage : ils ne changent ni tes
+        balles ni les règles. Jouer en Extrême fait monter deux fois plus vite.
+      </p>
+      <div id="levels-list" class="levels"></div>
+    </div>
+
+    <div id="panel-feats" class="tabpanel" hidden>
+      <div id="feats-list" class="feats"></div>
+    </div>
+
+    <div class="row">
+      <button class="btn" id="btn-progress-back" type="button">Retour</button>
+    </div>
+  </section>
+
 </div>
 
 <!--
@@ -1002,6 +1178,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     sprites    dessin des duellistes et des effets (indépendant)
     audio      bruitages synthétisés (indépendant)
     stats      compteurs et records, a besoin de rules
+    progress   niveaux et hauts faits, a besoin de rules
     telemetry  remontée optionnelle, a besoin de rules
     ui         interface, a besoin de tout le reste
     main       démarrage
@@ -3225,6 +3402,516 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
+/* ---------- src/progress.js ---------- */
+/* =============================================================================
+ * DUELMINDS — PROGRESSION PAR PERSONNAGE ET HAUTS FAITS
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * Donner au joueur une raison de revenir, et à toi une lecture de ce qu'il
+ * fait vraiment. Deux mécaniques distinctes vivent ici :
+ *
+ *   LES NIVEAUX     Chaque personnage gagne de l'expérience quand tu joues
+ *                   AVEC lui. Volontairement RAPIDE : un niveau se prend en
+ *                   deux ou trois duels au début. C'est une récompense de
+ *                   présence, pas une barrière.
+ *
+ *   LES HAUTS FAITS Une liste d'objectifs concrets. Ils servent de tutoriel
+ *                   déguisé — « gagne sans jamais te protéger » apprend plus
+ *                   qu'un paragraphe d'aide — et de mesure : ce que personne
+ *                   ne débloque signale une mécanique que personne ne trouve.
+ *
+ * CE QUE ÇA NE FAIT PAS
+ * Aucun niveau ne donne le moindre avantage en duel. DuelMinds n'a pas de
+ * types et n'en aura pas ici : monter le Berserker au niveau 10 ne change ni
+ * ses balles, ni ses règles, ni ses chances. C'est un titre, rien d'autre.
+ * La règle est simple et doit le rester : ce qui départage deux joueurs, c'est
+ * la lecture de l'adversaire, jamais ce qu'ils ont accumulé avant.
+ *
+ * OÙ C'EST STOCKÉ
+ * Dans le navigateur (`localStorage`), sous une clé à part de celle des
+ * statistiques. Si le stockage est refusé — navigation privée — tout continue
+ * de fonctionner en mémoire : le jeu ne doit jamais s'arrêter pour ça.
+ *
+ * COMMENT AJOUTER UN HAUT FAIT
+ * Une entrée dans ACHIEVEMENTS. `check` reçoit les compteurs cumulés et
+ * renvoie vrai quand c'est acquis. N'invente pas de compteur : sers-toi de
+ * ceux de `emptyCounters()`, ou ajoute-le là ET dans `recordDuel`.
+ *
+ * DÉPENDANCES : rules.js
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+  const { CHARACTERS, MODES, DIFFICULTIES } = DUELMINDS;
+
+  const STORAGE_KEY = "duelminds.progress.v1";
+
+  /* ---------------------------------------------------------------------------
+   * 1. LES NIVEAUX
+   * ---------------------------------------------------------------------------
+   * Barème d'expérience. Les valeurs sont volontairement généreuses : l'idée
+   * est qu'un joueur qui essaie le jeu dix minutes voie plusieurs montées de
+   * niveau, pas qu'il entrevoie une longue grille à remplir.
+   * ------------------------------------------------------------------------ */
+  const XP = {
+    DUEL_PLAYED: 10,   // simplement aller au bout d'un duel
+    DUEL_WON: 25,      // le gagner
+    STREAK_STEP: 5,    // par duel déjà enchaîné dans la série en cours
+    STREAK_CAP: 10,    // au-delà, le bonus de série cesse de grossir
+  };
+
+  /* Un duel en extrême rapporte le double d'un duel en facile : monter un
+   * personnage en jouant difficile est plus court, ce qui pousse dans le bon
+   * sens sans jamais l'imposer. */
+  const DIFFICULTY_XP = { facile: 1, difficile: 1.5, extreme: 2 };
+
+  /* Expérience CUMULÉE nécessaire pour atteindre chaque niveau.
+   * Une victoire en facile rapporte 35 : le niveau 2 tombe au deuxième duel
+   * gagné, le niveau 5 vers le neuvième. En extrême, deux fois plus vite. */
+  const LEVELS = [0, 40, 100, 190, 320, 500, 740, 1050, 1440, 1920];
+
+  const TITLES = [
+    "Novice", "Recrue", "Duelliste", "Vétéran", "Tireur",
+    "Bretteur", "Maître", "Virtuose", "Légende", "Mythe",
+  ];
+
+  const MAX_LEVEL = LEVELS.length;
+
+  /** Niveau atteint avec cette expérience. Toujours entre 1 et MAX_LEVEL. */
+  function levelFromXp(xp) {
+    let level = 1;
+    for (let i = 1; i < LEVELS.length; i++) if (xp >= LEVELS[i]) level = i + 1;
+    return level;
+  }
+
+  /**
+   * De quoi dessiner une barre de progression.
+   * Au niveau maximum, la barre est pleine et `next` vaut null.
+   */
+  function levelInfo(xp) {
+    const level = levelFromXp(xp);
+    const floor = LEVELS[level - 1];
+    const next = level < MAX_LEVEL ? LEVELS[level] : null;
+    return {
+      level,
+      title: TITLES[level - 1],
+      xp,
+      intoLevel: xp - floor,
+      needed: next === null ? 0 : next - floor,
+      ratio: next === null ? 1 : (xp - floor) / (next - floor),
+      isMax: next === null,
+    };
+  }
+
+  /** Expérience gagnée sur un duel. Voir XP ci-dessus pour le barème. */
+  function xpForDuel(context) {
+    const multiplier = DIFFICULTY_XP[context.difficulty] || 1;
+    const streakBonus = XP.STREAK_STEP *
+      Math.min(XP.STREAK_CAP, Math.max(0, (context.streak || 0) - 1));
+    const base = XP.DUEL_PLAYED + (context.won ? XP.DUEL_WON : 0);
+    return Math.round(base * multiplier + streakBonus);
+  }
+
+  /* ---------------------------------------------------------------------------
+   * 2. LES COMPTEURS
+   * ---------------------------------------------------------------------------
+   * Tout ce sur quoi les hauts faits peuvent s'appuyer. Un seul endroit : si un
+   * haut fait a besoin d'autre chose, il faut l'ajouter ici ET l'alimenter dans
+   * `recordDuel`, sans quoi il resterait indébloquable en silence.
+   * ------------------------------------------------------------------------ */
+  function emptyCounters() {
+    return {
+      duelsPlayed: 0,
+      duelsWon: 0,
+
+      modesPlayed: [],       // clés de modes déjà joués
+      charactersPlayed: [],  // personnages déjà incarnés
+      botsBeaten: [],        // personnages adverses déjà battus
+
+      perfectWins: 0,        // duels gagnés 2-0
+      comebacks: 0,          // duels gagnés après avoir été mené
+      noDefenceWins: 0,      // duels gagnés sans se protéger une seule fois
+      fastWins: 0,           // duels gagnés en 6 tours ou moins
+      blockedShots: 0,       // tirs adverses arrêtés par ta protection
+      superShotWins: 0,      // manches emportées par un super tir
+      clashes: 0,            // balles percutées en vol
+      shotsFired: 0,
+
+      winsByDifficulty: {},  // clé de difficulté -> nombre de duels gagnés
+      bestStreakByMode: {},  // clé de mode -> plus longue série
+      blitzExtremeWins: 0,   // duels gagnés en blitz extrême (2 s, balles cachées)
+    };
+  }
+
+  /* ---------------------------------------------------------------------------
+   * 3. LES HAUTS FAITS
+   * ---------------------------------------------------------------------------
+   * `hint` est affiché tant que ce n'est pas débloqué : il doit dire quoi faire,
+   * pas seulement ce que c'est. Un objectif qu'on ne comprend pas ne motive
+   * personne.
+   * `goal` et `progress`, quand ils sont donnés, permettent d'afficher une
+   * jauge « 12 / 25 » plutôt qu'un simple oui/non.
+   * ------------------------------------------------------------------------ */
+  const ACHIEVEMENTS = [
+    /* --- Premiers pas --- */
+    { id: "premier-duel", group: "Premiers pas", name: "Sur le pré",
+      hint: "Jouer un duel jusqu'au bout.",
+      check: (c) => c.duelsPlayed >= 1 },
+
+    { id: "premiere-victoire", group: "Premiers pas", name: "Premier sang",
+      hint: "Remporter un duel.",
+      check: (c) => c.duelsWon >= 1 },
+
+    { id: "tous-modes", group: "Premiers pas", name: "Touche-à-tout",
+      hint: "Essayer les quatre modes de jeu.",
+      goal: () => MODES.length, progress: (c) => c.modesPlayed.length,
+      check: (c) => c.modesPlayed.length >= MODES.length },
+
+    { id: "tous-personnages", group: "Premiers pas", name: "Garde-robe",
+      hint: "Jouer une fois chaque personnage.",
+      goal: () => CHARACTERS.length, progress: (c) => c.charactersPlayed.length,
+      check: (c) => c.charactersPlayed.length >= CHARACTERS.length },
+
+    /* --- Maîtrise --- */
+    { id: "sans-appel", group: "Maîtrise", name: "Sans appel",
+      hint: "Gagner un duel deux manches à zéro.",
+      check: (c) => c.perfectWins >= 1 },
+
+    { id: "remontee", group: "Maîtrise", name: "Remontée",
+      hint: "Gagner un duel après avoir été mené.",
+      check: (c) => c.comebacks >= 1 },
+
+    { id: "sang-froid", group: "Maîtrise", name: "Sang-froid",
+      hint: "Gagner un duel sans te protéger une seule fois.",
+      check: (c) => c.noDefenceWins >= 1 },
+
+    { id: "expeditif", group: "Maîtrise", name: "Expéditif",
+      hint: "Gagner un duel en six tours ou moins.",
+      check: (c) => c.fastWins >= 1 },
+
+    { id: "mur", group: "Maîtrise", name: "Mur",
+      hint: "Arrêter 25 tirs adverses avec ta protection.",
+      goal: () => 25, progress: (c) => c.blockedShots,
+      check: (c) => c.blockedShots >= 25 },
+
+    { id: "perce-muraille", group: "Maîtrise", name: "Perce-muraille",
+      hint: "Emporter une manche d'un super tir, à travers la protection.",
+      check: (c) => c.superShotWins >= 1 },
+
+    { id: "etincelles", group: "Maîtrise", name: "Étincelles",
+      hint: "Percuter 20 balles en plein vol.",
+      goal: () => 20, progress: (c) => c.clashes,
+      check: (c) => c.clashes >= 20 },
+
+    /* --- Difficulté --- */
+    { id: "victoire-difficile", group: "Difficulté", name: "Elle lit ton jeu",
+      hint: "Gagner un duel en Difficile.",
+      check: (c) => (c.winsByDifficulty.difficile || 0) >= 1 },
+
+    { id: "victoire-extreme", group: "Difficulté", name: "Elle cherche la faille",
+      hint: "Gagner un duel en Extrême.",
+      check: (c) => (c.winsByDifficulty.extreme || 0) >= 1 },
+
+    { id: "extreme-dix", group: "Difficulté", name: "Habitué de l'Extrême",
+      hint: "Gagner dix duels en Extrême.",
+      goal: () => 10, progress: (c) => c.winsByDifficulty.extreme || 0,
+      check: (c) => (c.winsByDifficulty.extreme || 0) >= 10 },
+
+    /* --- Séries --- */
+    { id: "serie-3", group: "Séries", name: "Trois d'affilée",
+      hint: "Enchaîner 3 duels gagnés en Arcade.",
+      goal: () => 3, progress: (c) => c.bestStreakByMode.arcade || 0,
+      check: (c) => (c.bestStreakByMode.arcade || 0) >= 3 },
+
+    { id: "serie-5", group: "Séries", name: "En forme",
+      hint: "Enchaîner 5 duels gagnés en Arcade.",
+      goal: () => 5, progress: (c) => c.bestStreakByMode.arcade || 0,
+      check: (c) => (c.bestStreakByMode.arcade || 0) >= 5 },
+
+    { id: "serie-10", group: "Séries", name: "Intouchable",
+      hint: "Enchaîner 10 duels gagnés en Arcade.",
+      goal: () => 10, progress: (c) => c.bestStreakByMode.arcade || 0,
+      check: (c) => (c.bestStreakByMode.arcade || 0) >= 10 },
+
+    { id: "blitz-5", group: "Séries", name: "Réflexes",
+      hint: "Enchaîner 5 duels gagnés en Blitz, chrono en main.",
+      goal: () => 5, progress: (c) => c.bestStreakByMode.blitz || 0,
+      check: (c) => (c.bestStreakByMode.blitz || 0) >= 5 },
+
+    { id: "aveugle-3", group: "Séries", name: "De tête",
+      hint: "Enchaîner 3 duels gagnés en Aveugle, sans voir les balles adverses.",
+      goal: () => 3, progress: (c) => c.bestStreakByMode.aveugle || 0,
+      check: (c) => (c.bestStreakByMode.aveugle || 0) >= 3 },
+
+    { id: "blitz-extreme", group: "Séries", name: "Deux secondes",
+      hint: "Gagner un duel en Blitz extrême : 2 secondes par choix, balles cachées.",
+      check: (c) => c.blitzExtremeWins >= 1 },
+
+    /* --- Progression --- */
+    { id: "niveau-5", group: "Progression", name: "Tireur confirmé",
+      hint: "Amener un personnage au niveau 5.",
+      check: (c, p) => bestLevel(p) >= 5 },
+
+    { id: "niveau-max", group: "Progression", name: "Jusqu'au bout",
+      hint: "Amener un personnage au niveau " + MAX_LEVEL + ".",
+      check: (c, p) => bestLevel(p) >= MAX_LEVEL },
+
+    { id: "tous-niveau-3", group: "Progression", name: "Écurie complète",
+      hint: "Amener chaque personnage au niveau 3.",
+      goal: () => CHARACTERS.length,
+      progress: (c, p) => CHARACTERS.filter((ch) => levelFromXp(xpOf(p, ch.key)) >= 3).length,
+      check: (c, p) => CHARACTERS.every((ch) => levelFromXp(xpOf(p, ch.key)) >= 3) },
+
+    /* --- Adversaires --- */
+    { id: "battre-tous", group: "Adversaires", name: "Tous au tapis",
+      hint: "Battre au moins une fois chacun des adversaires possibles.",
+      goal: () => CHARACTERS.length, progress: (c) => c.botsBeaten.length,
+      check: (c) => c.botsBeaten.length >= CHARACTERS.length },
+  ];
+
+  /* ---------------------------------------------------------------------------
+   * 4. L'ÉTAT
+   * ------------------------------------------------------------------------ */
+  function emptyState() {
+    return {
+      characters: {},   // clé de personnage -> { xp, duels, wins }
+      unlocked: {},     // identifiant de haut fait -> date ISO du déblocage
+      counters: emptyCounters(),
+    };
+  }
+
+  let state = emptyState();
+  let storageWorks = true;
+
+  function xpOf(st, characterKey) {
+    const entry = st.characters[characterKey];
+    return entry ? entry.xp : 0;
+  }
+
+  function bestLevel(st) {
+    let best = 1;
+    for (const character of CHARACTERS) {
+      const level = levelFromXp(xpOf(st, character.key));
+      if (level > best) best = level;
+    }
+    return best;
+  }
+
+  function load() {
+    try {
+      const raw = root.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      const fresh = emptyState();
+
+      if (saved.characters) {
+        for (const key of Object.keys(saved.characters)) {
+          const entry = saved.characters[key];
+          if (entry && typeof entry.xp === "number") {
+            fresh.characters[key] = {
+              xp: entry.xp, duels: entry.duels || 0, wins: entry.wins || 0,
+            };
+          }
+        }
+      }
+      if (saved.unlocked) Object.assign(fresh.unlocked, saved.unlocked);
+      if (saved.counters) {
+        // Reprise prudente : on garde la forme neuve et on ne recopie que les
+        // champs encore connus. Un compteur ajouté plus tard part de zéro
+        // plutôt que de rendre la lecture impossible.
+        for (const key of Object.keys(fresh.counters)) {
+          if (saved.counters[key] !== undefined) fresh.counters[key] = saved.counters[key];
+        }
+      }
+      state = fresh;
+    } catch (e) {
+      storageWorks = false;
+    }
+  }
+
+  function save() {
+    if (!storageWorks) return;
+    try {
+      root.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      storageWorks = false;
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+   * 5. ENREGISTREMENT D'UN DUEL
+   * ------------------------------------------------------------------------ */
+
+  function addToSet(list, value) {
+    if (value && list.indexOf(value) === -1) list.push(value);
+  }
+
+  /**
+   * À appeler quand un duel vient de se terminer.
+   *
+   * @param {object} context
+   * @param {string}  context.character      ton personnage
+   * @param {string}  context.botCharacter   celui d'en face
+   * @param {string}  context.mode
+   * @param {string}  context.difficulty
+   * @param {boolean} context.won
+   * @param {number}  context.playerManches  manches gagnées par toi
+   * @param {number}  context.botManches
+   * @param {number}  context.streak         série en cours après ce duel
+   * @param {number}  context.turns          tours joués dans ce duel
+   * @param {number}  context.defends        fois où tu t'es protégé
+   * @param {number}  context.blockedShots   tirs adverses arrêtés
+   * @param {number}  context.superShotWins  manches prises d'un super tir
+   * @param {number}  context.clashes
+   * @param {number}  context.shots
+   * @param {boolean} context.wasBehind      as-tu été mené au cours du duel
+   * @param {boolean} context.hiddenBullets  les balles adverses étaient cachées
+   *
+   * @returns {{xpGained:number, level:object, levelUp:boolean,
+   *            unlocked:Array<object>}}
+   *          De quoi féliciter le joueur immédiatement : c'est le moment où la
+   *          récompense a le plus d'effet.
+   */
+  function recordDuel(context) {
+    const c = state.counters;
+
+    /* --- expérience du personnage joué --- */
+    const key = context.character;
+    if (!state.characters[key]) state.characters[key] = { xp: 0, duels: 0, wins: 0 };
+    const entry = state.characters[key];
+    const levelBefore = levelFromXp(entry.xp);
+
+    const gained = xpForDuel(context);
+    entry.xp += gained;
+    entry.duels += 1;
+    if (context.won) entry.wins += 1;
+
+    const info = levelInfo(entry.xp);
+
+    /* --- compteurs --- */
+    c.duelsPlayed += 1;
+    addToSet(c.modesPlayed, context.mode);
+    addToSet(c.charactersPlayed, context.character);
+
+    c.blockedShots += context.blockedShots || 0;
+    c.superShotWins += context.superShotWins || 0;
+    c.clashes += context.clashes || 0;
+    c.shotsFired += context.shots || 0;
+
+    if (context.won) {
+      c.duelsWon += 1;
+      addToSet(c.botsBeaten, context.botCharacter);
+      c.winsByDifficulty[context.difficulty] =
+        (c.winsByDifficulty[context.difficulty] || 0) + 1;
+
+      if (context.botManches === 0) c.perfectWins += 1;
+      if (context.wasBehind) c.comebacks += 1;
+      if (!context.defends) c.noDefenceWins += 1;
+      if (context.turns && context.turns <= 6) c.fastWins += 1;
+      if (context.mode === "blitz" && context.difficulty === "extreme") {
+        c.blitzExtremeWins += 1;
+      }
+    }
+
+    const streak = context.streak || 0;
+    if (streak > (c.bestStreakByMode[context.mode] || 0)) {
+      c.bestStreakByMode[context.mode] = streak;
+    }
+
+    const unlocked = checkAchievements();
+    save();
+
+    return {
+      xpGained: gained,
+      level: info,
+      levelUp: info.level > levelBefore,
+      unlocked,
+    };
+  }
+
+  /**
+   * Passe la liste en revue et débloque ce qui est acquis.
+   * @returns {Array<object>} uniquement les hauts faits débloqués À L'INSTANT
+   */
+  function checkAchievements() {
+    const fresh = [];
+    for (const achievement of ACHIEVEMENTS) {
+      if (state.unlocked[achievement.id]) continue;
+      let ok = false;
+      try {
+        ok = achievement.check(state.counters, state);
+      } catch (e) {
+        ok = false; // un haut fait cassé ne doit jamais interrompre une partie
+      }
+      if (ok) {
+        state.unlocked[achievement.id] = new Date().toISOString();
+        fresh.push(achievement);
+      }
+    }
+    return fresh;
+  }
+
+  /* ---------------------------------------------------------------------------
+   * 6. LECTURE, POUR L'AFFICHAGE
+   * ------------------------------------------------------------------------ */
+
+  /** Les personnages avec leur niveau, du plus avancé au moins joué. */
+  function characterProgress() {
+    return CHARACTERS.map((character) => {
+      const entry = state.characters[character.key] || { xp: 0, duels: 0, wins: 0 };
+      return Object.assign({ key: character.key, name: character.name,
+                             duels: entry.duels, wins: entry.wins },
+                           levelInfo(entry.xp));
+    }).sort((a, b) => b.xp - a.xp);
+  }
+
+  /** Tous les hauts faits, débloqués ou non, dans l'ordre d'affichage. */
+  function achievements() {
+    return ACHIEVEMENTS.map((achievement) => {
+      const done = !!state.unlocked[achievement.id];
+      const goal = achievement.goal ? achievement.goal() : null;
+      let progress = null;
+      if (achievement.progress) {
+        try { progress = achievement.progress(state.counters, state); }
+        catch (e) { progress = null; }
+      }
+      return {
+        id: achievement.id,
+        group: achievement.group,
+        name: achievement.name,
+        hint: achievement.hint,
+        done,
+        date: done ? state.unlocked[achievement.id] : null,
+        goal,
+        progress: progress === null ? null : Math.min(progress, goal === null ? progress : goal),
+      };
+    });
+  }
+
+  function summary() {
+    const all = achievements();
+    return { done: all.filter((a) => a.done).length, total: all.length };
+  }
+
+  function reset() {
+    state = emptyState();
+    try { root.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* sans importance */ }
+  }
+
+  function isPersistent() { return storageWorks; }
+
+  load();
+
+  DUELMINDS.progress = {
+    recordDuel, characterProgress, achievements, summary, reset, isPersistent,
+    levelInfo, levelFromXp, xpForDuel,
+    LEVELS, TITLES, MAX_LEVEL, XP, DIFFICULTY_XP,
+  };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
 /* ---------- src/telemetry.js ---------- */
 /* =============================================================================
  * DUELMINDS — REMONTÉE DES PARTIES (optionnelle, désactivée par défaut)
@@ -3402,6 +4089,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     // Compteurs de la PARTIE en cours, pour la remontée
     log: null,
 
+    // Compteurs du DUEL en cours, pour la progression et les hauts faits
+    duelLog: null,
+
+    /* Ce que le dernier duel a rapporté : expérience, montée de niveau,
+     * hauts faits débloqués. Affiché sur l'écran suivant. */
+    lastProgress: null,
+
     /* Mode blitz : instant limite pour choisir. `null` hors blitz. */
     deadline: null,
     timedOut: 0,   // nombre de fois où le temps a décidé à la place du joueur
@@ -3441,6 +4135,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   function newLog() {
     return { turns: 0, clashes: 0, superShots: 0, duels: 0, manches: 0,
              actions: { charge: 0, shoot: 0, defend: 0 } };
+  }
+
+  /* Compteurs remis à zéro à CHAQUE duel, alors que newLog() cumule toute la
+   * session. Les hauts faits en ont besoin : « gagner sans se protéger » se
+   * juge sur un duel, pas sur une soirée. `wasBehind` retient si l'adversaire
+   * a mené à un moment, ce qui ne se relit pas dans le score final. */
+  function newDuelLog() {
+    return { turns: 0, defends: 0, shots: 0, clashes: 0,
+             blockedShots: 0, superShotWins: 0, wasBehind: false };
   }
 
   /* =========================================================================
@@ -3639,6 +4342,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     DUELMINDS.match.startManche(state.session);
     state.phase = "choosing";
     state.log = newLog();
+    state.duelLog = newDuelLog();
     state.effect = null;
     state.flash.player = 0;
     state.flash.bot = 0;
@@ -3804,12 +4508,25 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     const result = DUELMINDS.match.playTurn(s, action);
     const turn = result.turn;
 
-    // Compteurs
+    // Compteurs de la session entière
     state.log.turns += 1;
     state.log.actions[action] += 1;
     if (turn.resultA === "clash") state.log.clashes += 1;
     if (turn.resultA === "super_shot" || turn.resultB === "super_shot") state.log.superShots += 1;
     stats.recordTurn(action, turn);
+
+    /* Compteurs du SEUL duel en cours, pour la progression et les hauts faits.
+     * Séparés de state.log, qui cumule toute la session : « gagner un duel
+     * sans se protéger » n'a de sens que remis à zéro à chaque duel. */
+    const duel = state.duelLog;
+    duel.turns += 1;
+    if (action === "defend") duel.defends += 1;
+    if (action === "shoot") duel.shots += 1;
+    if (turn.resultA === "clash") duel.clashes += 1;
+    // Tir adverse arrêté par ta protection : il a tiré, tu étais à couvert,
+    // et personne n'est tombé.
+    if (turn.actionB === "shoot" && action === "defend" && !turn.winner) duel.blockedShots += 1;
+    if (turn.resultA === "super_shot") duel.superShotWins += 1;
 
     showReveal(turn);
     applyPoses(turn);
@@ -3948,6 +4665,10 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     stats.recordManche(s.difficulty, playerWonManche);
     audio.play(playerWonManche ? "win" : "chute");
 
+    // Mené au score à un moment du duel : c'est la seule occasion de le voir,
+    // le score final ne le dit plus.
+    if (s.bot.manchesWon > s.player.manchesWon) state.duelLog.wasBehind = true;
+
     if (!result.duelOver) {
       // Manche suivante du même duel
       announce(
@@ -3973,6 +4694,29 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     stats.recordDuel(s.mode, s.difficulty, playerWonDuel);
     if (playerWonDuel) audio.play("victory");
 
+    /* Progression et hauts faits. Le résultat est mémorisé pour être annoncé
+     * sur l'écran suivant — celui de fin de duel ou de fin de série — plutôt
+     * qu'affiché par-dessus l'action. */
+    state.lastProgress = DUELMINDS.progress.recordDuel({
+      character: state.character,
+      botCharacter: state.botCharacter,
+      mode: s.mode,
+      difficulty: s.difficulty,
+      won: playerWonDuel,
+      playerManches: s.player.manchesWon,
+      botManches: s.bot.manchesWon,
+      streak: s.streak,
+      turns: state.duelLog.turns,
+      defends: state.duelLog.defends,
+      shots: state.duelLog.shots,
+      clashes: state.duelLog.clashes,
+      blockedShots: state.duelLog.blockedShots,
+      superShotWins: state.duelLog.superShotWins,
+      wasBehind: state.duelLog.wasBehind,
+      hiddenBullets: bulletsHidden(),
+    });
+    state.duelLog = newDuelLog();
+
     if (!result.sessionOver) {
       // Arcade : la série continue
       /* On tire le prochain adversaire MAINTENANT, pour pouvoir l'annoncer avec
@@ -3989,7 +4733,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       announce(
         "Duel remporté",
         "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") + ". " +
-        characterName(nextCharacter) + " prend sa place — il " + next.tell + ".",
+        characterName(nextCharacter) + " prend sa place — il " + next.tell + "." +
+        progressLine(),
         "Duel " + (s.streak + 1),
         () => {
           state.botCharacter = nextCharacter;
@@ -4006,6 +4751,29 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     }
 
     endSession(playerWonDuel);
+  }
+
+  /**
+   * Ce que le duel qui vient de finir a rapporté, en une phrase.
+   *
+   * Volontairement bref et accolé au texte existant plutôt qu'affiché dans un
+   * encart : une récompense doit se voir sans couper le rythme d'une série.
+   * Les hauts faits, eux, sont nommés — c'est le moment où ça compte.
+   */
+  function progressLine() {
+    const p = state.lastProgress;
+    if (!p) return "";
+
+    const parts = [];
+    if (p.levelUp) {
+      parts.push(characterName(state.character) + " passe niveau " +
+                 p.level.level + " — " + p.level.title + ".");
+    }
+    if (p.unlocked.length) {
+      parts.push((p.unlocked.length > 1 ? "Hauts faits : " : "Haut fait : ") +
+                 p.unlocked.map((a) => a.name).join(", ") + ".");
+    }
+    return parts.length ? " " + parts.join(" ") : "";
   }
 
   /** Écran intermédiaire entre deux manches ou deux duels. */
@@ -4048,6 +4816,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
                 ", " + last.tell + ".";
     }
 
+    detail += progressLine();
+
     $("end-title").textContent = title;
     $("end-detail").textContent = detail;
 
@@ -4065,6 +4835,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     ];
     if (isStreakMode()) rows.splice(2, 0, ["Série", s.streak]);
     if (isTimed()) rows.push(["Temps écoulé", state.timedOut + " fois"]);
+
+    // Où en est le personnage joué : c'est l'écran qu'on regarde le plus, donc
+    // celui où la progression a le plus de chances d'être vue.
+    const mine = DUELMINDS.progress.characterProgress()
+      .find((entry) => entry.key === state.character);
+    if (mine) {
+      rows.push([characterName(state.character),
+                 "niv. " + mine.level + " · " + mine.title]);
+    }
     for (const [label, value] of rows) {
       const row = document.createElement("div");
       row.className = "summary-row";
@@ -4074,6 +4853,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     reportSession(playerWonDuel);
     showScreen("screen-end");
+  }
+
+  /** Niveau atteint par le personnage que le joueur vient d'utiliser. */
+  function playerLevel() {
+    const mine = DUELMINDS.progress.characterProgress()
+      .find((entry) => entry.key === state.character);
+    return mine ? mine.level : 1;
   }
 
   /** Remonte la partie vers le point de collecte, s'il y en a un. */
@@ -4094,7 +4880,137 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       clashes: state.log.clashes,
       superShots: state.log.superShots,
       actions: state.log.actions,
+
+      /* Progression : de quoi voir, dans la feuille, si les testeurs
+       * s'accrochent. Un joueur qui reste au niveau 2 n'a joué qu'une fois ;
+       * un haut fait que personne n'obtient signale une mécanique que
+       * personne ne trouve. */
+      character: state.character,
+      level: playerLevel(),
+      feats: DUELMINDS.progress.summary().done,
     });
+  }
+
+  /* =========================================================================
+   * ÉCRAN DE PROGRESSION — niveaux et hauts faits
+   * -------------------------------------------------------------------------
+   * Deux onglets dans le même écran. Les hauts faits NON débloqués restent
+   * visibles avec leur consigne : c'est ce qui donne quelque chose à viser.
+   * Un objectif caché ne motive personne.
+   * ====================================================================== */
+
+  function showProgressTab(which) {
+    const onLevels = which === "levels";
+    $("tab-levels").classList.toggle("on", onLevels);
+    $("tab-feats").classList.toggle("on", !onLevels);
+    $("panel-levels").hidden = !onLevels;
+    $("panel-feats").hidden = onLevels;
+  }
+
+  function renderProgress() {
+    renderLevels();
+    renderFeats();
+  }
+
+  function renderLevels() {
+    const host = $("levels-list");
+    host.innerHTML = "";
+
+    for (const entry of DUELMINDS.progress.characterProgress()) {
+      const row = document.createElement("div");
+      row.className = "level-row" + (entry.duels ? "" : " untouched");
+
+      const head = document.createElement("div");
+      head.className = "level-head";
+
+      const name = document.createElement("b");
+      name.textContent = entry.name;
+
+      const rank = document.createElement("span");
+      rank.className = "level-rank";
+      rank.textContent = "niv. " + entry.level + " · " + entry.title;
+
+      head.appendChild(name);
+      head.appendChild(rank);
+
+      const bar = document.createElement("div");
+      bar.className = "level-bar";
+      const fill = document.createElement("i");
+      fill.style.width = Math.round(entry.ratio * 100) + "%";
+      bar.appendChild(fill);
+
+      const note = document.createElement("span");
+      note.className = "level-note";
+      note.textContent = entry.isMax
+        ? "niveau maximum · " + entry.duels + " duels"
+        : entry.intoLevel + " / " + entry.needed + " points · " +
+          entry.duels + " duels, " + entry.wins + " gagnés";
+
+      row.appendChild(head);
+      row.appendChild(bar);
+      row.appendChild(note);
+      host.appendChild(row);
+    }
+  }
+
+  function renderFeats() {
+    const host = $("feats-list");
+    host.innerHTML = "";
+
+    const all = DUELMINDS.progress.achievements();
+    const summary = DUELMINDS.progress.summary();
+    $("feat-count").textContent = summary.done + "/" + summary.total;
+
+    // Regroupés dans l'ordre où ils apparaissent dans progress.js : les
+    // premiers pas d'abord, ce qui donne un début de parcours lisible.
+    const groups = [];
+    for (const feat of all) {
+      let group = groups.find((g) => g.name === feat.group);
+      if (!group) { group = { name: feat.group, items: [] }; groups.push(group); }
+      group.items.push(feat);
+    }
+
+    for (const group of groups) {
+      const title = document.createElement("p");
+      title.className = "section-label";
+      title.textContent = group.name;
+      host.appendChild(title);
+
+      for (const feat of group.items) {
+        const card = document.createElement("div");
+        card.className = "feat" + (feat.done ? " done" : "");
+
+        const mark = document.createElement("span");
+        mark.className = "feat-mark";
+        mark.textContent = feat.done ? "✓" : "·";
+
+        const body = document.createElement("div");
+        body.className = "feat-body";
+
+        const name = document.createElement("b");
+        name.textContent = feat.name;
+
+        const hint = document.createElement("span");
+        hint.className = "feat-hint";
+        hint.textContent = feat.hint;
+
+        body.appendChild(name);
+        body.appendChild(hint);
+
+        // Jauge chiffrée quand l'objectif se compte : « 12 / 25 » motive bien
+        // mieux qu'un objectif binaire encore éteint.
+        if (!feat.done && feat.goal) {
+          const gauge = document.createElement("span");
+          gauge.className = "feat-gauge";
+          gauge.textContent = (feat.progress || 0) + " / " + feat.goal;
+          body.appendChild(gauge);
+        }
+
+        card.appendChild(mark);
+        card.appendChild(body);
+        host.appendChild(card);
+      }
+    }
   }
 
   /* =========================================================================
@@ -4286,6 +5202,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     $("btn-stats-back").addEventListener("click", () => showScreen("screen-home"));
     $("btn-stats-copy").addEventListener("click", (e) => copyStats(e.currentTarget));
     $("btn-stats-reset").addEventListener("click", () => { stats.reset(); renderStats(); refreshHome(); });
+
+    $("btn-progress").addEventListener("click", () => {
+      audio.play("click");
+      renderProgress();
+      showScreen("screen-progress");
+    });
+    $("btn-progress-back").addEventListener("click", () => showScreen("screen-home"));
+    $("tab-levels").addEventListener("click", () => showProgressTab("levels"));
+    $("tab-feats").addEventListener("click", () => showProgressTab("feats"));
 
     window.addEventListener("resize", resizeScene);
     resizeScene();

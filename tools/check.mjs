@@ -24,7 +24,8 @@ const ROOT = join(HERE, "..");
 const SRC = join(ROOT, "src");
 
 const SCRIPTS = ["rules.js", "combat.js", "ai.js", "match.js", "sprites.js",
-                 "audio.js", "stats.js", "telemetry.js", "ui.js", "main.js"];
+                 "audio.js", "stats.js", "progress.js", "telemetry.js",
+                 "ui.js", "main.js"];
 
 const problems = [];
 const ok = [];

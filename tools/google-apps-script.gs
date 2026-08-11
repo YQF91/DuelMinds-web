@@ -92,6 +92,9 @@ var COLUMNS = [
   "ballesCachees",   // 1 si le joueur ne voyait pas le barillet adverse
   "tempsEcoule",     // mode blitz : nombre de fois où le chrono a decide
   "dernierCaractere", // caractere du dernier adversaire affronte
+  "personnage",      // duelliste choisi par le joueur
+  "niveau",          // niveau atteint par ce duelliste
+  "hautsFaits",      // nombre de hauts faits debloques, tous confondus
   "duels", "manches", "tours", "toursParManche",
   "clashs", "superTirs",
   "charger", "tirer", "proteger",
@@ -124,6 +127,9 @@ function doPost(e) {
       data.hiddenBullets === undefined ? "" : data.hiddenBullets,
       data.timedOut === undefined ? "" : data.timedOut,
       data.lastPersonality || "",
+      data.character || "",
+      data.level === undefined ? "" : data.level,
+      data.feats === undefined ? "" : data.feats,
       data.duels, data.manches, data.turns,
       data.manches ? Math.round((data.turns / data.manches) * 10) / 10 : "",
       data.clashes, data.superShots,

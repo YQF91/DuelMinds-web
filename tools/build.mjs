@@ -26,7 +26,8 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const SCRIPTS = ["rules.js", "combat.js", "ai.js", "match.js", "sprites.js",
-                 "audio.js", "stats.js", "telemetry.js", "ui.js", "main.js"];
+                 "audio.js", "stats.js", "progress.js", "telemetry.js",
+                 "ui.js", "main.js"];
 
 let html = readFileSync(join(ROOT, "index.html"), "utf8");
 const css = readFileSync(join(ROOT, "styles", "main.css"), "utf8");

@@ -70,6 +70,7 @@
 
     <div class="row">
       <button class="btn" id="btn-rules" type="button">Règles</button>
+      <button class="btn" id="btn-progress" type="button">Progression</button>
       <button class="btn" id="btn-stats" type="button">Stats</button>
     </div>
     <div class="row">
@@ -316,6 +317,38 @@
     </div>
   </section>
 
+  <!-- ======================================================================
+       ÉCRAN 7 — PROGRESSION : niveaux des personnages et hauts faits
+       ----------------------------------------------------------------------
+       Deux listes remplies par ui.js depuis progress.js. Les hauts faits non
+       débloqués restent VISIBLES, avec leur consigne : c'est ce qui donne au
+       joueur quelque chose à viser. Seule leur couleur change.
+       ==================================================================== -->
+  <section id="screen-progress" class="screen" aria-label="Progression">
+    <h2>Progression</h2>
+
+    <div class="progress-tabs" role="tablist">
+      <button class="tabbtn on" id="tab-levels" type="button" role="tab">Duellistes</button>
+      <button class="tabbtn" id="tab-feats" type="button" role="tab">Hauts faits <span id="feat-count" class="tab-count"></span></button>
+    </div>
+
+    <div id="panel-levels" class="tabpanel">
+      <p class="footnote">
+        Les niveaux sont un titre, pas un avantage : ils ne changent ni tes
+        balles ni les règles. Jouer en Extrême fait monter deux fois plus vite.
+      </p>
+      <div id="levels-list" class="levels"></div>
+    </div>
+
+    <div id="panel-feats" class="tabpanel" hidden>
+      <div id="feats-list" class="feats"></div>
+    </div>
+
+    <div class="row">
+      <button class="btn" id="btn-progress-back" type="button">Retour</button>
+    </div>
+  </section>
+
 </div>
 
 <!--
@@ -327,6 +360,7 @@
     sprites    dessin des duellistes et des effets (indépendant)
     audio      bruitages synthétisés (indépendant)
     stats      compteurs et records, a besoin de rules
+    progress   niveaux et hauts faits, a besoin de rules
     telemetry  remontée optionnelle, a besoin de rules
     ui         interface, a besoin de tout le reste
     main       démarrage
@@ -338,6 +372,7 @@
 <script src="src/sprites.js"></script>
 <script src="src/audio.js"></script>
 <script src="src/stats.js"></script>
+<script src="src/progress.js"></script>
 <script src="src/telemetry.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/main.js"></script>
