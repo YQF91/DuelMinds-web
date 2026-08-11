@@ -1187,6 +1187,19 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * Le choix du personnage est PUREMENT ESTHÉTIQUE : dans DuelMinds, tout le
    * monde a les mêmes règles, les mêmes balles et les mêmes actions. Ce qui
    * départage, c'est la lecture de l'adversaire, jamais la fiche du perso.
+   * IL N'Y A PAS DE TYPES. Prendre le Berserker ne donne aucun bonus.
+   *
+   * MAIS LE PERSONNAGE ADVERSE EST UN INDICE.
+   * Quand c'est l'IA qui joue un personnage, celui-ci détermine son CARACTÈRE
+   * (champ `ai` ci-dessous) : le Gobelin fonce, l'Archer réfléchit. Ce ne sont
+   * toujours pas des statistiques — mêmes règles, mêmes balles — seulement des
+   * inclinaisons, et les quatre caractères sont réglés pour se valoir en force
+   * (voir tools/verify-personalities.mjs). Le score d'une série reste donc
+   * comparable : tomber sur le Berserker n'est ni plus dur ni plus facile.
+   *
+   * Ce que ça apporte : la silhouette d'en face devient une INFORMATION
+   * lisible. Le joueur apprend « le Gobelin tire tôt » et anticipe — c'est une
+   * compétence, pas une loterie.
    *
    * `key` sert à deux choses à la fois :
    *   - le nom du fichier image, `assets/characters/<key>.png`
@@ -1197,12 +1210,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * on peut donc jouer avant d'avoir tous les dessins.
    * ------------------------------------------------------------------------ */
   const CHARACTERS = [
-    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu." },
-    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience." },
-    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé." },
-    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent." },
-    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues." },
-    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos." },
+    /* `ai` = le CARACTÈRE que prend ce personnage QUAND C'EST L'ADVERSAIRE qui
+     * le joue. Voir le commentaire au-dessus : ça ne change rien à tes règles
+     * quand c'est toi qui le choisis. */
+    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu.",        ai: "prudent"  },
+    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience.",      ai: "agressif" },
+    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé.",  ai: "neutre"   },
+    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent.",  ai: "joueur"   },
+    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues.",          ai: "agressif" },
+    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre"   },
   ];
 
   DUELMINDS.RULES = RULES;
@@ -1521,6 +1537,15 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     EXTREME_EARLY_SHOOT: 0.3, // extrême : tir surprise en début de manche
     EXTREME_SHOOT: 0.7,       // extrême : tire quand elle a l'avantage
     EXTREME_DEFEND: 0.4,      // extrême : se protège par défaut
+    /* À sec et menacée : probabilité de se protéger plutôt que de charger.
+     * RÉGLÉ PAR LA MESURE. Part des tirs portés sur une IA à sec qui sont
+     * bloqués, en difficile :
+     *     0,00 -> 0 %    l'ancien comportement : le tir passait toujours
+     *     0,40 -> 41 %
+     *     0,55 -> 57 %   <- retenu : un pari, ni gratuit ni perdu d'avance
+     *     0,85 -> 85 %   trop : le joueur n'ose plus jamais tirer là
+     * L'échelle de difficulté est préservée (voir tools/verify-ai.mjs). */
+    DRY_DEFEND: 0.55,
   };
 
   /* ---------------------------------------------------------------------------
@@ -1590,6 +1615,18 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   /** Tire un caractère au hasard. */
   function randomPersonality() {
     return PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
+  }
+
+  /**
+   * Le caractère associé à un personnage — c'est ainsi que l'adversaire est
+   * choisi en jeu, plutôt qu'au hasard : la silhouette d'en face annonce la
+   * couleur. Voir CHARACTERS dans rules.js.
+   * Repli sur le méthodique si le personnage n'en déclare pas.
+   */
+  function personalityForCharacter(characterKey) {
+    const character = (DUELMINDS.CHARACTERS || []).find((c) => c.key === characterKey);
+    const found = character && PERSONALITIES.find((p) => p.key === character.ai);
+    return found || PERSONALITIES[0];
   }
 
   /** Le caractère d'un cerveau, avec repli sur le neutre. */
@@ -1704,6 +1741,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   function decideHard(brain, self, opponent) {
     const history = brain.opponentHistory;
 
+    /* SANS BALLE, D'ABORD — voir decideDry.
+     * Placé en TÊTE de cascade, et c'est le point important : à 0 balle, les
+     * règles de lecture qui suivent renvoyaient « charger » avant même qu'on
+     * ait pu poser la question. Le manque de balle n'est pas une situation à
+     * lire, c'est une contrainte dure : elle se traite en premier. */
+    if (!canDo(self, "shoot")) return decideDry(brain, self, opponent);
+
     // Les règles de lecture ne s'activent qu'à partir de deux coups observés.
     if (history.length >= 2) {
       const lastTwo = history.slice(-2);
@@ -1719,8 +1763,6 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
       if (estimateBullets(history) >= 3 && canDo(self, "defend")) return "defend";
     }
-
-    if (!canDo(self, "shoot")) return "charge";
 
     if (!opponent.isDefending && Math.random() < tuned(brain, TENDENCY.HARD_SHOOT, "shoot")) return "shoot";
 
@@ -1825,6 +1867,12 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   function analyzeBestMove(brain, self, opponent) {
     const history = brain.opponentHistory;
 
+    /* 0. SANS BALLE, D'ABORD — voir decideDry. En tête pour la même raison
+     * qu'en difficile : sinon les règles de lecture répondent « charger »
+     * avant qu'on ait pesé le risque. Aucune règle ci-dessous n'est perdue :
+     * elles supposent toutes de pouvoir tirer. */
+    if (!canDo(self, "shoot")) return decideDry(brain, self, opponent);
+
     // 1. La faille classique : qui vient de se protéger et n'a plus de balle
     //    ne pourra pas payer la protection suivante.
     if (opponent.consecutiveDefends >= 1 && opponent.bullets <= 1 && canDo(self, "shoot")) {
@@ -1871,8 +1919,6 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       return "shoot";
     }
 
-    if (!canDo(self, "shoot")) return "charge";
-
     if (canDo(self, "defend") && Math.random() < tuned(brain, TENDENCY.EXTREME_DEFEND, "defend")) return "defend";
     return "charge";
   }
@@ -1880,6 +1926,52 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   /* ---------------------------------------------------------------------------
    * OUTILS
    * ------------------------------------------------------------------------ */
+
+  /* ---------------------------------------------------------------------------
+   * SANS BALLE — le trou remonté par les testeurs
+   * ---------------------------------------------------------------------------
+   * LE DÉFAUT
+   * Les deux niveaux sérieux faisaient `if (!canDo(self,"shoot")) return
+   * "charge"`. Sans balle, l'IA chargeait donc TOUJOURS — mesuré à 100,0 % en
+   * difficile comme en extrême, sur des duels réels. Un tir porté sur une IA à
+   * sec n'était jamais bloqué, et il suffisait de compter ses balles pour ne
+   * plus jamais rater une occasion. Ce n'est pas tant le taux de victoire que
+   * ça coûtait — environ 4 points — que la TENSION : le joueur savait.
+   *
+   * LE RAISONNEMENT
+   * À 0 balle, l'IA n'a que deux options, et elles s'opposent vraiment :
+   *   - CHARGER  se réarmer, mais mourir si l'adversaire tire ;
+   *   - PROTÉGER survivre à coup sûr, mais rester à sec un tour de plus.
+   * Le bon choix dépend donc de l'adversaire : est-il armé, et découvert ?
+   *
+   * POURQUOI PAS « TOUJOURS SE PROTÉGER »
+   * Ce serait remplacer un automatisme par un autre : le joueur chargerait
+   * alors gratuitement à chaque fois. On tire au sort entre les deux, avec un
+   * penchant pour la protection quand la menace est réelle. Le tirage passe par
+   * `tuned`, donc un caractère prudent se protège plus qu'un impatient.
+   *
+   * GARDE-FOU NATUREL
+   * Aucun risque de voir l'IA se terrer : à 0 balle elle ne peut pas payer la
+   * protection au-delà du seuil gratuit (voir `canDo`). Le jeu la force à
+   * ressortir.
+   * ------------------------------------------------------------------------ */
+  function decideDry(brain, self, opponent) {
+    // Protection interdite ou impayable : on n'a pas le choix.
+    if (!canDo(self, "defend")) return "charge";
+
+    /* Adversaire désarmé : rien à craindre, on se réarme.
+     *
+     * On ne regarde QUE ça. Un premier essai ajoutait « et s'il est à couvert,
+     * charger est sûr » — c'était faux : `isDefending` décrit le tour
+     * PRÉCÉDENT, et s'être protégé la fois d'avant n'empêche pas de tirer
+     * maintenant. Ce garde-fou avalait la quasi-totalité des cas et la
+     * correction ne servait à rien. Mesure à l'appui : les tirs bloqués sont
+     * restés à 0,0 % tant qu'il était là. */
+    if (estimateBullets(brain.opponentHistory) < RULES.SHOOT_COST) return "charge";
+
+    return Math.random() < tuned(brain, TENDENCY.DRY_DEFEND, "defend")
+      ? "defend" : "charge";
+  }
 
   /**
    * Estime les balles de l'adversaire à partir de ses coups observés.
@@ -1898,7 +1990,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   }
 
   DUELMINDS.ai = { makeBrain, resetBrainForManche, chooseAction, estimateBullets,
-                   TENDENCY, PERSONALITIES, randomPersonality, personalityOf };
+                   TENDENCY, PERSONALITIES, randomPersonality, personalityOf,
+                   personalityForCharacter };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
 /* ---------- src/match.js ---------- */
@@ -1943,10 +2036,21 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * ------------------------------------------------------------------------ */
 
   /**
-   * @param {"duel"|"arcade"} mode
+   * @param {string} mode        clé d'un MODES : duel, arcade, blitz, aveugle
    * @param {string} difficulty  "facile" | "difficile" | "extreme"
+   * @param {object} [options]
+   * @param {boolean} [options.blind]  les balles sont cachées des DEUX côtés
+   * @param {string}  [options.characterKey] personnage de l'adversaire, qui
+   *        détermine son caractère
+   *
+   * SYMÉTRIE DE L'INFORMATION — corrigé, ça ne l'était pas.
+   * `blind` n'était pas transmis : dans les modes à balles cachées, le joueur
+   * ne voyait plus le barillet adverse mais l'IA continuait de lire le sien.
+   * L'aide du jeu promettait pourtant l'inverse. Quand les balles sont
+   * cachées, l'IA n'a droit qu'à son estimation, comme le joueur.
    */
-  function createSession(mode, difficulty) {
+  function createSession(mode, difficulty, options) {
+    const opts = options || {};
     const session = {
       mode,
       difficulty,
@@ -1954,7 +2058,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       // Duel en cours
       player: makeDuelist("Toi", false),
       bot: makeDuelist("Adversaire", true),
-      brain: makeBrain(difficulty),
+      brain: makeBrain(difficulty, opts.blind,
+        opts.characterKey ? DUELMINDS.ai.personalityForCharacter(opts.characterKey) : undefined),
       turn: 1,
       mancheNumber: 1,
 
@@ -1983,17 +2088,23 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   /**
    * Remet tout à neuf pour un nouveau duel dans une série.
    *
-   * Le nouvel adversaire tire un CARACTÈRE au sort : même difficulté, même
-   * logique, mais des inclinaisons différentes. C'est ce qui empêche le joueur
-   * de réciter une recette d'un duel à l'autre, sans rendre les scores
+   * Le nouvel adversaire change de CARACTÈRE : même difficulté, même logique,
+   * mais des inclinaisons différentes. C'est ce qui empêche le joueur de
+   * réciter une recette d'un duel à l'autre, sans rendre les scores
    * incomparables — les caractères sont réglés pour se valoir.
+   *
+   * @param {string} [characterKey] personnage du nouvel adversaire. Fourni, il
+   *        détermine le caractère : la silhouette annonce la couleur. Omis, on
+   *        tire au sort — c'est ce que font les outils de simulation.
    */
-  function startNextDuel(session) {
+  function startNextDuel(session, characterKey) {
     session.player.manchesWon = 0;
     session.bot.manchesWon = 0;
     session.mancheNumber = 1;
-    session.brain = makeBrain(session.brain.difficulty, session.brain.blind,
-                              DUELMINDS.ai.randomPersonality());
+    const personality = characterKey
+      ? DUELMINDS.ai.personalityForCharacter(characterKey)
+      : DUELMINDS.ai.randomPersonality();
+    session.brain = makeBrain(session.brain.difficulty, session.brain.blind, personality);
     startManche(session);
   }
 
@@ -3521,7 +3632,10 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     // Début de série : aucun adversaire précédent à éviter.
     state.botCharacter = pickBotCharacter(null);
 
-    state.session = DUELMINDS.match.createSession(state.mode, state.difficulty);
+    state.session = DUELMINDS.match.createSession(state.mode, state.difficulty, {
+      blind: bulletsHidden(),          // symétrie : elle ne voit pas plus que toi
+      characterKey: state.botCharacter, // la silhouette d'en face annonce la couleur
+    });
     DUELMINDS.match.startManche(state.session);
     state.phase = "choosing";
     state.log = newLog();
@@ -3861,22 +3975,25 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     if (!result.sessionOver) {
       // Arcade : la série continue
-      const beaten = DUELMINDS.ai.personalityOf(s.brain);
-      /* On tire le prochain adversaire MAINTENANT, pour pouvoir l'annoncer par
-       * son nom : savoir qui arrive donne envie d'enchaîner. Il n'est appliqué
-       * qu'au moment où le joueur lance le duel suivant, pour ne pas changer
-       * la silhouette encore affichée derrière l'annonce. */
+      /* On tire le prochain adversaire MAINTENANT, pour pouvoir l'annoncer avec
+       * son tempérament. Il n'est appliqué qu'au moment où le joueur lance le
+       * duel suivant, pour ne pas changer la silhouette encore affichée
+       * derrière l'annonce.
+       *
+       * On ANNONCE le tempérament au lieu de le faire deviner : le personnage
+       * le détermine, donc l'information est de toute façon lisible sur la
+       * silhouette. Autant l'apprendre au joueur — c'est ce qui transforme le
+       * renouvellement des adversaires en compétence plutôt qu'en surprise. */
       const nextCharacter = pickBotCharacter(state.botCharacter);
+      const next = DUELMINDS.ai.personalityForCharacter(nextCharacter);
       announce(
         "Duel remporté",
-        "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") +
-        ". Tu viens de battre un adversaire « " + beaten.name.toLowerCase() +
-        " » — il " + beaten.tell + ". " + characterName(nextCharacter) +
-        " prend sa place.",
+        "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") + ". " +
+        characterName(nextCharacter) + " prend sa place — il " + next.tell + ".",
         "Duel " + (s.streak + 1),
         () => {
           state.botCharacter = nextCharacter;
-          DUELMINDS.match.startNextDuel(s);
+          DUELMINDS.match.startNextDuel(s, nextCharacter);
           setPose("player", "idle");
           setPose("bot", "idle");
           state.phase = "choosing";
@@ -3923,12 +4040,12 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       detail = s.lastReason;
     }
 
-    /* On révèle le caractère de l'adversaire à la fin : pendant le duel il
-     * faut le deviner — c'est la compétence mesurée — mais sans retour, on
-     * n'apprend jamais à les reconnaître. */
+    /* Rappel du tempérament du dernier adversaire : sur une défaite, c'est
+     * souvent là qu'on comprend ce qui nous a manqué. */
     if (isStreakMode()) {
       const last = DUELMINDS.ai.personalityOf(s.brain);
-      detail += " Le dernier adversaire était « " + last.name.toLowerCase() + " » : il " + last.tell + ".";
+      detail += " Le dernier adversaire, " + characterName(state.botCharacter) +
+                ", " + last.tell + ".";
     }
 
     $("end-title").textContent = title;

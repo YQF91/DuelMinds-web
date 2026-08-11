@@ -49,6 +49,15 @@
     EXTREME_EARLY_SHOOT: 0.3, // extrême : tir surprise en début de manche
     EXTREME_SHOOT: 0.7,       // extrême : tire quand elle a l'avantage
     EXTREME_DEFEND: 0.4,      // extrême : se protège par défaut
+    /* À sec et menacée : probabilité de se protéger plutôt que de charger.
+     * RÉGLÉ PAR LA MESURE. Part des tirs portés sur une IA à sec qui sont
+     * bloqués, en difficile :
+     *     0,00 -> 0 %    l'ancien comportement : le tir passait toujours
+     *     0,40 -> 41 %
+     *     0,55 -> 57 %   <- retenu : un pari, ni gratuit ni perdu d'avance
+     *     0,85 -> 85 %   trop : le joueur n'ose plus jamais tirer là
+     * L'échelle de difficulté est préservée (voir tools/verify-ai.mjs). */
+    DRY_DEFEND: 0.55,
   };
 
   /* ---------------------------------------------------------------------------
@@ -118,6 +127,18 @@
   /** Tire un caractère au hasard. */
   function randomPersonality() {
     return PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
+  }
+
+  /**
+   * Le caractère associé à un personnage — c'est ainsi que l'adversaire est
+   * choisi en jeu, plutôt qu'au hasard : la silhouette d'en face annonce la
+   * couleur. Voir CHARACTERS dans rules.js.
+   * Repli sur le méthodique si le personnage n'en déclare pas.
+   */
+  function personalityForCharacter(characterKey) {
+    const character = (DUELMINDS.CHARACTERS || []).find((c) => c.key === characterKey);
+    const found = character && PERSONALITIES.find((p) => p.key === character.ai);
+    return found || PERSONALITIES[0];
   }
 
   /** Le caractère d'un cerveau, avec repli sur le neutre. */
@@ -232,6 +253,13 @@
   function decideHard(brain, self, opponent) {
     const history = brain.opponentHistory;
 
+    /* SANS BALLE, D'ABORD — voir decideDry.
+     * Placé en TÊTE de cascade, et c'est le point important : à 0 balle, les
+     * règles de lecture qui suivent renvoyaient « charger » avant même qu'on
+     * ait pu poser la question. Le manque de balle n'est pas une situation à
+     * lire, c'est une contrainte dure : elle se traite en premier. */
+    if (!canDo(self, "shoot")) return decideDry(brain, self, opponent);
+
     // Les règles de lecture ne s'activent qu'à partir de deux coups observés.
     if (history.length >= 2) {
       const lastTwo = history.slice(-2);
@@ -247,8 +275,6 @@
 
       if (estimateBullets(history) >= 3 && canDo(self, "defend")) return "defend";
     }
-
-    if (!canDo(self, "shoot")) return "charge";
 
     if (!opponent.isDefending && Math.random() < tuned(brain, TENDENCY.HARD_SHOOT, "shoot")) return "shoot";
 
@@ -353,6 +379,12 @@
   function analyzeBestMove(brain, self, opponent) {
     const history = brain.opponentHistory;
 
+    /* 0. SANS BALLE, D'ABORD — voir decideDry. En tête pour la même raison
+     * qu'en difficile : sinon les règles de lecture répondent « charger »
+     * avant qu'on ait pesé le risque. Aucune règle ci-dessous n'est perdue :
+     * elles supposent toutes de pouvoir tirer. */
+    if (!canDo(self, "shoot")) return decideDry(brain, self, opponent);
+
     // 1. La faille classique : qui vient de se protéger et n'a plus de balle
     //    ne pourra pas payer la protection suivante.
     if (opponent.consecutiveDefends >= 1 && opponent.bullets <= 1 && canDo(self, "shoot")) {
@@ -399,8 +431,6 @@
       return "shoot";
     }
 
-    if (!canDo(self, "shoot")) return "charge";
-
     if (canDo(self, "defend") && Math.random() < tuned(brain, TENDENCY.EXTREME_DEFEND, "defend")) return "defend";
     return "charge";
   }
@@ -408,6 +438,52 @@
   /* ---------------------------------------------------------------------------
    * OUTILS
    * ------------------------------------------------------------------------ */
+
+  /* ---------------------------------------------------------------------------
+   * SANS BALLE — le trou remonté par les testeurs
+   * ---------------------------------------------------------------------------
+   * LE DÉFAUT
+   * Les deux niveaux sérieux faisaient `if (!canDo(self,"shoot")) return
+   * "charge"`. Sans balle, l'IA chargeait donc TOUJOURS — mesuré à 100,0 % en
+   * difficile comme en extrême, sur des duels réels. Un tir porté sur une IA à
+   * sec n'était jamais bloqué, et il suffisait de compter ses balles pour ne
+   * plus jamais rater une occasion. Ce n'est pas tant le taux de victoire que
+   * ça coûtait — environ 4 points — que la TENSION : le joueur savait.
+   *
+   * LE RAISONNEMENT
+   * À 0 balle, l'IA n'a que deux options, et elles s'opposent vraiment :
+   *   - CHARGER  se réarmer, mais mourir si l'adversaire tire ;
+   *   - PROTÉGER survivre à coup sûr, mais rester à sec un tour de plus.
+   * Le bon choix dépend donc de l'adversaire : est-il armé, et découvert ?
+   *
+   * POURQUOI PAS « TOUJOURS SE PROTÉGER »
+   * Ce serait remplacer un automatisme par un autre : le joueur chargerait
+   * alors gratuitement à chaque fois. On tire au sort entre les deux, avec un
+   * penchant pour la protection quand la menace est réelle. Le tirage passe par
+   * `tuned`, donc un caractère prudent se protège plus qu'un impatient.
+   *
+   * GARDE-FOU NATUREL
+   * Aucun risque de voir l'IA se terrer : à 0 balle elle ne peut pas payer la
+   * protection au-delà du seuil gratuit (voir `canDo`). Le jeu la force à
+   * ressortir.
+   * ------------------------------------------------------------------------ */
+  function decideDry(brain, self, opponent) {
+    // Protection interdite ou impayable : on n'a pas le choix.
+    if (!canDo(self, "defend")) return "charge";
+
+    /* Adversaire désarmé : rien à craindre, on se réarme.
+     *
+     * On ne regarde QUE ça. Un premier essai ajoutait « et s'il est à couvert,
+     * charger est sûr » — c'était faux : `isDefending` décrit le tour
+     * PRÉCÉDENT, et s'être protégé la fois d'avant n'empêche pas de tirer
+     * maintenant. Ce garde-fou avalait la quasi-totalité des cas et la
+     * correction ne servait à rien. Mesure à l'appui : les tirs bloqués sont
+     * restés à 0,0 % tant qu'il était là. */
+    if (estimateBullets(brain.opponentHistory) < RULES.SHOOT_COST) return "charge";
+
+    return Math.random() < tuned(brain, TENDENCY.DRY_DEFEND, "defend")
+      ? "defend" : "charge";
+  }
 
   /**
    * Estime les balles de l'adversaire à partir de ses coups observés.
@@ -426,5 +502,6 @@
   }
 
   DUELMINDS.ai = { makeBrain, resetBrainForManche, chooseAction, estimateBullets,
-                   TENDENCY, PERSONALITIES, randomPersonality, personalityOf };
+                   TENDENCY, PERSONALITIES, randomPersonality, personalityOf,
+                   personalityForCharacter };
 })(typeof globalThis !== "undefined" ? globalThis : window);

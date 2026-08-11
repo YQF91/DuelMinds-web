@@ -177,6 +177,19 @@
    * Le choix du personnage est PUREMENT ESTHÉTIQUE : dans DuelMinds, tout le
    * monde a les mêmes règles, les mêmes balles et les mêmes actions. Ce qui
    * départage, c'est la lecture de l'adversaire, jamais la fiche du perso.
+   * IL N'Y A PAS DE TYPES. Prendre le Berserker ne donne aucun bonus.
+   *
+   * MAIS LE PERSONNAGE ADVERSE EST UN INDICE.
+   * Quand c'est l'IA qui joue un personnage, celui-ci détermine son CARACTÈRE
+   * (champ `ai` ci-dessous) : le Gobelin fonce, l'Archer réfléchit. Ce ne sont
+   * toujours pas des statistiques — mêmes règles, mêmes balles — seulement des
+   * inclinaisons, et les quatre caractères sont réglés pour se valoir en force
+   * (voir tools/verify-personalities.mjs). Le score d'une série reste donc
+   * comparable : tomber sur le Berserker n'est ni plus dur ni plus facile.
+   *
+   * Ce que ça apporte : la silhouette d'en face devient une INFORMATION
+   * lisible. Le joueur apprend « le Gobelin tire tôt » et anticipe — c'est une
+   * compétence, pas une loterie.
    *
    * `key` sert à deux choses à la fois :
    *   - le nom du fichier image, `assets/characters/<key>.png`
@@ -187,12 +200,15 @@
    * on peut donc jouer avant d'avoir tous les dessins.
    * ------------------------------------------------------------------------ */
   const CHARACTERS = [
-    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu." },
-    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience." },
-    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé." },
-    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent." },
-    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues." },
-    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos." },
+    /* `ai` = le CARACTÈRE que prend ce personnage QUAND C'EST L'ADVERSAIRE qui
+     * le joue. Voir le commentaire au-dessus : ça ne change rien à tes règles
+     * quand c'est toi qui le choisis. */
+    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu.",        ai: "prudent"  },
+    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience.",      ai: "agressif" },
+    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé.",  ai: "neutre"   },
+    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent.",  ai: "joueur"   },
+    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues.",          ai: "agressif" },
+    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre"   },
   ];
 
   DUELMINDS.RULES = RULES;

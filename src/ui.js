@@ -299,7 +299,10 @@
     // Début de série : aucun adversaire précédent à éviter.
     state.botCharacter = pickBotCharacter(null);
 
-    state.session = DUELMINDS.match.createSession(state.mode, state.difficulty);
+    state.session = DUELMINDS.match.createSession(state.mode, state.difficulty, {
+      blind: bulletsHidden(),          // symétrie : elle ne voit pas plus que toi
+      characterKey: state.botCharacter, // la silhouette d'en face annonce la couleur
+    });
     DUELMINDS.match.startManche(state.session);
     state.phase = "choosing";
     state.log = newLog();
@@ -639,22 +642,25 @@
 
     if (!result.sessionOver) {
       // Arcade : la série continue
-      const beaten = DUELMINDS.ai.personalityOf(s.brain);
-      /* On tire le prochain adversaire MAINTENANT, pour pouvoir l'annoncer par
-       * son nom : savoir qui arrive donne envie d'enchaîner. Il n'est appliqué
-       * qu'au moment où le joueur lance le duel suivant, pour ne pas changer
-       * la silhouette encore affichée derrière l'annonce. */
+      /* On tire le prochain adversaire MAINTENANT, pour pouvoir l'annoncer avec
+       * son tempérament. Il n'est appliqué qu'au moment où le joueur lance le
+       * duel suivant, pour ne pas changer la silhouette encore affichée
+       * derrière l'annonce.
+       *
+       * On ANNONCE le tempérament au lieu de le faire deviner : le personnage
+       * le détermine, donc l'information est de toute façon lisible sur la
+       * silhouette. Autant l'apprendre au joueur — c'est ce qui transforme le
+       * renouvellement des adversaires en compétence plutôt qu'en surprise. */
       const nextCharacter = pickBotCharacter(state.botCharacter);
+      const next = DUELMINDS.ai.personalityForCharacter(nextCharacter);
       announce(
         "Duel remporté",
-        "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") +
-        ". Tu viens de battre un adversaire « " + beaten.name.toLowerCase() +
-        " » — il " + beaten.tell + ". " + characterName(nextCharacter) +
-        " prend sa place.",
+        "Série de " + s.streak + (s.streak > 1 ? " duels" : " duel") + ". " +
+        characterName(nextCharacter) + " prend sa place — il " + next.tell + ".",
         "Duel " + (s.streak + 1),
         () => {
           state.botCharacter = nextCharacter;
-          DUELMINDS.match.startNextDuel(s);
+          DUELMINDS.match.startNextDuel(s, nextCharacter);
           setPose("player", "idle");
           setPose("bot", "idle");
           state.phase = "choosing";
@@ -701,12 +707,12 @@
       detail = s.lastReason;
     }
 
-    /* On révèle le caractère de l'adversaire à la fin : pendant le duel il
-     * faut le deviner — c'est la compétence mesurée — mais sans retour, on
-     * n'apprend jamais à les reconnaître. */
+    /* Rappel du tempérament du dernier adversaire : sur une défaite, c'est
+     * souvent là qu'on comprend ce qui nous a manqué. */
     if (isStreakMode()) {
       const last = DUELMINDS.ai.personalityOf(s.brain);
-      detail += " Le dernier adversaire était « " + last.name.toLowerCase() + " » : il " + last.tell + ".";
+      detail += " Le dernier adversaire, " + characterName(state.botCharacter) +
+                ", " + last.tell + ".";
     }
 
     $("end-title").textContent = title;

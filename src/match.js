@@ -39,10 +39,21 @@
    * ------------------------------------------------------------------------ */
 
   /**
-   * @param {"duel"|"arcade"} mode
+   * @param {string} mode        clé d'un MODES : duel, arcade, blitz, aveugle
    * @param {string} difficulty  "facile" | "difficile" | "extreme"
+   * @param {object} [options]
+   * @param {boolean} [options.blind]  les balles sont cachées des DEUX côtés
+   * @param {string}  [options.characterKey] personnage de l'adversaire, qui
+   *        détermine son caractère
+   *
+   * SYMÉTRIE DE L'INFORMATION — corrigé, ça ne l'était pas.
+   * `blind` n'était pas transmis : dans les modes à balles cachées, le joueur
+   * ne voyait plus le barillet adverse mais l'IA continuait de lire le sien.
+   * L'aide du jeu promettait pourtant l'inverse. Quand les balles sont
+   * cachées, l'IA n'a droit qu'à son estimation, comme le joueur.
    */
-  function createSession(mode, difficulty) {
+  function createSession(mode, difficulty, options) {
+    const opts = options || {};
     const session = {
       mode,
       difficulty,
@@ -50,7 +61,8 @@
       // Duel en cours
       player: makeDuelist("Toi", false),
       bot: makeDuelist("Adversaire", true),
-      brain: makeBrain(difficulty),
+      brain: makeBrain(difficulty, opts.blind,
+        opts.characterKey ? DUELMINDS.ai.personalityForCharacter(opts.characterKey) : undefined),
       turn: 1,
       mancheNumber: 1,
 
@@ -79,17 +91,23 @@
   /**
    * Remet tout à neuf pour un nouveau duel dans une série.
    *
-   * Le nouvel adversaire tire un CARACTÈRE au sort : même difficulté, même
-   * logique, mais des inclinaisons différentes. C'est ce qui empêche le joueur
-   * de réciter une recette d'un duel à l'autre, sans rendre les scores
+   * Le nouvel adversaire change de CARACTÈRE : même difficulté, même logique,
+   * mais des inclinaisons différentes. C'est ce qui empêche le joueur de
+   * réciter une recette d'un duel à l'autre, sans rendre les scores
    * incomparables — les caractères sont réglés pour se valoir.
+   *
+   * @param {string} [characterKey] personnage du nouvel adversaire. Fourni, il
+   *        détermine le caractère : la silhouette annonce la couleur. Omis, on
+   *        tire au sort — c'est ce que font les outils de simulation.
    */
-  function startNextDuel(session) {
+  function startNextDuel(session, characterKey) {
     session.player.manchesWon = 0;
     session.bot.manchesWon = 0;
     session.mancheNumber = 1;
-    session.brain = makeBrain(session.brain.difficulty, session.brain.blind,
-                              DUELMINDS.ai.randomPersonality());
+    const personality = characterKey
+      ? DUELMINDS.ai.personalityForCharacter(characterKey)
+      : DUELMINDS.ai.randomPersonality();
+    session.brain = makeBrain(session.brain.difficulty, session.brain.blind, personality);
     startManche(session);
   }
 
