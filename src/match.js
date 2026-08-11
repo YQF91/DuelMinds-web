@@ -128,6 +128,22 @@
    */
   function playTurn(session, playerAction) {
     const botAction = DUELMINDS.ai.chooseAction(session.brain, session.bot, session.player);
+    return playTurnWith(session, playerAction, botAction);
+  }
+
+  /**
+   * Joue un tour dont les DEUX coups sont déjà connus.
+   *
+   * C'est ce qui rend le duel en ligne possible : en PVP, le coup d'en face ne
+   * vient pas de l'IA mais de l'arbitre. Tout le reste — résolution, manches,
+   * séries, compteurs — est rigoureusement identique, donc il n'y a pas deux
+   * versions des règles à maintenir.
+   *
+   * La résolution ne comporte AUCUNE part de hasard : les deux navigateurs,
+   * partant du même état et recevant les mêmes coups, aboutissent forcément au
+   * même résultat. C'est ce qui permet à l'arbitre d'ignorer les règles.
+   */
+  function playTurnWith(session, playerAction, botAction) {
     const turnResult = resolveTurn(session.player, session.bot, playerAction, botAction);
 
     // Compteurs de session
@@ -197,5 +213,6 @@
     return session.player.manchesWon >= RULES.MANCHES_TO_WIN ? 1 : 0;
   }
 
-  DUELMINDS.match = { createSession, startManche, startNextDuel, playTurn, sessionScore };
+  DUELMINDS.match = { createSession, startManche, startNextDuel,
+                     playTurn, playTurnWith, sessionScore };
 })(typeof globalThis !== "undefined" ? globalThis : window);

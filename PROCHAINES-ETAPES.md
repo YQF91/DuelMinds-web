@@ -117,17 +117,13 @@ maintenir, pas de divergence possible entre le serveur et le client.
 
 ### Le chemin, du moins cher au plus complet
 
-**Étape 1 — Le duel à deux sur le même téléphone** *(quelques heures)*
+> **Correction.** Ce document proposait d'abord un duel à deux sur un seul
+> téléphone. Jude a eu raison de refuser : avec des actions **simultanées et
+> secrètes**, se passer l'appareil entre chaque choix casse le rythme d'un jeu
+> qui se joue en une minute. L'étape a été supprimée et le duel en ligne
+> construit directement — c'est ce qui est décrit ci-dessous, et c'est **fait**.
 
-Aucun réseau. On se passe l'appareil : un écran « passe le téléphone » entre les
-deux choix, ce qui préserve le secret.
-
-Ne saute pas cette étape. Elle ne coûte presque rien et elle répond à la seule
-question qui compte avant d'écrire la moindre ligne de réseau : **est-ce que le
-jeu est bon à deux humains ?** L'IA ne bluffe pas, ne s'énerve pas, ne prend pas
-de risque stupide. Un vrai adversaire, si.
-
-**Étape 2 — L'arbitre** *(1 à 2 jours)*
+**Étape 1 — L'arbitre** *(fait)*
 
 Un petit programme dont le rôle tient en quatre lignes :
 
@@ -138,8 +134,18 @@ Un petit programme dont le rôle tient en quatre lignes :
    renvoyer le résultat aux deux en même temps
 ```
 
-Hébergement possible sur une offre gratuite — Cloudflare Workers, Deno Deploy,
-Fly.io. On parle d'environ deux cents lignes, pas d'une infrastructure.
+**C'est en place**, et sans rien héberger de plus : le script Google qui reçoit
+déjà les parties fait aussi office d'arbitre. Voir la section « ARBITRE DE DUEL
+EN LIGNE » de `tools/google-apps-script.gs`, le client dans `src/pvp.js`, et
+`node tools/verify-pvp.mjs` qui vérifie les 17 propriétés attendues — à
+commencer par l'impossibilité d'espionner le coup adverse.
+
+Sa limite est la latence : chaque échange passe par Google, soit une demi-seconde
+à deux secondes. Acceptable au tour par tour, et c'est pourquoi le duel en ligne
+laisse plus de temps par tour que le mode Blitz. Le jour où le jeu marche et où
+cette latence gêne, un vrai relais WebSocket (Cloudflare Workers, Deno Deploy)
+prendra la place sans rien changer au reste : le client ne connaît que quatre
+appels.
 
 Deux choses déjà en place te servent directement :
 
@@ -151,7 +157,7 @@ Deux choses déjà en place te servent directement :
   feuille **avant** de lancer le classé : s'ils s'effondrent, il faudra revoir
   la règle, pas le réseau.
 
-**Étape 3 — Le classé** *(une fois l'étape 2 stable)*
+**Étape 2 — Le classé** *(une fois les duels en ligne éprouvés)*
 
 Le classement existe déjà et lit la feuille Google. Il suffira de lui donner des
 parties PVP à afficher.
@@ -166,9 +172,10 @@ parties PVP à afficher.
 
 ### Recommandation
 
-Fais l'**étape 1 maintenant** : c'est peu de travail, et c'est le seul moyen de
-savoir si le PVP vaut le coup avant d'y investir. Ne construis l'arbitre que si
-deux humains prennent du plaisir sur un même téléphone.
+Le duel en ligne fonctionne. Fais-le tester à deux collègues avant d'aller plus
+loin : c'est maintenant que tu sauras si le jeu tient face à un humain, qui
+bluffe, s'énerve et prend des risques stupides — trois choses qu'aucune IA ne
+fait.
 
 ---
 

@@ -900,7 +900,38 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 }
 
 /* =============================================================================
- * 11. ACCESSIBILITÉ
+ * 11. SALON DU DUEL EN LIGNE
+ * -----------------------------------------------------------------------------
+ * Le code doit se lire à voix haute d'un bout à l'autre d'un bureau. Il est
+ * donc gros, espacé, et en chiffres à chasse fixe pour qu'aucun caractère ne
+ * puisse être confondu avec un autre.
+ * ========================================================================== */
+
+.lobby-code {
+  font-family: var(--font-mono);
+  font-size: 44px;
+  letter-spacing: .22em;
+  text-align: center;
+  color: var(--brass);
+  margin: 6px 0 2px;
+  /* L'espacement décale le texte vers la droite : on compense pour qu'il
+     reste optiquement centré. */
+  text-indent: .22em;
+}
+
+.code-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  letter-spacing: .2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+#lobby-error { color: var(--rust); }
+
+/* =============================================================================
+ * 12. ACCESSIBILITÉ
  * ========================================================================== */
 
 /* Le focus clavier doit toujours se voir : on ne supprime jamais l'anneau
@@ -1007,6 +1038,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     <div class="row">
       <button class="btn primary" id="btn-start" type="button" disabled data-en="Start">Commencer</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="btn-pvp" type="button" data-en="Duel a friend">Duel en ligne</button>
     </div>
 
     <!-- Choix de la langue. Placé en bas : un joueur anglophone tombe déjà sur
@@ -1266,6 +1300,51 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   </section>
 
   <!-- ======================================================================
+       ÉCRAN 9 — SALON DU DUEL EN LIGNE
+       ----------------------------------------------------------------------
+       Un code a quatre lettres, rien d'autre. Aucun compte, aucune installation.
+       Celui qui ouvre la partie lit son code a l'autre.
+       Voir src/pvp.js, et l'arbitre dans tools/google-apps-script.gs.
+       ==================================================================== -->
+  <section id="screen-lobby" class="screen" aria-label="Duel en ligne">
+    <h2 data-en="Online duel">Duel en ligne</h2>
+
+    <p class="footnote"
+       data-en="Two players, two phones, one four-letter code. Your opponent needs no account.">
+      Deux joueurs, deux téléphones, un code à quatre lettres. Ton adversaire
+      n'a besoin d'aucun compte.
+    </p>
+
+    <div id="lobby-choice">
+      <div class="row">
+        <button class="btn primary" id="btn-lobby-create" type="button"
+                data-en="Open a duel">Ouvrir un duel</button>
+      </div>
+      <p class="section-label" data-en="or join with a code">ou rejoins avec un code</p>
+      <div class="row">
+        <input class="text-input code-input" id="lobby-code" type="text" maxlength="4"
+               autocomplete="off" spellcheck="false" inputmode="text"
+               placeholder="CODE" data-en-placeholder="CODE">
+        <button class="btn" id="btn-lobby-join" type="button"
+                data-en="Join">Rejoindre</button>
+      </div>
+    </div>
+
+    <!-- Affiché une fois la partie ouverte : le code à transmettre -->
+    <div id="lobby-waiting" hidden>
+      <p class="section-label" data-en="Give this code to your opponent">Donne ce code à ton adversaire</p>
+      <p class="lobby-code" id="lobby-code-shown">····</p>
+      <p class="board-message" id="lobby-status"></p>
+    </div>
+
+    <p class="footnote" id="lobby-error" hidden></p>
+
+    <div class="row">
+      <button class="btn" id="btn-lobby-back" type="button" data-en="Back">Retour</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
        ÉCRAN 8 — CLASSEMENT
        ----------------------------------------------------------------------
        Les meilleures séries de tous les testeurs, relues depuis la feuille
@@ -1343,7 +1422,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     stats      compteurs et records, a besoin de rules
     progress   niveaux et hauts faits, a besoin de rules
     telemetry  remontée optionnelle, a besoin de rules
-    leaderboard classement lu depuis la feuille, a besoin de telemetry
+    net        appels au serveur (JSONP), a besoin de telemetry
+    leaderboard classement lu depuis la feuille, a besoin de net
+    pvp        duel en ligne entre deux joueurs, a besoin de net
     ui         interface, a besoin de tout le reste
     main       démarrage
 -->
@@ -1508,6 +1589,38 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     "board.noEndpoint":     { fr: "Aucun point de collecte n'est configuré : pas de classement.",
                               en: "No collection endpoint configured: no ranking." },
     "board.anonymous":      { fr: "joueur {id}", en: "player {id}" },
+
+    /* --- Duel en ligne ---
+     * Chaque panne a son message : le joueur doit savoir s'il faut réessayer,
+     * corriger son code, ou aller chercher son adversaire. */
+    "pvp.opening":          { fr: "Ouverture de la partie…", en: "Opening the duel…" },
+    "pvp.waiting":          { fr: "En attente d'un adversaire… ({n} s)",
+                              en: "Waiting for an opponent… ({n} s)" },
+    "pvp.joined":           { fr: "{name} a rejoint. Le duel commence.",
+                              en: "{name} has joined. The duel begins." },
+    "pvp.joining":          { fr: "Connexion à la partie…", en: "Joining the duel…" },
+    "pvp.theirTurn":        { fr: "Coup enregistré. On attend l'adversaire…",
+                              en: "Move locked in. Waiting for your opponent…" },
+    "pvp.badCode":          { fr: "Un code fait quatre caractères.",
+                              en: "A code is four characters long." },
+    "pvp.unknownCode":      { fr: "Aucune partie sous ce code. Vérifie-le, ou il a expiré.",
+                              en: "No duel under that code. Check it, or it has expired." },
+    "pvp.full":             { fr: "Cette partie a déjà deux joueurs.",
+                              en: "That duel already has two players." },
+    "pvp.left":             { fr: "Ton adversaire a quitté la partie.",
+                              en: "Your opponent has left." },
+    "pvp.expired":          { fr: "La partie a expiré. Ouvres-en une nouvelle.",
+                              en: "The duel has expired. Open a new one." },
+    "pvp.offline":          { fr: "Serveur injoignable — vérifie ta connexion.",
+                              en: "Server unreachable — check your connection." },
+    "pvp.notDeployed":      { fr: "Le duel en ligne n'est pas encore activé côté serveur.",
+                              en: "Online duels are not switched on server-side yet." },
+    "pvp.noEndpoint":       { fr: "Aucun serveur configuré : pas de duel en ligne.",
+                              en: "No server configured: no online duel." },
+    "pvp.timeout":          { fr: "Personne n'est venu. Réessaie avec un nouveau code.",
+                              en: "Nobody showed up. Try again with a new code." },
+    "pvp.opponent":         { fr: "Adversaire", en: "Opponent" },
+    "pvp.mode":             { fr: "En ligne", en: "Online" },
 
     /* --- Écran de fin --- */
     "end.mode":             { fr: "Mode",        en: "Mode" },
@@ -2825,6 +2938,22 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    */
   function playTurn(session, playerAction) {
     const botAction = DUELMINDS.ai.chooseAction(session.brain, session.bot, session.player);
+    return playTurnWith(session, playerAction, botAction);
+  }
+
+  /**
+   * Joue un tour dont les DEUX coups sont déjà connus.
+   *
+   * C'est ce qui rend le duel en ligne possible : en PVP, le coup d'en face ne
+   * vient pas de l'IA mais de l'arbitre. Tout le reste — résolution, manches,
+   * séries, compteurs — est rigoureusement identique, donc il n'y a pas deux
+   * versions des règles à maintenir.
+   *
+   * La résolution ne comporte AUCUNE part de hasard : les deux navigateurs,
+   * partant du même état et recevant les mêmes coups, aboutissent forcément au
+   * même résultat. C'est ce qui permet à l'arbitre d'ignorer les règles.
+   */
+  function playTurnWith(session, playerAction, botAction) {
     const turnResult = resolveTurn(session.player, session.bot, playerAction, botAction);
 
     // Compteurs de session
@@ -2894,7 +3023,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     return session.player.manchesWon >= RULES.MANCHES_TO_WIN ? 1 : 0;
   }
 
-  DUELMINDS.match = { createSession, startManche, startNextDuel, playTurn, sessionScore };
+  DUELMINDS.match = { createSession, startManche, startNextDuel,
+                     playTurn, playTurnWith, sessionScore };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
 /* ---------- src/sprites.js ---------- */
@@ -4904,6 +5034,125 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   DUELMINDS.telemetry = { isEnabled, sendSession, testerId, endpoint };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
+/* ---------- src/net.js ---------- */
+/* =============================================================================
+ * DUELMINDS — APPELS AU POINT DE COLLECTE
+ * =============================================================================
+ *
+ * RÔLE DU FICHIER
+ * Le seul moyen de PARLER au serveur et d'en lire la réponse. Deux modules s'en
+ * servent : le classement (leaderboard.js) et les duels en ligne (pvp.js).
+ * Écrit une fois ici plutôt que deux fois là-bas.
+ *
+ * POURQUOI JSONP ET PAS fetch()
+ * Un navigateur refuse de lire une réponse venant d'un autre domaine (CORS), et
+ * Google Apps Script redirige les siennes vers googleusercontent.com, ce qui
+ * rend le contournement propre impossible en pratique. Une balise <script>, en
+ * revanche, n'est pas soumise à cette règle : on demande au serveur d'enrober
+ * sa réponse dans un appel de fonction, qu'on récupère au vol.
+ *
+ * Technique ancienne, mais adaptée ici : la donnée est publique, sans secret,
+ * et le serveur ne fait rien de dangereux.
+ *
+ * CE QUI N'ARRIVE JAMAIS
+ * Un appel ne rejette pas. Toute panne — hors ligne, serveur muet, réponse
+ * illisible — revient sous la forme `{ ok:false, reason:"…" }`. Un jeu ne doit
+ * pas s'arrêter parce qu'un serveur tousse.
+ *
+ * DÉPENDANCES : telemetry.js (pour l'adresse)
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+
+  /* Assez long pour un réveil de Google Apps Script — le premier appel après
+   * une période d'inactivité est toujours le plus lent — assez court pour ne
+   * pas laisser le joueur devant un écran figé. */
+  const TIMEOUT_MS = 9000;
+
+  let counter = 0;
+
+  function endpoint() {
+    return (DUELMINDS.telemetry && DUELMINDS.telemetry.endpoint &&
+            DUELMINDS.telemetry.endpoint()) || "";
+  }
+
+  function isAvailable() { return !!endpoint(); }
+
+  /**
+   * Un appel au serveur.
+   *
+   * @param {object} params  paires clé/valeur ajoutées à l'adresse
+   * @returns {Promise<object>} la réponse, ou `{ ok:false, reason }`.
+   *          Ne rejette JAMAIS.
+   *
+   * Raisons possibles :
+   *   no-endpoint  aucune adresse configurée
+   *   timeout      le serveur n'a pas répondu à temps
+   *   network      la balise n'a pas pu être chargée
+   *   not-jsonp    le serveur a répondu autre chose que du JSONP — presque
+   *                toujours : le script Apps Script n'a pas été re-déployé
+   */
+  function call(params) {
+    const url = endpoint();
+    if (!url) return Promise.resolve({ ok: false, reason: "no-endpoint" });
+
+    return new Promise(function (resolve) {
+      counter += 1;
+      const fname = "DUELMINDS_CB_" + counter;
+      const script = document.createElement("script");
+      let done = false;
+
+      /* Une seule sortie, appelée au plus une fois : sans ça, un serveur lent
+       * qui finit par répondre après le délai laisserait derrière lui une
+       * fonction globale et une balise orpheline. */
+      function finish(result) {
+        if (done) return;
+        done = true;
+        window.clearTimeout(timer);
+        try { delete root[fname]; } catch (e) { root[fname] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+        resolve(result);
+      }
+
+      const timer = window.setTimeout(function () {
+        finish({ ok: false, reason: "timeout" });
+      }, TIMEOUT_MS);
+
+      root[fname] = function (payload) {
+        finish(payload && typeof payload === "object"
+          ? payload : { ok: false, reason: "empty" });
+      };
+
+      script.onerror = function () { finish({ ok: false, reason: "network" }); };
+
+      /* Le serveur a répondu, mais pas en JSONP : la balise se charge donc sans
+       * erreur ET sans appeler notre fonction. C'est le cas le plus fréquent au
+       * début — le script Apps Script n'a pas été re-déployé. Sans ce test on
+       * attendrait le délai complet pour annoncer « pas de réseau », ce qui est
+       * faux et n'aide personne. On laisse un tour d'horloge à la réponse pour
+       * s'exécuter avant de conclure. */
+      script.onload = function () {
+        window.setTimeout(function () {
+          finish({ ok: false, reason: "not-jsonp" });
+        }, 0);
+      };
+
+      const query = ["callback=" + fname];
+      for (const key of Object.keys(params || {})) {
+        if (params[key] === undefined || params[key] === null) continue;
+        query.push(encodeURIComponent(key) + "=" + encodeURIComponent(params[key]));
+      }
+      script.src = url + (url.indexOf("?") === -1 ? "?" : "&") + query.join("&");
+      document.head.appendChild(script);
+    });
+  }
+
+  DUELMINDS.net = { call, isAvailable, endpoint, TIMEOUT_MS };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
 /* ---------- src/leaderboard.js ---------- */
 /* =============================================================================
  * DUELMINDS — CLASSEMENT DES SÉRIES
@@ -4920,13 +5169,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
  * apparaître à son prochain passage, pas pendant sa partie. Pour comparer des
  * scores entre testeurs, ça suffit largement, et ça évite tout serveur.
  *
- * POURQUOI JSONP PLUTÔT QUE fetch()
- * Un navigateur refuse de lire une réponse venant d'un autre domaine (CORS), et
- * Apps Script redirige ses réponses vers googleusercontent.com, ce qui rend le
- * contournement propre difficile. Une balise <script>, elle, n'est pas soumise
- * à cette règle : on demande donc au serveur d'enrober sa réponse dans un appel
- * de fonction, qu'on récupère au vol. Technique ancienne, mais adaptée ici : la
- * donnée est publique, en lecture seule, et sans aucun secret.
+ * COMMENT ON PARLE AU SERVEUR
+ * Par net.js, qui règle le problème des appels entre domaines. Le détail est
+ * expliqué là-bas ; ici on ne s'occupe que du classement lui-même.
  *
  * TOLÉRANCE AUX PANNES — LE POINT IMPORTANT
  * Ce module ne doit JAMAIS empêcher de jouer. Point de collecte non déployé,
@@ -4934,18 +5179,13 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
  * une erreur douce et le jeu continue. Le classement est un bonus, pas une
  * dépendance.
  *
- * DÉPENDANCES : telemetry.js (pour l'adresse du point de collecte)
+ * DÉPENDANCES : net.js (le transport JSONP, partagé avec pvp.js)
  * ========================================================================== */
 
 (function (root) {
   "use strict";
 
   const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
-
-  /* Au-delà, on considère que le point de collecte ne répondra pas. Assez long
-   * pour un réveil de Google Apps Script, assez court pour ne pas laisser le
-   * joueur devant un écran vide. */
-  const TIMEOUT_MS = 8000;
 
   /* Le classement change lentement : on garde la réponse quelques minutes
    * plutôt que de rappeler le serveur à chaque ouverture de l'écran. */
@@ -4954,7 +5194,6 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   const NAME_KEY = "duelminds.name.v1";
   const MAX_NAME = 16;
 
-  let counter = 0;
   const cache = new Map();   // "mode|difficulté" -> { time, rows }
 
   /* ---------------------------------------------------------------------------
@@ -4989,12 +5228,7 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    * LA LECTURE
    * ------------------------------------------------------------------------ */
 
-  function endpoint() {
-    return (DUELMINDS.telemetry && DUELMINDS.telemetry.endpoint &&
-            DUELMINDS.telemetry.endpoint()) || "";
-  }
-
-  function isAvailable() { return !!endpoint(); }
+  function isAvailable() { return DUELMINDS.net.isAvailable(); }
 
   /**
    * Demande le classement d'un mode.
@@ -5011,64 +5245,17 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       return Promise.resolve({ ok: true, rows: cached.rows, cached: true });
     }
 
-    const url = endpoint();
-    if (!url) return Promise.resolve({ ok: false, rows: [], reason: "no-endpoint" });
-
-    return new Promise(function (resolve) {
-      counter += 1;
-      const fname = "DUELMINDS_LB_" + counter;
-      const script = document.createElement("script");
-      let done = false;
-
-      /* Un seul chemin de sortie, appelé au plus une fois : sans ça, un
-       * serveur lent qui finit par répondre après le délai laisserait une
-       * fonction globale et une balise derrière lui. */
-      function finish(result) {
-        if (done) return;
-        done = true;
-        window.clearTimeout(timer);
-        try { delete root[fname]; } catch (e) { root[fname] = undefined; }
-        if (script.parentNode) script.parentNode.removeChild(script);
-        resolve(result);
-      }
-
-      const timer = window.setTimeout(function () {
-        finish({ ok: false, rows: [], reason: "timeout" });
-      }, TIMEOUT_MS);
-
-      root[fname] = function (payload) {
+    return DUELMINDS.net.call({ mode: mode, difficulty: difficulty || undefined })
+      .then(function (payload) {
         if (payload && payload.ok && payload.rows) {
           cache.set(key, { time: Date.now(), rows: payload.rows });
-          finish({ ok: true, rows: payload.rows });
-        } else {
-          finish({ ok: false, rows: [], reason: (payload && payload.error) || "empty" });
+          return { ok: true, rows: payload.rows };
         }
-      };
-
-      script.onerror = function () {
-        finish({ ok: false, rows: [], reason: "network" });
-      };
-
-      /* Cas le plus fréquent au début : le point de collecte répond, mais avec
-       * l'ancienne version du script — du texte au lieu de JSONP. La balise se
-       * charge donc sans erreur ET sans appeler notre fonction. Sans ce test,
-       * on attendrait les 8 secondes du délai pour annoncer « pas de réseau »,
-       * ce qui est faux et n'aide pas : le vrai remède est de re-déployer.
-       * On laisse un tour d'horloge à la réponse pour s'exécuter avant de
-       * conclure. */
-      script.onload = function () {
-        window.setTimeout(function () {
-          finish({ ok: false, rows: [], reason: "not-jsonp" });
-        }, 0);
-      };
-
-      script.src = url +
-        (url.indexOf("?") === -1 ? "?" : "&") +
-        "mode=" + encodeURIComponent(mode) +
-        (difficulty ? "&difficulty=" + encodeURIComponent(difficulty) : "") +
-        "&callback=" + fname;
-      document.head.appendChild(script);
-    });
+        return {
+          ok: false, rows: [],
+          reason: (payload && (payload.reason || payload.error)) || "empty",
+        };
+      });
   }
 
   /** Oublie ce qui a été mis en cache — après avoir joué, par exemple. */
@@ -5076,6 +5263,297 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
   DUELMINDS.leaderboard = {
     fetchTop, forget, isAvailable, name, setName, cleanName, MAX_NAME,
+  };
+})(typeof globalThis !== "undefined" ? globalThis : window);
+
+/* ---------- src/pvp.js ---------- */
+/* =============================================================================
+ * DUELMINDS — DUEL EN LIGNE
+ * =============================================================================
+ *
+ * CE QUE C'EST
+ * Deux joueurs, deux téléphones, un code à quatre lettres. Aucun compte, aucune
+ * installation : celui qui crée la partie lit son code à l'autre, et le duel
+ * commence.
+ *
+ * -----------------------------------------------------------------------------
+ * LE SEUL PROBLÈME DIFFICILE, ET COMMENT IL EST RÉSOLU
+ * -----------------------------------------------------------------------------
+ * Dans DuelMinds les deux joueurs choisissent EN MÊME TEMPS, sans voir le coup
+ * de l'autre. Si les deux navigateurs s'échangeaient directement leurs coups,
+ * un joueur au programme modifié pourrait ATTENDRE de voir celui d'en face
+ * avant d'envoyer le sien : il gagnerait à tous les coups.
+ *
+ * Tout passe donc par un ARBITRE — le script Google déjà en place — qui garde
+ * les deux coups et ne les rend qu'une fois les DEUX arrivés. Voir la section
+ * « ARBITRE DE DUEL EN LIGNE » de tools/google-apps-script.gs.
+ *
+ * -----------------------------------------------------------------------------
+ * CE QUE L'ARBITRE NE FAIT PAS, ET POURQUOI C'EST VOULU
+ * -----------------------------------------------------------------------------
+ * Il ne connaît AUCUNE règle du jeu. Il retient deux mots et les rend ensemble.
+ * Ce sont les deux navigateurs qui résolvent le tour, chacun de son côté, avec
+ * `combat.js` — le même fichier que contre l'ordinateur.
+ *
+ * C'est possible parce que la résolution d'un tour n'a AUCUNE part de hasard :
+ * même état de départ plus mêmes coups donne forcément le même résultat. Les
+ * deux écrans ne peuvent pas diverger.
+ *
+ * L'autre raison est plus importante encore : les règles restent à UN SEUL
+ * endroit. Les recopier dans l'arbitre créerait une deuxième version à
+ * maintenir, et le jour où les deux divergent plus personne ne sait laquelle
+ * fait foi.
+ *
+ * -----------------------------------------------------------------------------
+ * CE QU'UN TRICHEUR PEUT ENCORE FAIRE
+ * -----------------------------------------------------------------------------
+ * Modifier SON propre affichage. Il ne peut pas voir le coup adverse à
+ * l'avance, ni imposer un résultat à l'autre, qui recalcule de son côté. C'est
+ * la propriété qui compte pour un classement honnête.
+ *
+ * -----------------------------------------------------------------------------
+ * LES LIMITES, DITES FRANCHEMENT
+ * -----------------------------------------------------------------------------
+ * Chaque échange passe par Google : entre une demi-seconde et deux secondes.
+ * Acceptable pour un jeu au tour par tour, impossible pour un jeu d'action.
+ * C'est aussi pour ça que le duel en ligne laisse PLUS de temps par tour que le
+ * mode Blitz : le réseau mange déjà une partie du délai.
+ *
+ * DÉPENDANCES : net.js, rules.js
+ * ========================================================================== */
+
+(function (root) {
+  "use strict";
+
+  const DUELMINDS = (root.DUELMINDS = root.DUELMINDS || {});
+
+  /* Intervalle entre deux demandes de nouvelles. Plus court, on sature le
+   * serveur pour rien ; plus long, l'attente devient pénible. */
+  const POLL_MS = 1400;
+
+  /* Au-delà, on considère que l'autre est parti. Volontairement généreux : sur
+   * un téléphone, changer d'application suspend la page quelques secondes. */
+  const GIVE_UP_MS = 90000;
+
+  const ID_KEY = "duelminds.player.v1";
+
+  /** Identifiant de joueur, tiré une fois et conservé. Sert à l'arbitre à
+   *  reconnaître qui parle, rien de plus. */
+  function playerId() {
+    try {
+      let id = root.localStorage.getItem(ID_KEY);
+      if (!id) {
+        id = "p" + Math.random().toString(36).slice(2, 10);
+        root.localStorage.setItem(ID_KEY, id);
+      }
+      return id;
+    } catch (e) {
+      // Navigation privée : un identifiant de séance suffit.
+      return "p" + Math.random().toString(36).slice(2, 10);
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+   * L'ÉTAT D'UNE PARTIE EN LIGNE
+   * ------------------------------------------------------------------------ */
+  let match = null;
+
+  function reset() { match = null; }
+
+  function current() { return match; }
+
+  /** Es-tu le joueur « a » ? Détermine de quel côté le moteur te place. */
+  function isHost() { return !!match && match.side === "a"; }
+
+  function isActive() { return !!match; }
+
+  /* ---------------------------------------------------------------------------
+   * OUVRIR ET REJOINDRE
+   * ------------------------------------------------------------------------ */
+
+  function adopt(payload) {
+    match = {
+      code: payload.code,
+      side: payload.side,
+      turn: payload.turn || 1,
+      opponent: payload.opponent || null,
+      over: !!payload.over,
+    };
+    return match;
+  }
+
+  /**
+   * Ouvre une partie et renvoie son code.
+   * @returns {Promise<{ok:boolean, code?:string, reason?:string}>}
+   */
+  function create(character) {
+    const name = (DUELMINDS.leaderboard && DUELMINDS.leaderboard.name()) || "";
+    return DUELMINDS.net.call({
+      pvp: "create", player: playerId(), name: name, character: character,
+    }).then(function (payload) {
+      if (!payload || !payload.ok) return fail(payload);
+      adopt(payload);
+      return { ok: true, code: payload.code };
+    });
+  }
+
+  /**
+   * Rejoint une partie existante.
+   * Le code est normalisé : les joueurs le recopient à la main, ils écriront en
+   * minuscules et laisseront des espaces.
+   */
+  function join(code, character) {
+    const name = (DUELMINDS.leaderboard && DUELMINDS.leaderboard.name()) || "";
+    const clean = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (clean.length !== 4) return Promise.resolve({ ok: false, reason: "bad-code" });
+
+    return DUELMINDS.net.call({
+      pvp: "join", code: clean, player: playerId(), name: name, character: character,
+    }).then(function (payload) {
+      if (!payload || !payload.ok) return fail(payload);
+      adopt(payload);
+      return { ok: true, code: payload.code, opponent: payload.opponent };
+    });
+  }
+
+  function fail(payload) {
+    return {
+      ok: false,
+      reason: (payload && (payload.reason || payload.error)) || "empty",
+    };
+  }
+
+  /* ---------------------------------------------------------------------------
+   * ATTENDRE L'ADVERSAIRE
+   * ------------------------------------------------------------------------ */
+
+  /**
+   * Attend que quelqu'un rejoigne la partie ouverte.
+   *
+   * @param {function} onTick appelé à chaque demande de nouvelles, pour
+   *        pouvoir montrer que ça tourne encore
+   * @returns {Promise<{ok:boolean, opponent?:object, reason?:string}>}
+   */
+  function waitForOpponent(onTick) {
+    return poll(function (payload) {
+      if (payload.opponent) {
+        match.opponent = payload.opponent;
+        return { ok: true, opponent: payload.opponent };
+      }
+      return null;   // rien de neuf, on repasse plus tard
+    }, onTick);
+  }
+
+  /**
+   * Dépose ton coup et attend celui d'en face.
+   *
+   * @param {string} action    "charge" | "shoot" | "defend"
+   * @param {function} onTick  pour animer l'attente
+   * @returns {Promise<{ok:boolean, mine?:string, theirs?:string, reason?:string}>}
+   */
+  function playMove(action, onTick) {
+    if (!match) return Promise.resolve({ ok: false, reason: "no-match" });
+
+    return DUELMINDS.net.call({
+      pvp: "move", code: match.code, player: playerId(),
+      turn: match.turn, action: action,
+    }).then(function (payload) {
+      /* Le tour a bougé sans nous — l'autre était en avance. On se recale sur
+       * ce que dit l'arbitre et on redépose : sans ça la partie se fige. */
+      if (payload && payload.ok === false && payload.error === "wrong-turn" && payload.turn) {
+        match.turn = payload.turn;
+        return DUELMINDS.net.call({
+          pvp: "move", code: match.code, player: playerId(),
+          turn: match.turn, action: action,
+        });
+      }
+      return payload;
+    }).then(function (payload) {
+      if (!payload || payload.ok === false) return fail(payload);
+      if (payload.ready) return resolved(payload);
+
+      // Il manque encore le coup d'en face : on attend.
+      return poll(function (state) {
+        return state.ready ? resolved(state) : null;
+      }, onTick);
+    });
+  }
+
+  function resolved(payload) {
+    const mySide = match.side;
+    const other = mySide === "a" ? "b" : "a";
+    match.turn = payload.turn;
+    return {
+      ok: true,
+      mine: payload.moves[mySide],
+      theirs: payload.moves[other],
+      turn: payload.turn,
+    };
+  }
+
+  /** Prévient l'arbitre qu'on s'en va, pour que l'autre ne poireaute pas. */
+  function leave() {
+    if (!match) return Promise.resolve({ ok: true });
+    const code = match.code;
+    reset();
+    return DUELMINDS.net.call({ pvp: "leave", code: code, player: playerId() });
+  }
+
+  /* ---------------------------------------------------------------------------
+   * LA BOUCLE D'ATTENTE
+   * ---------------------------------------------------------------------------
+   * Redemande des nouvelles à intervalle régulier jusqu'à ce que `accept`
+   * renvoie autre chose que null.
+   *
+   * Deux protections indispensables :
+   *   - un ABANDON au bout d'un moment, sinon un joueur parti laisse l'autre
+   *     tourner indéfiniment ;
+   *   - la tolérance aux échecs isolés : un appel raté ne doit pas couper la
+   *     partie, les réseaux mobiles en ratent tout le temps.
+   * ------------------------------------------------------------------------ */
+  function poll(accept, onTick) {
+    const started = Date.now();
+    let failures = 0;
+
+    return new Promise(function (resolve) {
+      function tick() {
+        if (!match) return resolve({ ok: false, reason: "cancelled" });
+
+        DUELMINDS.net.call({
+          pvp: "state", code: match.code, player: playerId(),
+        }).then(function (payload) {
+          if (!match) return resolve({ ok: false, reason: "cancelled" });
+
+          if (payload && payload.ok) {
+            failures = 0;
+            if (payload.over) return resolve({ ok: false, reason: "opponent-left" });
+
+            const outcome = accept(payload);
+            if (outcome) return resolve(outcome);
+          } else {
+            failures += 1;
+            // Un code disparu du cache ne reviendra pas : inutile d'insister.
+            if (payload && payload.error === "unknown-code") {
+              return resolve({ ok: false, reason: "expired" });
+            }
+            if (failures >= 6) return resolve({ ok: false, reason: "offline" });
+          }
+
+          if (Date.now() - started > GIVE_UP_MS) {
+            return resolve({ ok: false, reason: "timeout" });
+          }
+          if (onTick) onTick(Math.round((Date.now() - started) / 1000));
+          root.setTimeout(tick, POLL_MS);
+        });
+      }
+      tick();
+    });
+  }
+
+  DUELMINDS.pvp = {
+    create, join, waitForOpponent, playMove, leave, reset,
+    current, isHost, isActive, playerId,
+    POLL_MS, GIVE_UP_MS,
   };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
@@ -5168,6 +5646,11 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     /* Ce que le dernier duel a rapporté : expérience, montée de niveau,
      * hauts faits débloqués. Affiché sur l'écran suivant. */
     lastProgress: null,
+
+    /* Duel en ligne : le coup adverse vient de l'arbitre, pas de l'IA.
+     * Voir la section DUEL EN LIGNE et src/pvp.js. */
+    online: false,
+    opponentName: "",
 
     /* Mode blitz : instant limite pour choisir. `null` hors blitz. */
     deadline: null,
@@ -5405,6 +5888,10 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
   }
 
   function startSession() {
+    // Une partie locale n'est jamais en ligne : on coupe l'éventuel duel resté
+    // ouvert, sinon on continuerait de parler à un arbitre pour rien.
+    if (state.online) { DUELMINDS.pvp.leave(); state.online = false; }
+
     // Début de série : aucun adversaire précédent à éviter.
     state.botCharacter = pickBotCharacter(null);
 
@@ -5443,7 +5930,8 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     // Bandeau : mode, difficulté, et série en cours si on est en arcade
     const difficulty = DIFFICULTIES.find((d) => d.key === s.difficulty);
-    $("hud-mode").textContent = L(MODES.find((m) => m.key === s.mode), "label");
+    $("hud-mode").textContent = state.online
+      ? t("pvp.mode") : L(MODES.find((m) => m.key === s.mode), "label");
     $("hud-difficulty").textContent = L(difficulty, "label");
     $("hud-difficulty").style.setProperty("--accent", "var(" + difficulty.accent + ")");
 
@@ -5457,7 +5945,10 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     $("manche-number").textContent = s.mancheNumber;
 
     $("me-name").textContent = characterName(state.character);
-    $("bot-name").textContent = characterName(state.botCharacter);
+    /* En ligne, le bandeau porte le NOM DU JOUEUR d'en face : c'est ce qu'on
+     * veut lire quand on affronte quelqu'un, pas le nom de son personnage. */
+    $("bot-name").textContent = state.online && state.opponentName
+      ? state.opponentName : characterName(state.botCharacter);
     renderScore($("score-me"), s.player.manchesWon);
     renderScore($("score-bot"), s.bot.manchesWon);
 
@@ -5581,11 +6072,27 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     if (state.phase !== "choosing" || !canDo(s.player, action)) return;
     stopTimer();
 
+    /* EN LIGNE, le coup part vers l'arbitre et le tour ne se résout qu'au
+     * retour du coup adverse. Tout ce qui suit — comptage, révélation,
+     * animations — est ensuite RIGOUREUSEMENT identique : voir afterTurn. */
+    if (state.online) return onOnlineAction(action);
+
     // Verrou immédiat : plus rien n'est cliquable jusqu'à la fin de la révélation
     state.phase = "revealing";
     for (const button of document.querySelectorAll(".action")) button.disabled = true;
 
-    const result = DUELMINDS.match.playTurn(s, action);
+    afterTurn(DUELMINDS.match.playTurn(s, action), action);
+  }
+
+  /**
+   * Tout ce qui suit la résolution d'un tour, quelle qu'en soit l'origine :
+   * l'ordinateur en local, l'arbitre en ligne.
+   *
+   * Ce partage n'est pas cosmétique — c'est lui qui garantit qu'un duel en
+   * ligne compte les hauts faits, joue les mêmes sons et affiche les mêmes
+   * animations qu'un duel hors ligne, sans qu'on ait à y penser.
+   */
+  function afterTurn(result, action) {
     const turn = result.turn;
 
     // Compteurs de la session entière
@@ -6008,6 +6515,160 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
       level: playerLevel(),
       feats: DUELMINDS.progress.summary().done,
     });
+  }
+
+  /* =========================================================================
+   * DUEL EN LIGNE
+   * -------------------------------------------------------------------------
+   * L'écran de duel est le MÊME que contre l'ordinateur : mêmes boutons, mêmes
+   * animations, mêmes règles. Une seule chose change — d'où vient le coup d'en
+   * face. C'est ce qui permet d'ajouter le jeu en ligne sans dupliquer quoi que
+   * ce soit.
+   *
+   * Voir src/pvp.js pour le protocole, et pourquoi un arbitre est indispensable
+   * quand les actions sont simultanées et secrètes.
+   * ====================================================================== */
+
+  /** Message d'erreur du salon, choisi selon la panne. Voir i18n.js. */
+  function pvpReason(reason) {
+    switch (reason) {
+      case "bad-code":      return t("pvp.badCode");
+      case "unknown-code":  return t("pvp.unknownCode");
+      case "match-full":    return t("pvp.full");
+      case "opponent-left": return t("pvp.left");
+      case "expired":       return t("pvp.expired");
+      case "not-jsonp":     return t("pvp.notDeployed");
+      case "no-endpoint":   return t("pvp.noEndpoint");
+      case "timeout":       return t("pvp.timeout");
+      default:              return t("pvp.offline");
+    }
+  }
+
+  function lobbyError(reason) {
+    const box = $("lobby-error");
+    box.textContent = pvpReason(reason);
+    box.hidden = false;
+    $("lobby-choice").hidden = false;
+    $("lobby-waiting").hidden = true;
+  }
+
+  function openLobby() {
+    $("lobby-choice").hidden = false;
+    $("lobby-waiting").hidden = true;
+    $("lobby-error").hidden = true;
+    $("lobby-code").value = "";
+    showScreen("screen-lobby");
+  }
+
+  /** Ouvre une partie et attend que quelqu'un vienne. */
+  function lobbyCreate() {
+    audio.play("click");
+    $("lobby-error").hidden = true;
+    $("lobby-choice").hidden = true;
+    $("lobby-waiting").hidden = false;
+    $("lobby-code-shown").textContent = "····";
+    $("lobby-status").textContent = t("pvp.opening");
+
+    DUELMINDS.pvp.create(state.character).then(function (result) {
+      if (!result.ok) return lobbyError(result.reason);
+
+      $("lobby-code-shown").textContent = result.code;
+      $("lobby-status").textContent = t("pvp.waiting", { n: 0 });
+
+      return DUELMINDS.pvp.waitForOpponent(function (seconds) {
+        $("lobby-status").textContent = t("pvp.waiting", { n: seconds });
+      }).then(function (arrival) {
+        if (!arrival.ok) return lobbyError(arrival.reason);
+        startOnlineDuel(arrival.opponent);
+      });
+    });
+  }
+
+  /** Rejoint la partie d'un ami. */
+  function lobbyJoin() {
+    audio.play("click");
+    $("lobby-error").hidden = true;
+    $("lobby-choice").hidden = true;
+    $("lobby-waiting").hidden = false;
+    $("lobby-code-shown").textContent = $("lobby-code").value.toUpperCase() || "····";
+    $("lobby-status").textContent = t("pvp.joining");
+
+    DUELMINDS.pvp.join($("lobby-code").value, state.character).then(function (result) {
+      if (!result.ok) return lobbyError(result.reason);
+      startOnlineDuel(result.opponent);
+    });
+  }
+
+  /**
+   * Démarre le duel en ligne.
+   *
+   * Le moteur place TOUJOURS le joueur local du côté « a » : c'est ce qui
+   * permet de réutiliser tout l'affichage sans condition. Chacun se voit donc à
+   * droite, et voit l'autre à gauche — ce qui est exactement ce qu'on veut, les
+   * deux écrans n'ont pas à être identiques.
+   */
+  function startOnlineDuel(opponent) {
+    state.mode = "duel";                 // structure de duel classique
+    state.difficulty = "difficile";      // sert seulement d'étiquette à l'écran
+    state.online = true;
+    state.botCharacter = (opponent && opponent.character) || pickBotCharacter(null);
+    state.opponentName = (opponent && opponent.name) || "";
+
+    state.session = DUELMINDS.match.createSession("duel", state.difficulty, {});
+    DUELMINDS.match.startManche(state.session);
+    state.phase = "choosing";
+    state.log = newLog();
+    state.duelLog = newDuelLog();
+    state.effect = null;
+    state.flash.player = 0;
+    state.flash.bot = 0;
+    setPose("player", "idle");
+    setPose("bot", "idle");
+
+    setLog(t("pvp.joined", { name: state.opponentName || t("pvp.opponent") }));
+    renderDuel();
+    showScreen("screen-duel");
+  }
+
+  /**
+   * Un tour en ligne : on dépose son coup, puis on attend celui d'en face.
+   *
+   * Le verrouillage des boutons est le même que hors ligne — sauf que l'attente
+   * dure le temps du réseau. On le DIT dans le journal : un écran qui ne
+   * répond pas sans explication passe pour un plantage.
+   */
+  function onOnlineAction(action) {
+    state.phase = "revealing";
+    for (const button of document.querySelectorAll(".action")) button.disabled = true;
+    setLog(t("pvp.theirTurn"));
+    stopTimer();
+
+    DUELMINDS.pvp.playMove(action, function () { /* l'attente s'affiche déjà */ })
+      .then(function (result) {
+        if (!result.ok) {
+          // L'adversaire est parti ou le réseau a lâché : on ne laisse pas le
+          // joueur dans un écran mort.
+          announce(t("pvp.opponent"), pvpReason(result.reason), t("nav.back"), () => {
+            DUELMINDS.pvp.leave();
+            state.online = false;
+            showScreen("screen-home");
+            refreshHome();
+          });
+          return;
+        }
+        resolveTurnLocally(result.mine, result.theirs);
+      });
+  }
+
+  /**
+   * Rejoue le tour avec les deux coups, exactement comme contre l'ordinateur.
+   * `playTurnWith` est le même moteur : aucune règle n'est dupliquée pour le
+   * jeu en ligne.
+   */
+  function resolveTurnLocally(mine, theirs) {
+    const s = state.session;
+    const result = DUELMINDS.match.playTurnWith(s, mine, theirs);
+    afterTurn(result, mine);
   }
 
   /* =========================================================================
@@ -6456,9 +7117,30 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     }
 
     $("btn-start").addEventListener("click", () => { audio.play("click"); startSession(); });
-    $("btn-quit").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
+    $("btn-quit").addEventListener("click", () => {
+      audio.play("click");
+      // Prévenir l'arbitre, sinon l'autre joueur attend un coup qui ne
+      // viendra jamais.
+      if (state.online) { DUELMINDS.pvp.leave(); state.online = false; }
+      showScreen("screen-home");
+      refreshHome();
+    });
     $("btn-again").addEventListener("click", () => { audio.play("click"); startSession(); });
     $("btn-home").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
+
+    /* --- Duel en ligne --- */
+    $("btn-pvp").addEventListener("click", () => { audio.play("click"); openLobby(); });
+    $("btn-lobby-create").addEventListener("click", lobbyCreate);
+    $("btn-lobby-join").addEventListener("click", lobbyJoin);
+    $("btn-lobby-back").addEventListener("click", () => {
+      DUELMINDS.pvp.leave();          // annule l'attente en cours
+      state.online = false;
+      showScreen("screen-home");
+    });
+    // Un code se recopie a la main : on met en majuscules a la volee.
+    $("lobby-code").addEventListener("input", (e) => {
+      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+    });
 
     /* --- Classement --- */
     $("btn-board").addEventListener("click", () => {
@@ -6477,7 +7159,12 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
     /* --- Pseudonyme --- */
     const nameInput = $("player-name");
-    $("name-block").hidden = !DUELMINDS.leaderboard.isAvailable();
+    /* Sans point de collecte, ni classement ni duel en ligne : on masque
+     * plutot que d'offrir un bouton qui echouerait. */
+    const online = DUELMINDS.net.isAvailable();
+    $("name-block").hidden = !online;
+    $("btn-pvp").hidden = !online;
+    $("btn-board").hidden = !online;
     nameInput.value = DUELMINDS.leaderboard.name();
     // À chaque frappe : il n'y a pas de bouton « valider », et un nom perdu
     // parce qu'on a lancé la partie trop vite serait agaçant.

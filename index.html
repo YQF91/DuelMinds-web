@@ -89,6 +89,9 @@
     <div class="row">
       <button class="btn primary" id="btn-start" type="button" disabled data-en="Start">Commencer</button>
     </div>
+    <div class="row">
+      <button class="btn" id="btn-pvp" type="button" data-en="Duel a friend">Duel en ligne</button>
+    </div>
 
     <!-- Choix de la langue. Placé en bas : un joueur anglophone tombe déjà sur
          un jeu en anglais (voir i18n.js), le bouton ne sert qu'à corriger. -->
@@ -347,6 +350,51 @@
   </section>
 
   <!-- ======================================================================
+       ÉCRAN 9 — SALON DU DUEL EN LIGNE
+       ----------------------------------------------------------------------
+       Un code a quatre lettres, rien d'autre. Aucun compte, aucune installation.
+       Celui qui ouvre la partie lit son code a l'autre.
+       Voir src/pvp.js, et l'arbitre dans tools/google-apps-script.gs.
+       ==================================================================== -->
+  <section id="screen-lobby" class="screen" aria-label="Duel en ligne">
+    <h2 data-en="Online duel">Duel en ligne</h2>
+
+    <p class="footnote"
+       data-en="Two players, two phones, one four-letter code. Your opponent needs no account.">
+      Deux joueurs, deux téléphones, un code à quatre lettres. Ton adversaire
+      n'a besoin d'aucun compte.
+    </p>
+
+    <div id="lobby-choice">
+      <div class="row">
+        <button class="btn primary" id="btn-lobby-create" type="button"
+                data-en="Open a duel">Ouvrir un duel</button>
+      </div>
+      <p class="section-label" data-en="or join with a code">ou rejoins avec un code</p>
+      <div class="row">
+        <input class="text-input code-input" id="lobby-code" type="text" maxlength="4"
+               autocomplete="off" spellcheck="false" inputmode="text"
+               placeholder="CODE" data-en-placeholder="CODE">
+        <button class="btn" id="btn-lobby-join" type="button"
+                data-en="Join">Rejoindre</button>
+      </div>
+    </div>
+
+    <!-- Affiché une fois la partie ouverte : le code à transmettre -->
+    <div id="lobby-waiting" hidden>
+      <p class="section-label" data-en="Give this code to your opponent">Donne ce code à ton adversaire</p>
+      <p class="lobby-code" id="lobby-code-shown">····</p>
+      <p class="board-message" id="lobby-status"></p>
+    </div>
+
+    <p class="footnote" id="lobby-error" hidden></p>
+
+    <div class="row">
+      <button class="btn" id="btn-lobby-back" type="button" data-en="Back">Retour</button>
+    </div>
+  </section>
+
+  <!-- ======================================================================
        ÉCRAN 8 — CLASSEMENT
        ----------------------------------------------------------------------
        Les meilleures séries de tous les testeurs, relues depuis la feuille
@@ -424,7 +472,9 @@
     stats      compteurs et records, a besoin de rules
     progress   niveaux et hauts faits, a besoin de rules
     telemetry  remontée optionnelle, a besoin de rules
-    leaderboard classement lu depuis la feuille, a besoin de telemetry
+    net        appels au serveur (JSONP), a besoin de telemetry
+    leaderboard classement lu depuis la feuille, a besoin de net
+    pvp        duel en ligne entre deux joueurs, a besoin de net
     ui         interface, a besoin de tout le reste
     main       démarrage
 -->
@@ -439,7 +489,9 @@
 <script src="src/stats.js"></script>
 <script src="src/progress.js"></script>
 <script src="src/telemetry.js"></script>
+<script src="src/net.js"></script>
 <script src="src/leaderboard.js"></script>
+<script src="src/pvp.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/main.js"></script>
 </body>

@@ -883,7 +883,38 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 }
 
 /* =============================================================================
- * 11. ACCESSIBILITÉ
+ * 11. SALON DU DUEL EN LIGNE
+ * -----------------------------------------------------------------------------
+ * Le code doit se lire à voix haute d'un bout à l'autre d'un bureau. Il est
+ * donc gros, espacé, et en chiffres à chasse fixe pour qu'aucun caractère ne
+ * puisse être confondu avec un autre.
+ * ========================================================================== */
+
+.lobby-code {
+  font-family: var(--font-mono);
+  font-size: 44px;
+  letter-spacing: .22em;
+  text-align: center;
+  color: var(--brass);
+  margin: 6px 0 2px;
+  /* L'espacement décale le texte vers la droite : on compense pour qu'il
+     reste optiquement centré. */
+  text-indent: .22em;
+}
+
+.code-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  letter-spacing: .2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+#lobby-error { color: var(--rust); }
+
+/* =============================================================================
+ * 12. ACCESSIBILITÉ
  * ========================================================================== */
 
 /* Le focus clavier doit toujours se voir : on ne supprime jamais l'anneau

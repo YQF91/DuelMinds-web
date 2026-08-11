@@ -87,6 +87,11 @@
      * hauts faits débloqués. Affiché sur l'écran suivant. */
     lastProgress: null,
 
+    /* Duel en ligne : le coup adverse vient de l'arbitre, pas de l'IA.
+     * Voir la section DUEL EN LIGNE et src/pvp.js. */
+    online: false,
+    opponentName: "",
+
     /* Mode blitz : instant limite pour choisir. `null` hors blitz. */
     deadline: null,
     timedOut: 0,   // nombre de fois où le temps a décidé à la place du joueur
@@ -323,6 +328,10 @@
   }
 
   function startSession() {
+    // Une partie locale n'est jamais en ligne : on coupe l'éventuel duel resté
+    // ouvert, sinon on continuerait de parler à un arbitre pour rien.
+    if (state.online) { DUELMINDS.pvp.leave(); state.online = false; }
+
     // Début de série : aucun adversaire précédent à éviter.
     state.botCharacter = pickBotCharacter(null);
 
@@ -361,7 +370,8 @@
 
     // Bandeau : mode, difficulté, et série en cours si on est en arcade
     const difficulty = DIFFICULTIES.find((d) => d.key === s.difficulty);
-    $("hud-mode").textContent = L(MODES.find((m) => m.key === s.mode), "label");
+    $("hud-mode").textContent = state.online
+      ? t("pvp.mode") : L(MODES.find((m) => m.key === s.mode), "label");
     $("hud-difficulty").textContent = L(difficulty, "label");
     $("hud-difficulty").style.setProperty("--accent", "var(" + difficulty.accent + ")");
 
@@ -375,7 +385,10 @@
     $("manche-number").textContent = s.mancheNumber;
 
     $("me-name").textContent = characterName(state.character);
-    $("bot-name").textContent = characterName(state.botCharacter);
+    /* En ligne, le bandeau porte le NOM DU JOUEUR d'en face : c'est ce qu'on
+     * veut lire quand on affronte quelqu'un, pas le nom de son personnage. */
+    $("bot-name").textContent = state.online && state.opponentName
+      ? state.opponentName : characterName(state.botCharacter);
     renderScore($("score-me"), s.player.manchesWon);
     renderScore($("score-bot"), s.bot.manchesWon);
 
@@ -499,11 +512,27 @@
     if (state.phase !== "choosing" || !canDo(s.player, action)) return;
     stopTimer();
 
+    /* EN LIGNE, le coup part vers l'arbitre et le tour ne se résout qu'au
+     * retour du coup adverse. Tout ce qui suit — comptage, révélation,
+     * animations — est ensuite RIGOUREUSEMENT identique : voir afterTurn. */
+    if (state.online) return onOnlineAction(action);
+
     // Verrou immédiat : plus rien n'est cliquable jusqu'à la fin de la révélation
     state.phase = "revealing";
     for (const button of document.querySelectorAll(".action")) button.disabled = true;
 
-    const result = DUELMINDS.match.playTurn(s, action);
+    afterTurn(DUELMINDS.match.playTurn(s, action), action);
+  }
+
+  /**
+   * Tout ce qui suit la résolution d'un tour, quelle qu'en soit l'origine :
+   * l'ordinateur en local, l'arbitre en ligne.
+   *
+   * Ce partage n'est pas cosmétique — c'est lui qui garantit qu'un duel en
+   * ligne compte les hauts faits, joue les mêmes sons et affiche les mêmes
+   * animations qu'un duel hors ligne, sans qu'on ait à y penser.
+   */
+  function afterTurn(result, action) {
     const turn = result.turn;
 
     // Compteurs de la session entière
@@ -926,6 +955,160 @@
       level: playerLevel(),
       feats: DUELMINDS.progress.summary().done,
     });
+  }
+
+  /* =========================================================================
+   * DUEL EN LIGNE
+   * -------------------------------------------------------------------------
+   * L'écran de duel est le MÊME que contre l'ordinateur : mêmes boutons, mêmes
+   * animations, mêmes règles. Une seule chose change — d'où vient le coup d'en
+   * face. C'est ce qui permet d'ajouter le jeu en ligne sans dupliquer quoi que
+   * ce soit.
+   *
+   * Voir src/pvp.js pour le protocole, et pourquoi un arbitre est indispensable
+   * quand les actions sont simultanées et secrètes.
+   * ====================================================================== */
+
+  /** Message d'erreur du salon, choisi selon la panne. Voir i18n.js. */
+  function pvpReason(reason) {
+    switch (reason) {
+      case "bad-code":      return t("pvp.badCode");
+      case "unknown-code":  return t("pvp.unknownCode");
+      case "match-full":    return t("pvp.full");
+      case "opponent-left": return t("pvp.left");
+      case "expired":       return t("pvp.expired");
+      case "not-jsonp":     return t("pvp.notDeployed");
+      case "no-endpoint":   return t("pvp.noEndpoint");
+      case "timeout":       return t("pvp.timeout");
+      default:              return t("pvp.offline");
+    }
+  }
+
+  function lobbyError(reason) {
+    const box = $("lobby-error");
+    box.textContent = pvpReason(reason);
+    box.hidden = false;
+    $("lobby-choice").hidden = false;
+    $("lobby-waiting").hidden = true;
+  }
+
+  function openLobby() {
+    $("lobby-choice").hidden = false;
+    $("lobby-waiting").hidden = true;
+    $("lobby-error").hidden = true;
+    $("lobby-code").value = "";
+    showScreen("screen-lobby");
+  }
+
+  /** Ouvre une partie et attend que quelqu'un vienne. */
+  function lobbyCreate() {
+    audio.play("click");
+    $("lobby-error").hidden = true;
+    $("lobby-choice").hidden = true;
+    $("lobby-waiting").hidden = false;
+    $("lobby-code-shown").textContent = "····";
+    $("lobby-status").textContent = t("pvp.opening");
+
+    DUELMINDS.pvp.create(state.character).then(function (result) {
+      if (!result.ok) return lobbyError(result.reason);
+
+      $("lobby-code-shown").textContent = result.code;
+      $("lobby-status").textContent = t("pvp.waiting", { n: 0 });
+
+      return DUELMINDS.pvp.waitForOpponent(function (seconds) {
+        $("lobby-status").textContent = t("pvp.waiting", { n: seconds });
+      }).then(function (arrival) {
+        if (!arrival.ok) return lobbyError(arrival.reason);
+        startOnlineDuel(arrival.opponent);
+      });
+    });
+  }
+
+  /** Rejoint la partie d'un ami. */
+  function lobbyJoin() {
+    audio.play("click");
+    $("lobby-error").hidden = true;
+    $("lobby-choice").hidden = true;
+    $("lobby-waiting").hidden = false;
+    $("lobby-code-shown").textContent = $("lobby-code").value.toUpperCase() || "····";
+    $("lobby-status").textContent = t("pvp.joining");
+
+    DUELMINDS.pvp.join($("lobby-code").value, state.character).then(function (result) {
+      if (!result.ok) return lobbyError(result.reason);
+      startOnlineDuel(result.opponent);
+    });
+  }
+
+  /**
+   * Démarre le duel en ligne.
+   *
+   * Le moteur place TOUJOURS le joueur local du côté « a » : c'est ce qui
+   * permet de réutiliser tout l'affichage sans condition. Chacun se voit donc à
+   * droite, et voit l'autre à gauche — ce qui est exactement ce qu'on veut, les
+   * deux écrans n'ont pas à être identiques.
+   */
+  function startOnlineDuel(opponent) {
+    state.mode = "duel";                 // structure de duel classique
+    state.difficulty = "difficile";      // sert seulement d'étiquette à l'écran
+    state.online = true;
+    state.botCharacter = (opponent && opponent.character) || pickBotCharacter(null);
+    state.opponentName = (opponent && opponent.name) || "";
+
+    state.session = DUELMINDS.match.createSession("duel", state.difficulty, {});
+    DUELMINDS.match.startManche(state.session);
+    state.phase = "choosing";
+    state.log = newLog();
+    state.duelLog = newDuelLog();
+    state.effect = null;
+    state.flash.player = 0;
+    state.flash.bot = 0;
+    setPose("player", "idle");
+    setPose("bot", "idle");
+
+    setLog(t("pvp.joined", { name: state.opponentName || t("pvp.opponent") }));
+    renderDuel();
+    showScreen("screen-duel");
+  }
+
+  /**
+   * Un tour en ligne : on dépose son coup, puis on attend celui d'en face.
+   *
+   * Le verrouillage des boutons est le même que hors ligne — sauf que l'attente
+   * dure le temps du réseau. On le DIT dans le journal : un écran qui ne
+   * répond pas sans explication passe pour un plantage.
+   */
+  function onOnlineAction(action) {
+    state.phase = "revealing";
+    for (const button of document.querySelectorAll(".action")) button.disabled = true;
+    setLog(t("pvp.theirTurn"));
+    stopTimer();
+
+    DUELMINDS.pvp.playMove(action, function () { /* l'attente s'affiche déjà */ })
+      .then(function (result) {
+        if (!result.ok) {
+          // L'adversaire est parti ou le réseau a lâché : on ne laisse pas le
+          // joueur dans un écran mort.
+          announce(t("pvp.opponent"), pvpReason(result.reason), t("nav.back"), () => {
+            DUELMINDS.pvp.leave();
+            state.online = false;
+            showScreen("screen-home");
+            refreshHome();
+          });
+          return;
+        }
+        resolveTurnLocally(result.mine, result.theirs);
+      });
+  }
+
+  /**
+   * Rejoue le tour avec les deux coups, exactement comme contre l'ordinateur.
+   * `playTurnWith` est le même moteur : aucune règle n'est dupliquée pour le
+   * jeu en ligne.
+   */
+  function resolveTurnLocally(mine, theirs) {
+    const s = state.session;
+    const result = DUELMINDS.match.playTurnWith(s, mine, theirs);
+    afterTurn(result, mine);
   }
 
   /* =========================================================================
@@ -1374,9 +1557,30 @@
     }
 
     $("btn-start").addEventListener("click", () => { audio.play("click"); startSession(); });
-    $("btn-quit").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
+    $("btn-quit").addEventListener("click", () => {
+      audio.play("click");
+      // Prévenir l'arbitre, sinon l'autre joueur attend un coup qui ne
+      // viendra jamais.
+      if (state.online) { DUELMINDS.pvp.leave(); state.online = false; }
+      showScreen("screen-home");
+      refreshHome();
+    });
     $("btn-again").addEventListener("click", () => { audio.play("click"); startSession(); });
     $("btn-home").addEventListener("click", () => { audio.play("click"); showScreen("screen-home"); refreshHome(); });
+
+    /* --- Duel en ligne --- */
+    $("btn-pvp").addEventListener("click", () => { audio.play("click"); openLobby(); });
+    $("btn-lobby-create").addEventListener("click", lobbyCreate);
+    $("btn-lobby-join").addEventListener("click", lobbyJoin);
+    $("btn-lobby-back").addEventListener("click", () => {
+      DUELMINDS.pvp.leave();          // annule l'attente en cours
+      state.online = false;
+      showScreen("screen-home");
+    });
+    // Un code se recopie a la main : on met en majuscules a la volee.
+    $("lobby-code").addEventListener("input", (e) => {
+      e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+    });
 
     /* --- Classement --- */
     $("btn-board").addEventListener("click", () => {
@@ -1395,7 +1599,12 @@
 
     /* --- Pseudonyme --- */
     const nameInput = $("player-name");
-    $("name-block").hidden = !DUELMINDS.leaderboard.isAvailable();
+    /* Sans point de collecte, ni classement ni duel en ligne : on masque
+     * plutot que d'offrir un bouton qui echouerait. */
+    const online = DUELMINDS.net.isAvailable();
+    $("name-block").hidden = !online;
+    $("btn-pvp").hidden = !online;
+    $("btn-board").hidden = !online;
     nameInput.value = DUELMINDS.leaderboard.name();
     // À chaque frappe : il n'y a pas de bouton « valider », et un nom perdu
     // parce qu'on a lancé la partie trop vite serait agaçant.
