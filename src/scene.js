@@ -72,6 +72,96 @@
   }
 
   /* ---------------------------------------------------------------------------
+   * LES DÉCORS PEINTS
+   * ---------------------------------------------------------------------------
+   * Trois lieux dessinés, tirés au sort à chaque duel. Ils remplacent le fond
+   * calculé quand ils sont chargés — et seulement à ce moment-là.
+   *
+   * LE REPLI N'EST PAS UNE PRÉCAUTION DE PRINCIPE
+   * Une image de 130 Ko sur un réseau lent met plusieurs secondes à arriver, et
+   * un duel peut commencer avant. Sans repli, l'arène serait vide pendant ce
+   * temps. Le fond calculé s'affiche donc immédiatement et cède la place dès
+   * que le dessin est prêt : on ne voit jamais de trou, seulement une image qui
+   * apparaît.
+   *
+   * POURQUOI ON LES ASSOMBRIT
+   * Ces décors sont lumineux — ciel bleu, sable clair. Les duellistes s'y
+   * perdraient, et le jeu passerait du sombre au clair d'un écran à l'autre. Un
+   * voile et un vignettage les ramènent dans l'ambiance du reste, sans rien
+   * cacher de ce qui est dessiné.
+   * ------------------------------------------------------------------------ */
+  const DECORS = ["saloon", "desert", "forest"];
+
+  /* Assez pour que les duellistes se détachent, assez peu pour qu'on lise
+   * encore le saloon et les cactus. Réglé à l'œil sur les trois images. */
+  const SCRIM = 0.44;
+  const VIGNETTE = 0.55;
+
+  const decorCache = new Map();   // clé -> { image, ready, failed }
+  let currentDecor = null;
+
+  function decorEntry(key) {
+    if (decorCache.has(key)) return decorCache.get(key);
+    const entry = { image: new root.Image(), ready: false, failed: false };
+    entry.image.onload = function () { entry.ready = true; };
+    entry.image.onerror = function () { entry.failed = true; };
+    entry.image.src = "assets/decors/" + key + ".jpg";
+    decorCache.set(key, entry);
+    return entry;
+  }
+
+  /** Demande le chargement des trois décors, sans attendre. */
+  function preloadDecors() { for (const key of DECORS) decorEntry(key); }
+
+  /**
+   * Tire un décor pour le duel qui commence, jamais le même deux fois de
+   * suite : revoir le même lieu enchaîné donne l'impression que rien n'a
+   * changé, exactement comme pour les adversaires.
+   */
+  function pickDecor() {
+    const pool = DECORS.filter(function (key) { return key !== currentDecor; });
+    currentDecor = pool[Math.floor(Math.random() * pool.length)];
+    decorEntry(currentDecor);
+    return currentDecor;
+  }
+
+  function decorName() { return currentDecor; }
+
+  /**
+   * Dessine le décor en le recadrant sans le déformer, puis l'assombrit.
+   * @returns {boolean} vrai si le décor a bien été peint
+   */
+  function drawDecor(ctx, width, height) {
+    if (!currentDecor) return false;
+    const entry = decorCache.get(currentDecor);
+    if (!entry || !entry.ready || entry.failed) return false;
+
+    const image = entry.image;
+    // Recadrage « couvrant » : on remplit toute l'arène, quitte à rogner les
+    // bords. Déformer un décor peint se verrait immédiatement.
+    const scale = Math.max(width / image.width, height / image.height);
+    const drawWidth = image.width * scale;
+    const drawHeight = image.height * scale;
+    ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2,
+                  drawWidth, drawHeight);
+
+    // Voile général : ramène l'image dans l'ambiance sombre du jeu.
+    ctx.fillStyle = "rgba(23,19,16," + SCRIM + ")";
+    ctx.fillRect(0, 0, width, height);
+
+    // Vignettage : l'œil va au centre, là où se joue le duel.
+    const vignette = ctx.createRadialGradient(
+      width / 2, height / 2, Math.min(width, height) * 0.25,
+      width / 2, height / 2, Math.max(width, height) * 0.75);
+    vignette.addColorStop(0, "rgba(23,19,16,0)");
+    vignette.addColorStop(1, "rgba(23,19,16," + VIGNETTE + ")");
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, width, height);
+
+    return true;
+  }
+
+  /* ---------------------------------------------------------------------------
    * GÉNÉRATEUR À GRAINE
    * ---------------------------------------------------------------------------
    * Math.random() redonnerait un paysage différent à chaque image. Il faut donc
@@ -230,6 +320,16 @@
 
     ctx.clearRect(0, 0, width, height);
 
+    /* Un décor peint s'il est prêt, sinon le fond calculé. La poussière et la
+     * secousse fonctionnent dans les deux cas : elles ne dépendent pas de ce
+     * qu'il y a derrière. */
+    if (drawDecor(ctx, width, height)) {
+      updateParticles(dt, width, height);
+      drawParticles(ctx);
+      if (shakeAmount > 0) shakeAmount = Math.max(0, shakeAmount - dt * 26);
+      return;
+    }
+
     // 1. Le ciel, et l'astre bas sur l'horizon.
     const sky = ctx.createLinearGradient(0, 0, 0, groundY);
     sky.addColorStop(0, SKY.high);
@@ -262,5 +362,6 @@
     if (shakeAmount > 0) shakeAmount = Math.max(0, shakeAmount - dt * 26);
   }
 
-  DUELMINDS.scene = { draw, burst, shake, shakeOffset, groundLine };
+  DUELMINDS.scene = { draw, burst, shake, shakeOffset, groundLine,
+                      pickDecor, preloadDecors, decorName, DECORS };
 })(typeof globalThis !== "undefined" ? globalThis : window);

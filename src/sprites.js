@@ -63,11 +63,36 @@
   const ART_FACING = "left";
 
   /**
-   * Faut-il retourner ce duelliste ?
-   * @param {"left"|"right"} position  son côté de l'arène
+   * De quel côté regarde le dessin d'origine de ce personnage ?
+   * Lu dans CHARACTERS (rules.js), où chaque entrée porte son propre `faces` :
+   * les images n'ont pas toutes été dessinées dans le même sens.
+   * Repli sur ART_FACING pour les silhouettes de secours, toutes tournées
+   * vers la gauche.
    */
-  function shouldFlip(position) {
-    return ART_FACING === "left" ? position === "left" : position === "right";
+  function artFacing(characterKey) {
+    const list = DUELMINDS.CHARACTERS || [];
+    const character = list.find(function (c) { return c.key === characterKey; });
+    return (character && character.faces) || ART_FACING;
+  }
+
+  /**
+   * Faut-il retourner ce duelliste pour qu'il regarde son adversaire ?
+   *
+   * Deux choses se combinent, et c'est tout :
+   *   - la PLACE occupée impose un sens de regard. À droite (toi), il faut
+   *     regarder à gauche ; à gauche (l'adversaire), regarder à droite.
+   *   - le DESSIN a son propre sens, propre à chaque personnage.
+   * On retourne quand les deux ne coïncident pas.
+   *
+   * Conséquence, et c'est ce qu'on observe à l'écran : un Cowboy joué par TOI
+   * n'est pas retourné, alors que le même Cowboy joué par l'ADVERSAIRE l'est.
+   *
+   * @param {"left"|"right"} position      son côté de l'arène
+   * @param {string} [characterKey]        pour connaître le sens de son dessin
+   */
+  function shouldFlip(position, characterKey) {
+    const needed = position === "right" ? "left" : "right";
+    return artFacing(characterKey) !== needed;
   }
 
   /* ---------------------------------------------------------------------------
@@ -317,8 +342,8 @@
     const entry = getImage(opts.character);
     const useImage = entry && entry.ready && !entry.failed;
 
-    // Retourné ou non selon le côté qu'il occupe et le sens du dessin.
-    const flipped = shouldFlip(opts.position);
+    // Retourné ou non selon le côté qu'il occupe ET le sens de SON dessin.
+    const flipped = shouldFlip(opts.position, opts.character);
     // `facing` sert aux animations : +1 quand le personnage regarde à droite.
     const facing = flipped ? 1 : -1;
     const transform = poseTransform(opts.pose, opts.poseProgress || 0, opts.time || 0, facing);
@@ -420,6 +445,25 @@
    * @param {object} zone  {width, height} de la scène
    * @param {"player"|"bot"} from  qui déclenche
    */
+  /* ---------------------------------------------------------------------------
+   * LUMINOSITÉ DES EFFETS
+   * ---------------------------------------------------------------------------
+   * Un seul réglage pour tout ce qui brille. Il existe parce que les effets
+   * étaient trop lumineux : un effet se déclenche à CHAQUE tour — charge, tir,
+   * protection, clash — et sur une partie entière, l'écran passait son temps à
+   * s'allumer. Signalé deux fois par Jude, et c'est une gêne réelle, pas une
+   * préférence.
+   *
+   * Baisser chaque valeur séparément aurait été ingérable : on en oublie une,
+   * et elle ressort d'autant plus qu'elle est seule. Ici, une seule ligne
+   * gouverne l'ensemble.
+   *
+   * Rien n'est perdu : ces effets ne portent AUCUNE information. Le coup joué
+   * est écrit en toutes lettres dans le bandeau de révélation, et le résultat
+   * dans le journal. L'effet ne fait qu'accompagner.
+   * ------------------------------------------------------------------------ */
+  const GLOW = 0.45;
+
   function drawEffect(ctx, kind, life, zone, from) {
     if (life <= 0) return;
 
@@ -439,14 +483,18 @@
       const big = kind === "super";
 
       // Traînée derrière le projectile
-      ctx.strokeStyle = big ? "rgba(209,87,63,.55)" : "rgba(255,230,170,.4)";
+      ctx.strokeStyle = big ? "rgba(209,87,63," + (0.55 * GLOW) + ")"
+                            : "rgba(255,230,170," + (0.4 * GLOW) + ")";
       ctx.lineWidth = big ? 6 : 2.5;
       ctx.beginPath();
       ctx.moveTo(originX, lineY);
       ctx.lineTo(x, lineY);
       ctx.stroke();
 
-      ctx.fillStyle = big ? "#e0a13c" : "#fff3d0";
+      /* La balle elle-même reste bien visible : c'est le seul élément qu'on
+       * suit vraiment des yeux. On l'atténue moins que le reste. */
+      ctx.fillStyle = big ? "rgba(224,161,60," + (0.5 + 0.5 * GLOW) + ")"
+                          : "rgba(255,243,208," + (0.5 + 0.5 * GLOW) + ")";
       ctx.beginPath();
       ctx.arc(x, lineY, big ? 8 : 4.5, 0, Math.PI * 2);
       ctx.fill();
@@ -455,7 +503,7 @@
        * Plafonné : à pleine opacité, c'était un disque jaune vif en plein
        * milieu de l'écran à chaque tir — soit plusieurs fois par manche. */
       if (life > 0.72) {
-        const intensity = ((life - 0.72) / 0.28) * 0.55;
+        const intensity = ((life - 0.72) / 0.28) * GLOW;
         ctx.fillStyle = "rgba(255,220,120," + intensity + ")";
         ctx.beginPath();
         ctx.arc(originX, lineY, big ? 30 : 18, 0, Math.PI * 2);
@@ -466,7 +514,7 @@
     if (kind === "defend") {
       // Bouclier vertical devant le duelliste, tourné vers l'adversaire
       const facing = from === "player" ? -1 : 1;
-      ctx.strokeStyle = "rgba(111,168,201," + life * 0.95 + ")";
+      ctx.strokeStyle = "rgba(111,168,201," + life * 0.95 * (0.4 + 0.6 * GLOW) + ")";
       ctx.lineWidth = 3.5;
       const radius = 40 + (1 - life) * 12;
       ctx.beginPath();
@@ -478,7 +526,9 @@
 
     if (kind === "charge") {
       // Balles qui convergent vers le barillet
-      ctx.fillStyle = "rgba(224,161,60," + life + ")";
+      /* La charge est l'action la PLUS jouée : son effet se déclenche à
+       * presque chaque tour. C'est donc celui qu'il faut le plus retenir. */
+      ctx.fillStyle = "rgba(224,161,60," + life * GLOW + ")";
       for (let i = 0; i < 8; i++) {
         const angle = (i / 8) * Math.PI * 2;
         const distance = 14 + life * 34;
@@ -492,7 +542,7 @@
     if (kind === "clash") {
       // Les deux balles se percutent au milieu du terrain
       const midX = (leftX + rightX) / 2;
-      ctx.strokeStyle = "rgba(255,240,180," + life + ")";
+      ctx.strokeStyle = "rgba(255,240,180," + life * (0.3 + 0.7 * GLOW) + ")";
       ctx.lineWidth = 3;
       for (let i = 0; i < 12; i++) {
         const angle = (i / 12) * Math.PI * 2;
@@ -509,6 +559,6 @@
   }
 
   DUELMINDS.sprites = { ART, PALETTES, GRID, POSE_DURATION, ART_FACING,
-                        poseTransform, shouldFlip, drawDuelist, drawEffect,
+                        poseTransform, shouldFlip, artFacing, drawDuelist, drawEffect,
                         preload, hasImage };
 })(typeof globalThis !== "undefined" ? globalThis : window);

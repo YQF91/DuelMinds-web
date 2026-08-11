@@ -296,6 +296,7 @@
       state.character = DUELMINDS.CHARACTERS[0].key;
     }
     DUELMINDS.sprites.preload(DUELMINDS.CHARACTERS.map((c) => c.key));
+    DUELMINDS.scene.preloadDecors();
   }
 
   function selectMode(key) {
@@ -392,6 +393,8 @@
 
     // Début de série : aucun adversaire précédent à éviter.
     state.botCharacter = pickBotCharacter(null);
+
+    DUELMINDS.scene.pickDecor();     // un lieu différent à chaque partie
 
     state.session = DUELMINDS.match.createSession(state.mode, state.difficulty, {
       blind: bulletsHidden(),          // symétrie : elle ne voit pas plus que toi
@@ -858,6 +861,7 @@
         t("duel.next", { n: s.streak + 1 }),
         () => {
           state.botCharacter = nextCharacter;
+          DUELMINDS.scene.pickDecor();   // on change aussi de lieu
           DUELMINDS.match.startNextDuel(s, nextCharacter);
           setPose("player", "idle");
           setPose("bot", "idle");
@@ -1188,6 +1192,7 @@
     state.botCharacter = (opponent && opponent.character) || pickBotCharacter(null);
     state.opponentName = (opponent && opponent.name) || "";
 
+    DUELMINDS.scene.pickDecor();
     state.session = DUELMINDS.match.createSession("duel", state.difficulty, {});
     DUELMINDS.match.startManche(state.session);
     state.phase = "choosing";

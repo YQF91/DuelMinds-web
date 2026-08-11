@@ -256,6 +256,45 @@ try {
 }
 
 /* -----------------------------------------------------------------------------
+ * LES DUELLISTES SE FONT-ILS FACE ?
+ * -----------------------------------------------------------------------------
+ * Les images n'ont pas toutes été dessinées dans le même sens : l'Archer, le
+ * Berserker, le Gobelin et le Samouraï regardent à droite, le Cowboy et
+ * l'Enchanteresse à gauche. Avec une valeur unique pour tout le monde, la
+ * moitié du casting tournait le dos à son adversaire.
+ *
+ * Ajouter un personnage sans renseigner son `faces` reproduirait le défaut, et
+ * ça ne se voit qu'en jouant justement ce personnage-là.
+ * -------------------------------------------------------------------------- */
+try {
+  new Function(sources["sprites.js"])();
+  const sprites = globalThis.DUELMINDS.sprites;
+
+  const noFacing = D.CHARACTERS.filter((c) => c.faces !== "left" && c.faces !== "right");
+  report(noFacing.length === 0,
+    noFacing.length === 0
+      ? "les " + D.CHARACTERS.length + " personnages déclarent le sens de leur dessin"
+      : "SENS DU DESSIN ABSENT : " + noFacing.map((c) => c.key).join(", "));
+
+  /* Le vrai test : quel que soit le personnage et quel que soit le camp, il
+   * doit finir par regarder son adversaire. */
+  const backTurned = [];
+  for (const character of D.CHARACTERS) {
+    for (const [position, mustLook] of [["right", "left"], ["left", "right"]]) {
+      const flipped = sprites.shouldFlip(position, character.key);
+      const looks = (character.faces === "right") !== flipped ? "right" : "left";
+      if (looks !== mustLook) backTurned.push(character.key + " à " + position);
+    }
+  }
+  report(backTurned.length === 0,
+    backTurned.length === 0
+      ? "chaque personnage regarde son adversaire, des deux côtés de l'arène"
+      : "DOS TOURNÉ : " + backTurned.join(", "));
+} catch (e) {
+  problems.push("ORIENTATION — " + e.message);
+}
+
+/* -----------------------------------------------------------------------------
  * RIEN NE CLIGNOTE-T-IL TROP VITE ?
  * -----------------------------------------------------------------------------
  * Au-delà de TROIS clignotements par seconde, un contenu présente un risque

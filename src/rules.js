@@ -226,6 +226,20 @@
    * lisible. Le joueur apprend « le Gobelin tire tôt » et anticipe — c'est une
    * compétence, pas une loterie.
    *
+   * `faces` — DE QUEL CÔTÉ REGARDE LE DESSIN D'ORIGINE
+   * Ce n'est pas une valeur globale : les images n'ont pas toutes été dessinées
+   * dans le même sens. L'Archer, le Berserker, le Gobelin et le Samouraï
+   * regardent vers la DROITE ; le Cowboy et l'Enchanteresse vers la GAUCHE.
+   *
+   * Le jeu place TOI à droite (tu dois donc regarder à gauche) et l'ADVERSAIRE
+   * à gauche (il doit regarder à droite). Il retourne l'image quand son sens
+   * d'origine ne correspond pas à la place occupée — voir `shouldFlip` dans
+   * sprites.js. Avec une valeur unique pour tout le monde, la moitié du casting
+   * tournait forcément le dos.
+   *
+   * En ajoutant un personnage, regarde son image et renseigne ce champ : c'est
+   * la seule chose à ne pas oublier.
+   *
    * `key` sert à deux choses à la fois :
    *   - le nom du fichier image, `assets/characters/<key>.png`
    *   - l'identifiant enregistré dans les statistiques
@@ -238,17 +252,17 @@
     /* `ai` = le CARACTÈRE que prend ce personnage QUAND C'EST L'ADVERSAIRE qui
      * le joue. Voir le commentaire au-dessus : ça ne change rien à tes règles
      * quand c'est toi qui le choisis. */
-    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu.",        ai: "prudent",
+    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu.",        ai: "prudent",  faces: "right",
       en: { name: "Archer",      blurb: "Wolf hood, bow drawn." } },
-    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience.",      ai: "agressif",
+    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience.",      ai: "agressif", faces: "right",
       en: { name: "Berserker",   blurb: "Two axes, no patience whatsoever." } },
-    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé.",  ai: "neutre",
+    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé.",  ai: "neutre",   faces: "left",
       en: { name: "Cowboy",      blurb: "Revolver in hand, hat pulled down." } },
-    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent.",  ai: "joueur",
+    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent.",  ai: "joueur",   faces: "left",
       en: { name: "Enchantress", blurb: "Hair of flame, whip of fire." } },
-    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues.",          ai: "agressif",
+    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues.",          ai: "agressif", faces: "right",
       en: { name: "Goblin",      blurb: "Small, green, two daggers." } },
-    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre",
+    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre",   faces: "right",
       en: { name: "Samurai",     blurb: "Straw hat, katana across the back." } },
   ];
 

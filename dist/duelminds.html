@@ -2086,6 +2086,20 @@ body.reduced-effects *::after {
    * lisible. Le joueur apprend « le Gobelin tire tôt » et anticipe — c'est une
    * compétence, pas une loterie.
    *
+   * `faces` — DE QUEL CÔTÉ REGARDE LE DESSIN D'ORIGINE
+   * Ce n'est pas une valeur globale : les images n'ont pas toutes été dessinées
+   * dans le même sens. L'Archer, le Berserker, le Gobelin et le Samouraï
+   * regardent vers la DROITE ; le Cowboy et l'Enchanteresse vers la GAUCHE.
+   *
+   * Le jeu place TOI à droite (tu dois donc regarder à gauche) et l'ADVERSAIRE
+   * à gauche (il doit regarder à droite). Il retourne l'image quand son sens
+   * d'origine ne correspond pas à la place occupée — voir `shouldFlip` dans
+   * sprites.js. Avec une valeur unique pour tout le monde, la moitié du casting
+   * tournait forcément le dos.
+   *
+   * En ajoutant un personnage, regarde son image et renseigne ce champ : c'est
+   * la seule chose à ne pas oublier.
+   *
    * `key` sert à deux choses à la fois :
    *   - le nom du fichier image, `assets/characters/<key>.png`
    *   - l'identifiant enregistré dans les statistiques
@@ -2098,17 +2112,17 @@ body.reduced-effects *::after {
     /* `ai` = le CARACTÈRE que prend ce personnage QUAND C'EST L'ADVERSAIRE qui
      * le joue. Voir le commentaire au-dessus : ça ne change rien à tes règles
      * quand c'est toi qui le choisis. */
-    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu.",        ai: "prudent",
+    { key: "archer",        name: "Archer",        blurb: "Capuche de loup, arc tendu.",        ai: "prudent",  faces: "right",
       en: { name: "Archer",      blurb: "Wolf hood, bow drawn." } },
-    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience.",      ai: "agressif",
+    { key: "berserker",     name: "Berserker",     blurb: "Deux haches, aucune patience.",      ai: "agressif", faces: "right",
       en: { name: "Berserker",   blurb: "Two axes, no patience whatsoever." } },
-    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé.",  ai: "neutre",
+    { key: "cowboy",        name: "Cowboy",        blurb: "Revolver au poing, chapeau vissé.",  ai: "neutre",   faces: "left",
       en: { name: "Cowboy",      blurb: "Revolver in hand, hat pulled down." } },
-    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent.",  ai: "joueur",
+    { key: "enchanteresse", name: "Enchanteresse", blurb: "Cheveux de flammes, fouet ardent.",  ai: "joueur",   faces: "left",
       en: { name: "Enchantress", blurb: "Hair of flame, whip of fire." } },
-    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues.",          ai: "agressif",
+    { key: "gobelin",       name: "Gobelin",       blurb: "Petit, vert, deux dagues.",          ai: "agressif", faces: "right",
       en: { name: "Goblin",      blurb: "Small, green, two daggers." } },
-    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre",
+    { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre",   faces: "right",
       en: { name: "Samurai",     blurb: "Straw hat, katana across the back." } },
   ];
 
@@ -3188,11 +3202,36 @@ body.reduced-effects *::after {
   const ART_FACING = "left";
 
   /**
-   * Faut-il retourner ce duelliste ?
-   * @param {"left"|"right"} position  son côté de l'arène
+   * De quel côté regarde le dessin d'origine de ce personnage ?
+   * Lu dans CHARACTERS (rules.js), où chaque entrée porte son propre `faces` :
+   * les images n'ont pas toutes été dessinées dans le même sens.
+   * Repli sur ART_FACING pour les silhouettes de secours, toutes tournées
+   * vers la gauche.
    */
-  function shouldFlip(position) {
-    return ART_FACING === "left" ? position === "left" : position === "right";
+  function artFacing(characterKey) {
+    const list = DUELMINDS.CHARACTERS || [];
+    const character = list.find(function (c) { return c.key === characterKey; });
+    return (character && character.faces) || ART_FACING;
+  }
+
+  /**
+   * Faut-il retourner ce duelliste pour qu'il regarde son adversaire ?
+   *
+   * Deux choses se combinent, et c'est tout :
+   *   - la PLACE occupée impose un sens de regard. À droite (toi), il faut
+   *     regarder à gauche ; à gauche (l'adversaire), regarder à droite.
+   *   - le DESSIN a son propre sens, propre à chaque personnage.
+   * On retourne quand les deux ne coïncident pas.
+   *
+   * Conséquence, et c'est ce qu'on observe à l'écran : un Cowboy joué par TOI
+   * n'est pas retourné, alors que le même Cowboy joué par l'ADVERSAIRE l'est.
+   *
+   * @param {"left"|"right"} position      son côté de l'arène
+   * @param {string} [characterKey]        pour connaître le sens de son dessin
+   */
+  function shouldFlip(position, characterKey) {
+    const needed = position === "right" ? "left" : "right";
+    return artFacing(characterKey) !== needed;
   }
 
   /* ---------------------------------------------------------------------------
@@ -3442,8 +3481,8 @@ body.reduced-effects *::after {
     const entry = getImage(opts.character);
     const useImage = entry && entry.ready && !entry.failed;
 
-    // Retourné ou non selon le côté qu'il occupe et le sens du dessin.
-    const flipped = shouldFlip(opts.position);
+    // Retourné ou non selon le côté qu'il occupe ET le sens de SON dessin.
+    const flipped = shouldFlip(opts.position, opts.character);
     // `facing` sert aux animations : +1 quand le personnage regarde à droite.
     const facing = flipped ? 1 : -1;
     const transform = poseTransform(opts.pose, opts.poseProgress || 0, opts.time || 0, facing);
@@ -3545,6 +3584,25 @@ body.reduced-effects *::after {
    * @param {object} zone  {width, height} de la scène
    * @param {"player"|"bot"} from  qui déclenche
    */
+  /* ---------------------------------------------------------------------------
+   * LUMINOSITÉ DES EFFETS
+   * ---------------------------------------------------------------------------
+   * Un seul réglage pour tout ce qui brille. Il existe parce que les effets
+   * étaient trop lumineux : un effet se déclenche à CHAQUE tour — charge, tir,
+   * protection, clash — et sur une partie entière, l'écran passait son temps à
+   * s'allumer. Signalé deux fois par Jude, et c'est une gêne réelle, pas une
+   * préférence.
+   *
+   * Baisser chaque valeur séparément aurait été ingérable : on en oublie une,
+   * et elle ressort d'autant plus qu'elle est seule. Ici, une seule ligne
+   * gouverne l'ensemble.
+   *
+   * Rien n'est perdu : ces effets ne portent AUCUNE information. Le coup joué
+   * est écrit en toutes lettres dans le bandeau de révélation, et le résultat
+   * dans le journal. L'effet ne fait qu'accompagner.
+   * ------------------------------------------------------------------------ */
+  const GLOW = 0.45;
+
   function drawEffect(ctx, kind, life, zone, from) {
     if (life <= 0) return;
 
@@ -3564,14 +3622,18 @@ body.reduced-effects *::after {
       const big = kind === "super";
 
       // Traînée derrière le projectile
-      ctx.strokeStyle = big ? "rgba(209,87,63,.55)" : "rgba(255,230,170,.4)";
+      ctx.strokeStyle = big ? "rgba(209,87,63," + (0.55 * GLOW) + ")"
+                            : "rgba(255,230,170," + (0.4 * GLOW) + ")";
       ctx.lineWidth = big ? 6 : 2.5;
       ctx.beginPath();
       ctx.moveTo(originX, lineY);
       ctx.lineTo(x, lineY);
       ctx.stroke();
 
-      ctx.fillStyle = big ? "#e0a13c" : "#fff3d0";
+      /* La balle elle-même reste bien visible : c'est le seul élément qu'on
+       * suit vraiment des yeux. On l'atténue moins que le reste. */
+      ctx.fillStyle = big ? "rgba(224,161,60," + (0.5 + 0.5 * GLOW) + ")"
+                          : "rgba(255,243,208," + (0.5 + 0.5 * GLOW) + ")";
       ctx.beginPath();
       ctx.arc(x, lineY, big ? 8 : 4.5, 0, Math.PI * 2);
       ctx.fill();
@@ -3580,7 +3642,7 @@ body.reduced-effects *::after {
        * Plafonné : à pleine opacité, c'était un disque jaune vif en plein
        * milieu de l'écran à chaque tir — soit plusieurs fois par manche. */
       if (life > 0.72) {
-        const intensity = ((life - 0.72) / 0.28) * 0.55;
+        const intensity = ((life - 0.72) / 0.28) * GLOW;
         ctx.fillStyle = "rgba(255,220,120," + intensity + ")";
         ctx.beginPath();
         ctx.arc(originX, lineY, big ? 30 : 18, 0, Math.PI * 2);
@@ -3591,7 +3653,7 @@ body.reduced-effects *::after {
     if (kind === "defend") {
       // Bouclier vertical devant le duelliste, tourné vers l'adversaire
       const facing = from === "player" ? -1 : 1;
-      ctx.strokeStyle = "rgba(111,168,201," + life * 0.95 + ")";
+      ctx.strokeStyle = "rgba(111,168,201," + life * 0.95 * (0.4 + 0.6 * GLOW) + ")";
       ctx.lineWidth = 3.5;
       const radius = 40 + (1 - life) * 12;
       ctx.beginPath();
@@ -3603,7 +3665,9 @@ body.reduced-effects *::after {
 
     if (kind === "charge") {
       // Balles qui convergent vers le barillet
-      ctx.fillStyle = "rgba(224,161,60," + life + ")";
+      /* La charge est l'action la PLUS jouée : son effet se déclenche à
+       * presque chaque tour. C'est donc celui qu'il faut le plus retenir. */
+      ctx.fillStyle = "rgba(224,161,60," + life * GLOW + ")";
       for (let i = 0; i < 8; i++) {
         const angle = (i / 8) * Math.PI * 2;
         const distance = 14 + life * 34;
@@ -3617,7 +3681,7 @@ body.reduced-effects *::after {
     if (kind === "clash") {
       // Les deux balles se percutent au milieu du terrain
       const midX = (leftX + rightX) / 2;
-      ctx.strokeStyle = "rgba(255,240,180," + life + ")";
+      ctx.strokeStyle = "rgba(255,240,180," + life * (0.3 + 0.7 * GLOW) + ")";
       ctx.lineWidth = 3;
       for (let i = 0; i < 12; i++) {
         const angle = (i / 12) * Math.PI * 2;
@@ -3634,7 +3698,7 @@ body.reduced-effects *::after {
   }
 
   DUELMINDS.sprites = { ART, PALETTES, GRID, POSE_DURATION, ART_FACING,
-                        poseTransform, shouldFlip, drawDuelist, drawEffect,
+                        poseTransform, shouldFlip, artFacing, drawDuelist, drawEffect,
                         preload, hasImage };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
@@ -3710,6 +3774,96 @@ body.reduced-effects *::after {
   function groundLine(height) {
     // Sur une arène très basse, on garde malgré tout du ciel visible.
     return Math.max(height * 0.45, height - GROUND_FROM_BOTTOM);
+  }
+
+  /* ---------------------------------------------------------------------------
+   * LES DÉCORS PEINTS
+   * ---------------------------------------------------------------------------
+   * Trois lieux dessinés, tirés au sort à chaque duel. Ils remplacent le fond
+   * calculé quand ils sont chargés — et seulement à ce moment-là.
+   *
+   * LE REPLI N'EST PAS UNE PRÉCAUTION DE PRINCIPE
+   * Une image de 130 Ko sur un réseau lent met plusieurs secondes à arriver, et
+   * un duel peut commencer avant. Sans repli, l'arène serait vide pendant ce
+   * temps. Le fond calculé s'affiche donc immédiatement et cède la place dès
+   * que le dessin est prêt : on ne voit jamais de trou, seulement une image qui
+   * apparaît.
+   *
+   * POURQUOI ON LES ASSOMBRIT
+   * Ces décors sont lumineux — ciel bleu, sable clair. Les duellistes s'y
+   * perdraient, et le jeu passerait du sombre au clair d'un écran à l'autre. Un
+   * voile et un vignettage les ramènent dans l'ambiance du reste, sans rien
+   * cacher de ce qui est dessiné.
+   * ------------------------------------------------------------------------ */
+  const DECORS = ["saloon", "desert", "forest"];
+
+  /* Assez pour que les duellistes se détachent, assez peu pour qu'on lise
+   * encore le saloon et les cactus. Réglé à l'œil sur les trois images. */
+  const SCRIM = 0.44;
+  const VIGNETTE = 0.55;
+
+  const decorCache = new Map();   // clé -> { image, ready, failed }
+  let currentDecor = null;
+
+  function decorEntry(key) {
+    if (decorCache.has(key)) return decorCache.get(key);
+    const entry = { image: new root.Image(), ready: false, failed: false };
+    entry.image.onload = function () { entry.ready = true; };
+    entry.image.onerror = function () { entry.failed = true; };
+    entry.image.src = "assets/decors/" + key + ".jpg";
+    decorCache.set(key, entry);
+    return entry;
+  }
+
+  /** Demande le chargement des trois décors, sans attendre. */
+  function preloadDecors() { for (const key of DECORS) decorEntry(key); }
+
+  /**
+   * Tire un décor pour le duel qui commence, jamais le même deux fois de
+   * suite : revoir le même lieu enchaîné donne l'impression que rien n'a
+   * changé, exactement comme pour les adversaires.
+   */
+  function pickDecor() {
+    const pool = DECORS.filter(function (key) { return key !== currentDecor; });
+    currentDecor = pool[Math.floor(Math.random() * pool.length)];
+    decorEntry(currentDecor);
+    return currentDecor;
+  }
+
+  function decorName() { return currentDecor; }
+
+  /**
+   * Dessine le décor en le recadrant sans le déformer, puis l'assombrit.
+   * @returns {boolean} vrai si le décor a bien été peint
+   */
+  function drawDecor(ctx, width, height) {
+    if (!currentDecor) return false;
+    const entry = decorCache.get(currentDecor);
+    if (!entry || !entry.ready || entry.failed) return false;
+
+    const image = entry.image;
+    // Recadrage « couvrant » : on remplit toute l'arène, quitte à rogner les
+    // bords. Déformer un décor peint se verrait immédiatement.
+    const scale = Math.max(width / image.width, height / image.height);
+    const drawWidth = image.width * scale;
+    const drawHeight = image.height * scale;
+    ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2,
+                  drawWidth, drawHeight);
+
+    // Voile général : ramène l'image dans l'ambiance sombre du jeu.
+    ctx.fillStyle = "rgba(23,19,16," + SCRIM + ")";
+    ctx.fillRect(0, 0, width, height);
+
+    // Vignettage : l'œil va au centre, là où se joue le duel.
+    const vignette = ctx.createRadialGradient(
+      width / 2, height / 2, Math.min(width, height) * 0.25,
+      width / 2, height / 2, Math.max(width, height) * 0.75);
+    vignette.addColorStop(0, "rgba(23,19,16,0)");
+    vignette.addColorStop(1, "rgba(23,19,16," + VIGNETTE + ")");
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, width, height);
+
+    return true;
   }
 
   /* ---------------------------------------------------------------------------
@@ -3871,6 +4025,16 @@ body.reduced-effects *::after {
 
     ctx.clearRect(0, 0, width, height);
 
+    /* Un décor peint s'il est prêt, sinon le fond calculé. La poussière et la
+     * secousse fonctionnent dans les deux cas : elles ne dépendent pas de ce
+     * qu'il y a derrière. */
+    if (drawDecor(ctx, width, height)) {
+      updateParticles(dt, width, height);
+      drawParticles(ctx);
+      if (shakeAmount > 0) shakeAmount = Math.max(0, shakeAmount - dt * 26);
+      return;
+    }
+
     // 1. Le ciel, et l'astre bas sur l'horizon.
     const sky = ctx.createLinearGradient(0, 0, 0, groundY);
     sky.addColorStop(0, SKY.high);
@@ -3903,7 +4067,8 @@ body.reduced-effects *::after {
     if (shakeAmount > 0) shakeAmount = Math.max(0, shakeAmount - dt * 26);
   }
 
-  DUELMINDS.scene = { draw, burst, shake, shakeOffset, groundLine };
+  DUELMINDS.scene = { draw, burst, shake, shakeOffset, groundLine,
+                      pickDecor, preloadDecors, decorName, DECORS };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
 /* ---------- src/audio.js ---------- */
@@ -5967,6 +6132,7 @@ body.reduced-effects *::after {
       state.character = DUELMINDS.CHARACTERS[0].key;
     }
     DUELMINDS.sprites.preload(DUELMINDS.CHARACTERS.map((c) => c.key));
+    DUELMINDS.scene.preloadDecors();
   }
 
   function selectMode(key) {
@@ -6063,6 +6229,8 @@ body.reduced-effects *::after {
 
     // Début de série : aucun adversaire précédent à éviter.
     state.botCharacter = pickBotCharacter(null);
+
+    DUELMINDS.scene.pickDecor();     // un lieu différent à chaque partie
 
     state.session = DUELMINDS.match.createSession(state.mode, state.difficulty, {
       blind: bulletsHidden(),          // symétrie : elle ne voit pas plus que toi
@@ -6529,6 +6697,7 @@ body.reduced-effects *::after {
         t("duel.next", { n: s.streak + 1 }),
         () => {
           state.botCharacter = nextCharacter;
+          DUELMINDS.scene.pickDecor();   // on change aussi de lieu
           DUELMINDS.match.startNextDuel(s, nextCharacter);
           setPose("player", "idle");
           setPose("bot", "idle");
@@ -6859,6 +7028,7 @@ body.reduced-effects *::after {
     state.botCharacter = (opponent && opponent.character) || pickBotCharacter(null);
     state.opponentName = (opponent && opponent.name) || "";
 
+    DUELMINDS.scene.pickDecor();
     state.session = DUELMINDS.match.createSession("duel", state.difficulty, {});
     DUELMINDS.match.startManche(state.session);
     state.phase = "choosing";
