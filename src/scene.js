@@ -100,14 +100,44 @@
   const decorCache = new Map();   // clé -> { image, ready, failed }
   let currentDecor = null;
 
+  /* WEBP D'ABORD, JPEG SI LE NAVIGATEUR NE SAIT PAS LE LIRE.
+   *
+   * L'écart est trop grand pour être ignoré : 26 Ko contre 125 pour un rendu
+   * que l'œil ne distingue pas, même agrandi sur un ciel dégradé — c'est la
+   * zone la plus révélatrice, un dégradé lisse trahissant immédiatement une
+   * compression trop forte. Les trois décors passent de 372 Ko à 82.
+   *
+   * Le repli JPEG ne coûte rien : les navigateurs qui lisent le WebP — la
+   * quasi-totalité aujourd'hui — ne le téléchargent jamais. Il n'est demandé
+   * qu'après l'échec du premier, une seule fois.
+   *
+   * Un PNG avait aussi été essayé : 225 Ko, en palette 256 couleurs, donc plus
+   * lourd ET moins fidèle que le WebP. Aucun intérêt, il a été retiré. */
+  const DECOR_FORMATS = ["webp", "jpg"];
+
   function decorEntry(key) {
     if (decorCache.has(key)) return decorCache.get(key);
-    const entry = { image: new root.Image(), ready: false, failed: false };
+
+    const entry = { image: new root.Image(), ready: false, failed: false, attempt: 0 };
+
     entry.image.onload = function () { entry.ready = true; };
-    entry.image.onerror = function () { entry.failed = true; };
-    entry.image.src = "assets/decors/" + key + ".jpg";
+    entry.image.onerror = function () {
+      entry.attempt += 1;
+      if (entry.attempt < DECOR_FORMATS.length) {
+        entry.image.src = decorUrl(key, entry.attempt);
+      } else {
+        // Plus aucun format : le fond calculé prendra le relais.
+        entry.failed = true;
+      }
+    };
+
+    entry.image.src = decorUrl(key, 0);
     decorCache.set(key, entry);
     return entry;
+  }
+
+  function decorUrl(key, attempt) {
+    return "assets/decors/" + key + "." + DECOR_FORMATS[attempt];
   }
 
   /** Demande le chargement des trois décors, sans attendre. */

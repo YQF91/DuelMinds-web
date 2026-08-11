@@ -313,6 +313,30 @@ try {
     wrongCase.length === 0
       ? "les " + wantedPaths.size + " chemins d'assets du code existent, casse comprise"
       : "CASSE DES FICHIERS — introuvables sous Linux : " + wrongCase.join(", "));
+
+  /* Chaque décor et chaque personnage DÉCLARÉ doit avoir son fichier.
+   * Sans ça, le jeu se replie proprement — fond calculé, silhouette de
+   * secours — et l'oubli passe totalement inaperçu. C'est exactement le genre
+   * de manque qu'un joueur signale par « le décor ne marche pas ». */
+  new Function(sources["scene.js"])();
+  const scene = globalThis.DUELMINDS.scene;
+
+  const orphans = [];
+  for (const key of scene.DECORS) {
+    const found = ["webp", "jpg", "png"].some(
+      (ext) => onDisk.has("assets/decors/" + key + "." + ext));
+    if (!found) orphans.push("décor " + key);
+  }
+  for (const character of D.CHARACTERS) {
+    if (!onDisk.has("assets/characters/" + character.key + ".png")) {
+      orphans.push("personnage " + character.key);
+    }
+  }
+  report(orphans.length === 0,
+    orphans.length === 0
+      ? scene.DECORS.length + " décors et " + D.CHARACTERS.length +
+        " personnages ont bien leur image"
+      : "IMAGE MANQUANTE (repli silencieux) : " + orphans.join(", "));
 } catch (e) {
   problems.push("ASSETS — " + e.message);
 }
