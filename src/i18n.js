@@ -188,6 +188,9 @@
     "pvp.timeout":          { fr: "Personne n'est venu. Réessaie avec un nouveau code.",
                               en: "Nobody showed up. Try again with a new code." },
     "pvp.opponent":         { fr: "Adversaire", en: "Opponent" },
+    "pvp.linkCopied":       { fr: "Lien copié", en: "Link copied" },
+    "pvp.invited":          { fr: "Duel {code} — on rejoint la partie…",
+                              en: "Duel {code} — joining…" },
     "pvp.mode":             { fr: "En ligne", en: "Online" },
 
     /* --- Écran de fin --- */

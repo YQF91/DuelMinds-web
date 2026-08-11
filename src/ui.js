@@ -1026,9 +1026,58 @@
     $("lobby-waiting").hidden = true;
   }
 
+  /* ---------------------------------------------------------------------------
+   * LE LIEN D'INVITATION
+   * ---------------------------------------------------------------------------
+   * Dicter quatre lettres marche, mais envoyer un lien marche mieux : l'autre
+   * n'a rien à saisir, et rien à mal recopier. Le code reste affiché en gros
+   * pour ceux qui sont dans la même pièce.
+   * ------------------------------------------------------------------------ */
+
+  /** L'adresse du jeu, avec le code de la partie accroché. */
+  function inviteLink(code) {
+    const url = location.origin + location.pathname;
+    return url + "?duel=" + encodeURIComponent(code);
+  }
+
+  /** Le code éventuellement présent dans l'adresse, sinon une chaîne vide. */
+  function codeFromUrl() {
+    const found = /[?&]duel=([A-Za-z0-9]{1,8})/.exec(location.search || "");
+    return found ? found[1].toUpperCase() : "";
+  }
+
+  function shareInvite(button) {
+    const code = $("lobby-code-shown").textContent;
+    const link = inviteLink(code);
+    const done = () => {
+      const original = button.textContent;
+      button.textContent = t("pvp.linkCopied");
+      window.setTimeout(() => { button.textContent = original; }, 1600);
+    };
+
+    /* Sur téléphone, le partage natif ouvre directement la liste des
+     * applications : c'est le geste que le joueur attend. Ailleurs, on se
+     * rabat sur le presse-papier. */
+    if (navigator.share) {
+      navigator.share({ title: "DuelMinds", text: "Duel " + code, url: link })
+        .then(done, () => copyText(link, done));
+    } else {
+      copyText(link, done);
+    }
+  }
+
+  function copyText(text, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+
   function openLobby() {
     $("lobby-choice").hidden = false;
     $("lobby-waiting").hidden = true;
+    $("lobby-share-row").hidden = true;
     $("lobby-error").hidden = true;
     $("lobby-code").value = "";
     showScreen("screen-lobby");
@@ -1047,6 +1096,7 @@
       if (!result.ok) return lobbyError(result.reason);
 
       $("lobby-code-shown").textContent = result.code;
+      $("lobby-share-row").hidden = false;
       $("lobby-status").textContent = t("pvp.waiting", { n: 0 });
 
       return DUELMINDS.pvp.waitForOpponent(function (seconds) {
@@ -1609,6 +1659,7 @@
     $("btn-pvp").addEventListener("click", () => { audio.play("click"); openLobby(); });
     $("btn-lobby-create").addEventListener("click", lobbyCreate);
     $("btn-lobby-join").addEventListener("click", lobbyJoin);
+    $("btn-lobby-share").addEventListener("click", (e) => shareInvite(e.currentTarget));
     $("btn-lobby-back").addEventListener("click", () => {
       DUELMINDS.pvp.leave();          // annule l'attente en cours
       state.online = false;
@@ -1673,6 +1724,19 @@
     $("btn-progress-back").addEventListener("click", () => showScreen("screen-home"));
     $("tab-levels").addEventListener("click", () => showProgressTab("levels"));
     $("tab-feats").addEventListener("click", () => showProgressTab("feats"));
+
+    /* INVITATION PAR LIEN. Si l'adresse porte un code, on rejoint sans rien
+     * demander : c'est tout l'intérêt du lien, l'autre n'a rien à saisir. */
+    const invited = codeFromUrl();
+    if (invited && DUELMINDS.net.isAvailable()) {
+      openLobby();
+      $("lobby-code").value = invited;
+      $("lobby-choice").hidden = true;
+      $("lobby-waiting").hidden = false;
+      $("lobby-code-shown").textContent = invited;
+      $("lobby-status").textContent = t("pvp.invited", { code: invited });
+      lobbyJoin();
+    }
 
     window.addEventListener("resize", resizeScene);
     resizeScene();
