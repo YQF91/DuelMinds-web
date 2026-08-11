@@ -343,3 +343,12 @@ perdrait tout contraste sur fond clair.
 **Scripts classiques plutôt que modules ES.** Les modules ES sont bloqués par
 les navigateurs quand la page est ouverte depuis le disque. Avec des scripts
 classiques, `index.html` fonctionne d'un simple double-clic.
+
+---
+
+## Et après ?
+
+[PROCHAINES-ETAPES.md](PROCHAINES-ETAPES.md) répond à deux questions de fond :
+faut-il refaire le jeu dans un autre langage, et comment mettre le PVP en place
+sans se tromper d'architecture. Résumé : le langage n'est pas le problème, et le
+PVP commence par un duel à deux sur le même téléphone.
