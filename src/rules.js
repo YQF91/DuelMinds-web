@@ -85,6 +85,21 @@
      * facile, 3 s en difficile, 2 s en extrême. Cette valeur ne sert que de
      * repli si une difficulté oubliait de le préciser. */
     BLITZ_SECONDS: 5,
+
+    /* --- Duel en ligne ---
+     * Secondes pour choisir face à un autre joueur.
+     *
+     * POURQUOI PLUS QUE LE BLITZ EXTRÊME (2 s)
+     * Le chronomètre de chaque joueur tourne CHEZ LUI, et son coup doit encore
+     * traverser le réseau : entre une demi-seconde et deux secondes par
+     * échange. Un délai trop court ferait perdre sur la latence plutôt que sur
+     * le jeu.
+     *
+     * POURQUOI UN CHRONOMÈTRE TOUT COURT
+     * Sans lui, un joueur qui pose son téléphone bloque l'autre indéfiniment.
+     * Passé le délai, une action permise est jouée au hasard : ne rien décider
+     * reste une décision. */
+    PVP_SECONDS: 4,
   };
 
   /* ---------------------------------------------------------------------------

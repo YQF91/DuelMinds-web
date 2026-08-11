@@ -54,6 +54,11 @@
   const REVEAL_MS = 1250;
   const EFFECT_MS = 620;
 
+  /* Durée des écrans intermédiaires EN LIGNE. Assez pour lire le verdict d'une
+   * manche, assez court pour que les deux joueurs repartent quasi ensemble —
+   * indispensable avec un chronomètre de 4 secondes. Voir `announce`. */
+  const ONLINE_ANNOUNCE_MS = 2600;
+
   /* Horodatage de l'image précédente, pour calculer le temps écoulé que le
    * décor utilise. Mis à zéro tant qu'on n'a pas dessiné une première fois. */
   let lastFrame = 0;
@@ -106,6 +111,9 @@
 
   /** Le mode impose-t-il un chronomètre ? */
   function isTimed() {
+    // En ligne, TOUJOURS : sans chronomètre, un joueur qui pose son téléphone
+    // bloque l'autre pour de bon.
+    if (state.online) return true;
     const mode = MODES.find((m) => m.key === state.mode);
     return !!(mode && mode.timed);
   }
@@ -116,6 +124,10 @@
    * générale si une difficulté ne le précisait pas.
    */
   function blitzSeconds() {
+    /* En ligne, un délai unique et plus généreux : le chronomètre de chaque
+     * joueur tourne chez lui, et son coup doit encore traverser le réseau.
+     * Voir RULES.PVP_SECONDS. */
+    if (state.online) return RULES.PVP_SECONDS;
     const difficulty = DIFFICULTIES.find((d) => d.key === state.difficulty);
     return (difficulty && difficulty.blitzSeconds) || RULES.BLITZ_SECONDS;
   }
@@ -843,7 +855,29 @@
     $("announce-title").textContent = title;
     $("announce-detail").textContent = detail;
     $("btn-announce").textContent = buttonLabel;
-    $("btn-announce").onclick = () => { audio.play("click"); onContinue(); };
+
+    let taken = false;
+    const go = () => {
+      if (taken) return;          // le bouton ET la minuterie visent la même sortie
+      taken = true;
+      window.clearTimeout(autoContinue);
+      onContinue();
+    };
+
+    $("btn-announce").onclick = () => { audio.play("click"); go(); };
+
+    /* EN LIGNE, l'écran repart TOUT SEUL après un court délai.
+     *
+     * Sans ça, le chronomètre de 4 secondes devient injuste : si l'un appuie
+     * sur « Continuer » pendant que l'autre lit encore, son compte à rebours
+     * démarre en avance et il joue au hasard faute de temps — puni pour la
+     * lenteur d'en face, pas pour son jeu.
+     *
+     * Le bouton reste actif : qui a déjà lu peut passer sans attendre. */
+    const autoContinue = state.online
+      ? window.setTimeout(go, ONLINE_ANNOUNCE_MS)
+      : null;
+
     showScreen("screen-announce");
   }
 
@@ -1065,9 +1099,12 @@
     setPose("player", "idle");
     setPose("bot", "idle");
 
-    setLog(t("pvp.joined", { name: state.opponentName || t("pvp.opponent") }));
+    setLog(t("pvp.joined", { name: state.opponentName || t("pvp.opponent") }) +
+           " " + t("intro.timer", { n: blitzSeconds() }));
     renderDuel();
     showScreen("screen-duel");
+    // Le compte à rebours démarre dès que l'écran s'affiche, comme en blitz.
+    startTimer();
   }
 
   /**
