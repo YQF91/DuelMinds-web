@@ -54,6 +54,10 @@
   const REVEAL_MS = 1250;
   const EFFECT_MS = 620;
 
+  /* Horodatage de l'image précédente, pour calculer le temps écoulé que le
+   * décor utilise. Mis à zéro tant qu'on n'a pas dessiné une première fois. */
+  let lastFrame = 0;
+
   const state = {
     mode: null,
     difficulty: null,
@@ -450,10 +454,13 @@
 
   /** Redimensionne le canvas d'effets à la taille réelle de la scène. */
   function resizeScene() {
-    const canvas = $("effects");
-    const box = canvas.parentElement.getBoundingClientRect();
-    canvas.width = Math.max(1, Math.round(box.width));
-    canvas.height = Math.max(1, Math.round(box.height));
+    // Les deux toiles couvrent l'arène : le décor derrière, les effets devant.
+    for (const id of ["effects", "backdrop"]) {
+      const canvas = $(id);
+      const box = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.round(box.width));
+      canvas.height = Math.max(1, Math.round(box.height));
+    }
   }
 
   /* ---------------------------------------------------------------------------
@@ -555,6 +562,37 @@
     // L'éclat blanc marque qui vient d'être touché.
     if (turn.winner === "a") state.flash.bot = 1;
     if (turn.winner === "b") state.flash.player = 1;
+
+    reactScene(turn);
+  }
+
+  /**
+   * Le décor encaisse le coup : secousse et poussière soulevée.
+   *
+   * C'est le retour le plus rentable de tout l'habillage. Un décor immobile
+   * reste un fond d'écran ; un décor qui bouge quand ça tape fait partie du
+   * duel. L'intensité suit l'importance de ce qui vient d'arriver — sinon tout
+   * se vaut, et plus rien ne marque.
+   */
+  function reactScene(turn) {
+    const scene = DUELMINDS.scene;
+    const zone = sceneZone();
+    const groundY = scene.groundLine(zone.height);
+    const leftX = zone.width * 0.24;    // sous l'adversaire
+    const rightX = zone.width * 0.76;   // sous toi
+
+    // Une mort secoue franchement, un clash à peine.
+    if (turn.winner) {
+      scene.shake(turn.resultA === "super_shot" || turn.resultB === "super_shot" ? 9 : 6);
+      scene.burst(turn.winner === "a" ? leftX : rightX, groundY);
+    } else if (turn.resultA === "clash") {
+      scene.shake(3);
+      scene.burst(zone.width * 0.5, groundY);
+    }
+
+    // Charger tasse le sol sous ses pieds : un peu de poussière, sans secousse.
+    if (turn.actionA === "charge") scene.burst(rightX, groundY);
+    if (turn.actionB === "charge") scene.burst(leftX, groundY);
   }
 
   function revealCard(who, action, result, animation) {
@@ -1260,6 +1298,26 @@
       // L'éclat s'estompe tout seul
       state.flash.player = Math.max(0, state.flash.player - 0.02);
       state.flash.bot = Math.max(0, state.flash.bot - 0.02);
+
+      /* LE DÉCOR. Repeint à chaque image parce qu'il vit : la poussière monte
+       * et les gerbes d'impact retombent. `dt` est borné à 1/20 s pour qu'un
+       * retour d'onglet après plusieurs secondes ne projette pas la poussière
+       * à l'autre bout de l'écran d'un seul coup. */
+      const dt = Math.min(0.05, (timestamp - lastFrame) / 1000) || 0;
+      lastFrame = timestamp;
+
+      const backdrop = $("backdrop");
+      const back = backdrop.getContext("2d");
+      DUELMINDS.scene.draw(back, backdrop.width, backdrop.height, timestamp, dt);
+
+      /* La secousse déplace le CONTENU de l'arène — décor, duellistes, effets —
+       * mais jamais son cadre : déplacer la boîte elle-même ferait apparaître
+       * un liseré de fond le long des bords à chaque impact. Deux variables
+       * CSS suffisent, le style s'occupe de qui bouge. */
+      const jolt = DUELMINDS.scene.shakeOffset(timestamp);
+      const arena = $("arena").style;
+      arena.setProperty("--shake-x", jolt.x.toFixed(1) + "px");
+      arena.setProperty("--shake-y", jolt.y.toFixed(1) + "px");
 
       // Effet en cours
       const canvas = $("effects");

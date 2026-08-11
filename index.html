@@ -123,7 +123,11 @@
     </div>
 
     <!-- L'ARÈNE : les deux duellistes face à face -->
-    <div class="arena">
+    <div class="arena" id="arena">
+      <!-- LE DÉCOR, dessiné par src/scene.js. Sous tout le reste : ciel,
+           reliefs, sol et poussière. Aucune image, tout est calculé. -->
+      <canvas class="backdrop" id="backdrop" aria-hidden="true"></canvas>
+
       <!-- Bandeaux de nom, en haut de chaque côté -->
       <div class="nameplate left">
         <span class="nameplate-name" id="bot-name">Adversaire</span>
@@ -415,6 +419,7 @@
     ai         les trois adversaires, a besoin de combat
     match      manches, duels et séries, a besoin de combat et ai
     sprites    dessin des duellistes et des effets (indépendant)
+    scene      décor de l'arène, poussière et secousses (indépendant)
     audio      bruitages synthétisés (indépendant)
     stats      compteurs et records, a besoin de rules
     progress   niveaux et hauts faits, a besoin de rules
@@ -429,6 +434,7 @@
 <script src="src/ai.js"></script>
 <script src="src/match.js"></script>
 <script src="src/sprites.js"></script>
+<script src="src/scene.js"></script>
 <script src="src/audio.js"></script>
 <script src="src/stats.js"></script>
 <script src="src/progress.js"></script>

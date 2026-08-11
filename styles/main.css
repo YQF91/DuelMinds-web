@@ -388,6 +388,34 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 }
 
 /* La plateforme donne le sol et sépare les deux camps du regard */
+/* Le décor occupe toute l'arène, derrière les duellistes. `pointer-events`
+   à none : c'est une image de fond, elle ne doit intercepter aucun appui. */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Les duellistes, les noms et les effets passent devant le décor. */
+.arena > *:not(.backdrop) { position: relative; z-index: 1; }
+
+/* LA SECOUSSE D'IMPACT.
+   Elle déplace le CONTENU de l'arène, jamais son cadre : bouger la boîte
+   elle-même ferait apparaître un liseré de fond le long des bords à chaque
+   coup. Les bandeaux de nom et le badge de manche restent immobiles, ce qui
+   donne un point d'ancrage à l'œil pendant que le reste tremble.
+   Les valeurs sont écrites par src/ui.js depuis src/scene.js. */
+.arena { --shake-x: 0px; --shake-y: 0px; }
+
+.arena .backdrop,
+.arena .effects,
+.arena .fighter {
+  transform: translate(var(--shake-x), var(--shake-y));
+}
+
 .platform {
   width: 70%;
   height: 10px;
@@ -874,4 +902,9 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
     animation: none !important;
     transition: none !important;
   }
+  /* La secousse est pilotée en JavaScript, elle échappe donc à la règle
+     ci-dessus : on la neutralise explicitement. */
+  .arena .backdrop,
+  .arena .effects,
+  .arena .fighter { transform: none !important; }
 }
