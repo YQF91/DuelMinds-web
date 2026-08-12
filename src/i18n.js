@@ -57,6 +57,8 @@
     /* --- Écran d'accueil et navigation --- */
     "home.play":            { fr: "Commencer",  en: "Start" },
     "home.record":          { fr: "record {n}", en: "record {n}" },
+    "home.build":           { fr: "version du {date} à {time}",
+                              en: "build of {date}, {time}" },
     "nav.back":             { fr: "Retour",     en: "Back" },
 
     /* --- Introduction d'une partie --- */
@@ -118,6 +120,7 @@
     "action.empty":         { fr: "plus de balle",  en: "no bullet left" },
     "action.gain":          { fr: "+ 1 balle",      en: "+ 1 bullet" },
     "action.full":          { fr: "barillet plein", en: "cylinder full" },
+    "duel.guardStreak":     { fr: "protection ×{n}", en: "guard ×{n}" },
 
     /* --- Annonces entre manches et duels --- */
     "manche.won":           { fr: "Manche gagnée", en: "Round won" },

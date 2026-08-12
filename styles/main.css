@@ -975,6 +975,14 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 
 .toggle input:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 
+/* Empreinte de version : présente pour qui la cherche, invisible autrement. */
+.build-stamp {
+  text-align: center;
+  color: var(--dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
 /* =============================================================================
  * 12. ACCESSIBILITÉ
  * ========================================================================== */

@@ -526,7 +526,8 @@
       slot.classList.add("hidden-count");
       slot.textContent = "? ? ? ?";
       $(prefix + "-guard").textContent =
-        duelist.consecutiveDefends > 0 ? "protection ×" + duelist.consecutiveDefends : "";
+        duelist.consecutiveDefends > 0
+          ? t("duel.guardStreak", { n: duelist.consecutiveDefends }) : "";
       return;
     }
 
@@ -541,7 +542,8 @@
     }
 
     const defends = duelist.consecutiveDefends;
-    $(prefix + "-guard").textContent = defends > 0 ? "protection ×" + defends : "";
+    $(prefix + "-guard").textContent =
+      defends > 0 ? t("duel.guardStreak", { n: defends }) : "";
   }
 
   /* ---------------------------------------------------------------------------
@@ -1233,8 +1235,15 @@
     setPose("player", "idle");
     setPose("bot", "idle");
 
+    /* On ANNONCE le masquage des balles. Ce n'est pas décoratif : c'est la
+     * seule façon pour un joueur de savoir si la règle est active chez lui.
+     * Jude a signalé voir les balles adverses en ligne — le masquage venait
+     * d'être livré, et rien à l'écran ne permettait de trancher entre « pas
+     * encore déployé » et « défaut ». Maintenant, si la phrase est là, la
+     * règle est là. */
     setLog(t("pvp.joined", { name: state.opponentName || t("pvp.opponent") }) +
-           " " + t("intro.timer", { n: blitzSeconds() }));
+           " " + t("intro.timer", { n: blitzSeconds() }) +
+           (bulletsHidden() ? " " + t("intro.hidden") : ""));
     renderDuel();
     showScreen("screen-duel");
     // Le compte à rebours démarre dès que l'écran s'affiche, comme en blitz.
@@ -1788,6 +1797,20 @@
     nameInput.addEventListener("blur", () => {
       nameInput.value = DUELMINDS.leaderboard.name();
     });
+
+    /* --- Empreinte de version ---
+     * `document.lastModified` date le fichier HTML servi : elle change à chaque
+     * mise en ligne, sans build ni numéro à tenir à jour. C'est exactement ce
+     * qu'il faut pour distinguer « pas encore déployé » de « en cache ». */
+    (function stampBuild() {
+      const when = new Date(document.lastModified);
+      if (isNaN(when.getTime())) return;
+      const two = (n) => String(n).padStart(2, "0");
+      $("build-stamp").textContent = t("home.build", {
+        date: two(when.getDate()) + "/" + two(when.getMonth() + 1),
+        time: two(when.getHours()) + "h" + two(when.getMinutes()),
+      });
+    })();
 
     /* --- Effets réduits --- */
     $("opt-effects").checked = loadEffectSetting();
