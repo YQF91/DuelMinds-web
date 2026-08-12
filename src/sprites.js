@@ -468,12 +468,15 @@
     if (life <= 0) return;
 
     // Le joueur est à DROITE, l'adversaire à GAUCHE.
+    /* TOI À GAUCHE, l'adversaire à droite. Une seule paire de repères pour
+     * tout le fichier : c'est ce qui évite qu'un effet parte du mauvais côté
+     * le jour où la disposition change. */
     const leftX = zone.width * 0.24;
     const rightX = zone.width * 0.76;
     const lineY = zone.height * 0.52;
 
-    const originX = from === "player" ? rightX : leftX;
-    const targetX = from === "player" ? leftX : rightX;
+    const originX = from === "player" ? leftX : rightX;
+    const targetX = from === "player" ? rightX : leftX;
 
     ctx.save();
 
@@ -513,7 +516,7 @@
 
     if (kind === "defend") {
       // Bouclier vertical devant le duelliste, tourné vers l'adversaire
-      const facing = from === "player" ? -1 : 1;
+      const facing = from === "player" ? 1 : -1;
       ctx.strokeStyle = "rgba(111,168,201," + life * 0.95 * (0.4 + 0.6 * GLOW) + ")";
       ctx.lineWidth = 3.5;
       const radius = 40 + (1 - life) * 12;

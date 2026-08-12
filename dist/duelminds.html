@@ -632,7 +632,20 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 }
 .action:not(:disabled):hover { background: #362c26; border-color: #4d4038; }
 .action:active:not(:disabled) { transform: scale(.96); }
-.action:disabled { opacity: .32; cursor: not-allowed; }
+/* Une action interdite reste LISIBLE.
+ 
+   Elle etait a .32 d'opacite, presque effacee. Or c'est souvent l'information
+   la plus importante de l'ecran : face a un super tir, un duelliste sans balle
+   est condamne quoi qu'il fasse, et il doit VOIR que Tirer lui est ferme.
+   Sinon la mort se lit comme arbitraire, alors qu'elle vient d'une gestion du
+   barillet. */
+.action:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Plus de balle du tout : on le dit franchement, en rouille. */
+.action.empty {
+  border-color: color-mix(in srgb, var(--rust) 45%, var(--line));
+}
+.action.empty small { color: var(--rust); }
 
 /* Le bouton de tir s'embrase quand le coup traversera la protection : c'est
    l'information la plus décisive du jeu, elle ne doit pas se rater. */
@@ -1032,17 +1045,20 @@ body.reduced-effects *::after {
 
   LA DISPOSITION DU DUEL
   Les deux duellistes se font face HORIZONTALEMENT, comme dans un combat
-  Fire Emblem : l'adversaire à gauche, toi à droite, sur des plateformes, avec
+  Fire Emblem : TOI À GAUCHE, l'adversaire à droite, sur des plateformes, avec
   les informations de chacun dans un panneau sous son côté.
 
+  Pourquoi le joueur à gauche : on lit de gauche à droite, et on se cherche
+  spontanément du côté où commence la lecture. C'était l'inverse au départ.
+
       ┌──────────────────────────────────────┐
-      │  ADVERSAIRE          Manche      TOI │
+      │  TOI                 Manche  ADVERSAIRE │
       │                                      │
       │      🧍   ←  se font face  →   🧍    │
       │   ▓▓▓▓▓▓▓                  ▓▓▓▓▓▓▓   │
       │         [ RÉVÉLATION ]               │
       ├──────────────────┬───────────────────┤
-      │ balles ●●○○      │       ●●●○ balles │
+      │ balles ●●●○      │       ●●○○ balles │
       └──────────────────┴───────────────────┘
 
   Pour comprendre le projet, lire dans cet ordre :
@@ -1150,26 +1166,28 @@ body.reduced-effects *::after {
            reliefs, sol et poussière. Aucune image, tout est calculé. -->
       <canvas class="backdrop" id="backdrop" aria-hidden="true"></canvas>
 
-      <!-- Bandeaux de nom, en haut de chaque côté -->
+      <!-- Bandeaux de nom, en haut de chaque côté.
+           TOI À GAUCHE, l'adversaire à droite : on lit de gauche à droite, et
+           on se cherche naturellement du côté où commence la lecture. -->
       <div class="nameplate left">
-        <span class="nameplate-name" id="bot-name">Adversaire</span>
-        <span class="score" id="score-bot"></span>
+        <span class="nameplate-name" id="me-name">Toi</span>
+        <span class="score" id="score-me"></span>
       </div>
       <div class="manche-badge" data-en-html="Round <b class='num' id='manche-number'>1</b>">Manche <b class="num" id="manche-number">1</b></div>
       <div class="nameplate right">
-        <span class="score" id="score-me"></span>
-        <span class="nameplate-name" id="me-name">Toi</span>
+        <span class="score" id="score-bot"></span>
+        <span class="nameplate-name" id="bot-name">Adversaire</span>
       </div>
 
-      <!-- ADVERSAIRE, à gauche -->
+      <!-- TOI, à gauche -->
       <div class="fighter left">
-        <canvas class="sprite" id="bot-sprite" width="256" height="256" aria-hidden="true"></canvas>
+        <canvas class="sprite" id="me-sprite" width="256" height="256" aria-hidden="true"></canvas>
         <div class="platform"></div>
       </div>
 
-      <!-- TOI, à droite -->
+      <!-- ADVERSAIRE, à droite -->
       <div class="fighter right">
-        <canvas class="sprite" id="me-sprite" width="256" height="256" aria-hidden="true"></canvas>
+        <canvas class="sprite" id="bot-sprite" width="256" height="256" aria-hidden="true"></canvas>
         <div class="platform"></div>
       </div>
 
@@ -1190,14 +1208,14 @@ body.reduced-effects *::after {
     <!-- PANNEAUX D'INFORMATION, un par duelliste, sous son côté -->
     <div class="panels">
       <div class="panel">
-        <span class="panel-label" data-en="Opponent">Adversaire</span>
-        <span class="bullets" id="bot-bullets" title="Balles"></span>
-        <span class="guard" id="bot-guard"></span>
-      </div>
-      <div class="panel right">
         <span class="panel-label" data-en="You">Toi</span>
         <span class="bullets" id="me-bullets" title="Balles"></span>
         <span class="guard" id="me-guard"></span>
+      </div>
+      <div class="panel right">
+        <span class="panel-label" data-en="Opponent">Adversaire</span>
+        <span class="bullets" id="bot-bullets" title="Balles"></span>
+        <span class="guard" id="bot-guard"></span>
       </div>
     </div>
 
@@ -1323,12 +1341,29 @@ body.reduced-effects *::after {
             tête. C'est le mode qui préfigure le PVP.</li>
       </ul>
 
+      <h3 data-en="The super shot">Le super tir</h3>
+      <p data-en-html="From <b>4 bullets</b>, your shot goes straight through: it kills against Guard just as it does against Charge. Its only answer is an enemy shot on the same turn — the bullets collide and nobody falls.">
+        À partir de <b>4 balles</b>, ton tir traverse tout : il tue aussi bien
+        contre Protéger que contre Charger. Sa seule parade est un tir adverse
+        au même tour — les balles se percutent et personne ne tombe.
+      </p>
+      <p data-en-html="An intercepted super shot does not leave you empty: you keep <b>2 bullets</b>. Which also means hoarding beyond 4 buys you nothing.">
+        Un super tir intercepté ne te laisse pas à sec : tu conserves
+        <b>2 balles</b>. Ce qui veut dire aussi qu'accumuler au-delà de 4
+        n'apporte rien de plus.
+      </p>
+      <p data-en-html="The consequence is harsh, and deliberate: facing a super shot with <b>no bullet</b>, nothing saves you. Watch the Shoot button — when it tells you the cylinder is empty, the duel was already lost earlier.">
+        La conséquence est rude, et assumée : face à un super tir, <b>sans
+        balle</b>, rien ne te sauve. Surveille le bouton Tirer — quand il
+        annonce que le barillet est vide, le duel s'est joué avant.
+      </p>
+
       <h3 data-en="Hidden information">L'information cachée</h3>
-      <p data-en-html="In <b>Blind</b> mode, and against the <b>Extreme</b> opponent whatever the mode — so also in <b>Blitz extreme</b>, where you must count in 2 seconds — the opposite cylinder is replaced by question marks. Track it yourself: it starts at 1 bullet, gains one on every charge, spends one on every shot, and one more from its 3<sup>rd</sup> consecutive guard.">
-        En mode <b>Aveugle</b>, et face à l'adversaire <b>Extrême</b> quel que
-        soit le mode — donc aussi en <b>Blitz extrême</b>, où il faut compter en
-        2 secondes —, le barillet d'en face est remplacé par des points
-        d'interrogation. À toi de suivre :
+      <p data-en-html="The opposite cylinder is replaced by question marks in <b>Blind</b> mode, against the <b>Extreme</b> opponent, in <b>Blitz on hard and extreme</b>, and always in an <b>online duel</b>. Track it yourself: it starts at 1 bullet, gains one on every charge, spends one on every shot, and one more from its 3<sup>rd</sup> consecutive guard.">
+        Le barillet d'en face est remplacé par des points d'interrogation en
+        mode <b>Aveugle</b>, face à l'adversaire <b>Extrême</b>, en
+        <b>Blitz difficile et extrême</b>, et toujours en <b>duel en ligne</b>.
+        À toi de suivre :
         il commence à 1 balle, en gagne une à chaque charge, en dépense une à
         chaque tir, et une de plus à partir de sa 3<sup>e</sup> protection
         d'affilée.
@@ -1336,6 +1371,12 @@ body.reduced-effects *::after {
       <p data-en="The AI plays under the same terms: when you cannot see its bullets, it cannot see yours either and has to estimate them just as you do.">
         L'IA joue à la même enseigne : quand tu ne vois pas ses balles, elle ne
         voit pas les tiennes non plus et doit les estimer comme toi.
+      </p>
+      <p data-en-html="One exception, and it is deliberate: in <b>Blitz extreme</b> it sees your bullets and you do not see its own. That mode is meant to be unfair — two seconds to decide, blind, against something that knows.">
+        Une exception, et elle est voulue : en <b>Blitz extrême</b>, elle voit
+        tes balles et tu ne vois pas les siennes. Ce mode est fait pour être
+        injuste — deux secondes pour décider, à l'aveugle, contre quelqu'un qui
+        sait.
       </p>
 
       <h3 data-en="The characters">Les personnages</h3>
@@ -1594,6 +1635,16 @@ body.reduced-effects *::after {
                               en: "{name} attempts the impossible and collapses." },
     "combat.clash":         { fr: "Les balles se percutent en plein vol.",
                               en: "The bullets collide in mid-air." },
+
+    /* Interception d'un super tir. Le message est INDISPENSABLE : sans lui, le
+     * joueur voit son barillet passer de 5 à 2 sans explication et croit à un
+     * défaut. Il faut dire ce qui a été perdu, et pourquoi. */
+    "combat.superClashYou": { fr: "Ton super tir est intercepté en plein vol. Il te reste {n} balles.",
+                              en: "Your super shot is knocked out of the air. You keep {n} bullets." },
+    "combat.superClashFoe": { fr: "Le super tir de {name} est intercepté en plein vol. Il lui reste {n} balles.",
+                              en: "{name}'s super shot is knocked out of the air, leaving {n} bullets." },
+    "combat.superClashBoth":{ fr: "Deux super tirs s'annulent en plein vol. Chacun retombe à {n} balles.",
+                              en: "Two super shots cancel out in mid-air. Both drop to {n} bullets." },
     "combat.superShotYou":  { fr: "Tu traverses la protection.",
                               en: "You punch straight through the guard." },
     "combat.superShotFoe":  { fr: "{name} traverse la protection.",
@@ -1614,6 +1665,7 @@ body.reduced-effects *::after {
     "action.free":          { fr: "gratuit",       en: "free" },
     "action.costOne":       { fr: "coûte 1 balle", en: "costs 1 bullet" },
     "action.costMany":      { fr: "coûte {n} balles", en: "costs {n} bullets" },
+    "action.empty":         { fr: "plus de balle",  en: "no bullet left" },
 
     /* --- Annonces entre manches et duels --- */
     "manche.won":           { fr: "Manche gagnée", en: "Round won" },
@@ -1928,6 +1980,22 @@ body.reduced-effects *::after {
      * et le principal levier d'équilibrage du jeu. */
     SUPER_SHOT_BULLETS: 4,
 
+    /* CE QU'IL RESTE APRÈS UN SUPER TIR INTERCEPTÉ.
+     *
+     * Un super tir traverse tout — protection comme charge. Sa SEULE parade est
+     * un tir adverse au même tour : les deux balles se percutent.
+     *
+     * Quand ça arrive, le tireur ne retombe pas à zéro : il conserve ce nombre
+     * de balles. Ce n'est pas un cadeau, c'est ce qui garde le pari jouable.
+     * Retomber à zéro rendrait l'accumulation suicidaire — on aurait misé
+     * quatre tours pour finir désarmé face à quelqu'un d'armé. À 2, on perd la
+     * mise sans perdre la partie, et on peut relancer.
+     *
+     * C'est une AFFECTATION, pas une soustraction : qu'on ait tiré à 4 balles
+     * ou à 7, il en reste 2. Accumuler au-delà de 4 n'apporte donc rien de
+     * plus, ce qui évite qu'un joueur se terre indéfiniment à empiler. */
+    SUPER_SHOT_AFTER_CLASH: 2,
+
     // --- Mémoire ---
     HISTORY_LENGTH: 10,    // nombre d'actions conservées pour l'analyse de l'IA
 
@@ -2126,6 +2194,61 @@ body.reduced-effects *::after {
       en: { name: "Samurai",     blurb: "Straw hat, katana across the back." } },
   ];
 
+  /* ---------------------------------------------------------------------------
+   * 6. QUI VOIT LE BARILLET DE QUI
+   * ---------------------------------------------------------------------------
+   * Deux questions distinctes, et il ne faut pas les confondre :
+   *   - le JOUEUR voit-il les balles adverses ?
+   *   - l'IA voit-elle celles du joueur ?
+   *
+   * La réponse est presque toujours la même des deux côtés : quand on cache
+   * quelque chose au joueur, on le cache aussi à la machine, sans quoi la
+   * difficulté ne viendrait pas du jeu mais d'un avantage déguisé.
+   *
+   * Une exception, assumée : le BLITZ EXTRÊME. Là, l'IA voit et pas toi. C'est
+   * le seul endroit du jeu où elle joue avec un avantage, et c'est le sens même
+   * de ce mode — deux secondes pour décider, à l'aveugle, contre quelqu'un qui
+   * sait. Il est fait pour être injuste.
+   *
+   * Ces deux fonctions vivent ICI, avec les autres règles, plutôt que dans
+   * l'interface : c'est une règle du jeu, pas une question d'affichage. Elle
+   * doit se lire d'un seul endroit.
+   * ------------------------------------------------------------------------ */
+
+  /**
+   * Le joueur voit-il le barillet adverse ?
+   * @param {string} mode        clé de mode
+   * @param {string} difficulty  clé de difficulté
+   * @param {boolean} [online]   duel entre deux joueurs
+   */
+  function bulletsHidden(mode, difficulty, online) {
+    // En ligne, TOUJOURS caché, des deux côtés : c'est ce qui prépare le classé.
+    if (online) return true;
+
+    const m = MODES.find((x) => x.key === mode);
+    const d = DIFFICULTIES.find((x) => x.key === difficulty);
+    if (m && m.hidesBullets) return true;      // mode Aveugle
+    if (d && d.hidesBullets) return true;      // adversaire Extrême
+
+    /* Le blitz cache aussi le barillet dès la difficulté « difficile » : à
+     * trois secondes par coup, compter de tête devient la vraie épreuve. */
+    return mode === "blitz" && (difficulty === "difficile" || difficulty === "extreme");
+  }
+
+  /**
+   * L'IA est-elle privée du barillet du joueur ?
+   * Vrai partout où le joueur est lui-même privé — SAUF en blitz extrême, où
+   * l'avantage lui est laissé volontairement. Voir le commentaire ci-dessus.
+   */
+  function aiIsBlind(mode, difficulty, online) {
+    if (!bulletsHidden(mode, difficulty, online)) return false;
+    if (mode === "blitz" && difficulty === "extreme") return false;
+    return true;
+  }
+
+  DUELMINDS.bulletsHidden = bulletsHidden;
+  DUELMINDS.aiIsBlind = aiIsBlind;
+
   DUELMINDS.RULES = RULES;
   DUELMINDS.CHARACTERS = CHARACTERS;
   DUELMINDS.ACTIONS = ACTIONS;
@@ -2178,8 +2301,9 @@ body.reduced-effects *::after {
   /* Le verdict d'un duelliste, conjugue selon qu'il s'agit du joueur ou de
    * l'adversaire. Sans ca on lit « Toi est touche » ou « You punches » : le
    * sujet impose sa conjugaison, il ne peut pas etre un simple trou. */
-  const verdict = (base, duelist) =>
-    t(base + (duelist.isBot ? "Foe" : "You"), { name: duelist.name });
+  const verdict = (base, duelist, params) =>
+    t(base + (duelist.isBot ? "Foe" : "You"),
+      Object.assign({ name: duelist.name }, params || {}));
   const { RULES } = DUELMINDS;
 
   /* ---------------------------------------------------------------------------
@@ -2211,6 +2335,10 @@ body.reduced-effects *::after {
        * deviner les habitudes. Tronqué à RULES.HISTORY_LENGTH. */
       history: [],
 
+      /* Le dernier tir était-il un super tir ? Consulté par le verdict pour
+       * expliquer pourquoi le barillet retombe à 2 après une interception. */
+      firedSuperShot: false,
+
       // Statistiques de la partie en cours
       manchesWon: 0,
       totalShots: 0,
@@ -2224,6 +2352,7 @@ body.reduced-effects *::after {
     duelist.bullets = RULES.START_BULLETS;
     duelist.consecutiveDefends = 0;
     duelist.isDefending = false;
+    duelist.firedSuperShot = false;
     duelist.history.length = 0;
   }
 
@@ -2295,6 +2424,7 @@ body.reduced-effects *::after {
     if (!canDo(duelist, action)) return "death";
 
     if (action === "charge") {
+      duelist.firedSuperShot = false;
       duelist.bullets += 1;
       duelist.consecutiveDefends = 0; // charger casse la série de défenses
       duelist.isDefending = false;
@@ -2306,19 +2436,33 @@ body.reduced-effects *::after {
     if (action === "shoot") {
       // Le statut de super tir se juge AVANT de dépenser la balle.
       const superShot = isSuperShot(duelist);
-      duelist.bullets -= RULES.SHOOT_COST;
+      const intercepted = opponentAction === "shoot";
+
+      /* Le tireur retient s'il vient de lâcher un super tir : le verdict s'en
+       * sert pour l'annoncer. Sans ça, le joueur verrait son barillet passer de
+       * 5 à 2 sans explication, et le prendrait pour un défaut. */
+      duelist.firedSuperShot = superShot;
+
+      if (superShot && intercepted) {
+        /* SUPER TIR INTERCEPTÉ. On AFFECTE le reste au lieu de soustraire :
+         * voir RULES.SUPER_SHOT_AFTER_CLASH pour le raisonnement. */
+        duelist.bullets = RULES.SUPER_SHOT_AFTER_CLASH;
+      } else {
+        duelist.bullets -= RULES.SHOOT_COST;
+      }
+
       duelist.consecutiveDefends = 0;
       duelist.isDefending = false;
       duelist.totalShots += 1;
       remember(duelist, "shoot");
 
-      // Deux tirs au même tour : les balles se percutent, personne ne meurt,
-      // mais les deux ont dépensé une balle.
-      if (opponentAction === "shoot") return "clash";
+      // Deux tirs au même tour : les balles se percutent, personne ne tombe.
+      if (intercepted) return "clash";
       return superShot ? "super_shot" : "success";
     }
 
     if (action === "defend") {
+      duelist.firedSuperShot = false;
       const cost = defenceCost(duelist);
       if (duelist.bullets < cost) return "death"; // incapable de payer
       duelist.bullets -= cost;
@@ -2371,8 +2515,23 @@ body.reduced-effects *::after {
     if (resultA === "death") return { winner: "b", reason: verdict("combat.impossible", a) };
     if (resultB === "death") return { winner: "a", reason: verdict("combat.impossible", b) };
 
-    // 2. Les deux ont tiré : les balles se percutent en vol
+    /* 2. Les deux ont tiré : les balles se percutent en vol.
+     *
+     * On distingue trois cas, parce que le barillet ne se vide pas pareil et
+     * que le joueur doit comprendre pourquoi :
+     *   - deux tirs ordinaires   -> chacun a dépensé une balle
+     *   - un super intercepté    -> le tireur retombe à 2 balles
+     *   - deux supers            -> les deux retombent à 2 */
     if (resultA === "clash" && resultB === "clash") {
+      if (a.firedSuperShot && b.firedSuperShot) {
+        return { winner: null, reason: t("combat.superClashBoth",
+                                         { n: RULES.SUPER_SHOT_AFTER_CLASH }) };
+      }
+      if (a.firedSuperShot || b.firedSuperShot) {
+        const shooter = a.firedSuperShot ? a : b;
+        return { winner: null, reason: verdict("combat.superClash", shooter,
+                                               { n: RULES.SUPER_SHOT_AFTER_CLASH }) };
+      }
       return { winner: null, reason: t("combat.clash") };
     }
 
@@ -3607,12 +3766,15 @@ body.reduced-effects *::after {
     if (life <= 0) return;
 
     // Le joueur est à DROITE, l'adversaire à GAUCHE.
+    /* TOI À GAUCHE, l'adversaire à droite. Une seule paire de repères pour
+     * tout le fichier : c'est ce qui évite qu'un effet parte du mauvais côté
+     * le jour où la disposition change. */
     const leftX = zone.width * 0.24;
     const rightX = zone.width * 0.76;
     const lineY = zone.height * 0.52;
 
-    const originX = from === "player" ? rightX : leftX;
-    const targetX = from === "player" ? leftX : rightX;
+    const originX = from === "player" ? leftX : rightX;
+    const targetX = from === "player" ? rightX : leftX;
 
     ctx.save();
 
@@ -3652,7 +3814,7 @@ body.reduced-effects *::after {
 
     if (kind === "defend") {
       // Bouclier vertical devant le duelliste, tourné vers l'adversaire
-      const facing = from === "player" ? -1 : 1;
+      const facing = from === "player" ? 1 : -1;
       ctx.strokeStyle = "rgba(111,168,201," + life * 0.95 * (0.4 + 0.6 * GLOW) + ")";
       ctx.lineWidth = 3.5;
       const radius = 40 + (1 - life) * 12;
@@ -5968,11 +6130,15 @@ body.reduced-effects *::after {
     timedOut: 0,   // nombre de fois où le temps a décidé à la place du joueur
   };
 
-  /** Le barillet adverse est-il caché ? Le mode OU la difficulté peuvent l'exiger. */
+  /* Le barillet adverse est-il caché ? Et l'IA est-elle privée du tien ?
+   * La règle vit dans rules.js — c'est une règle du jeu, pas un choix
+   * d'affichage — et l'interface se contente de la lire. */
   function bulletsHidden() {
-    const mode = MODES.find((m) => m.key === state.mode);
-    const difficulty = DIFFICULTIES.find((d) => d.key === state.difficulty);
-    return !!((mode && mode.hidesBullets) || (difficulty && difficulty.hidesBullets));
+    return DUELMINDS.bulletsHidden(state.mode, state.difficulty, state.online);
+  }
+
+  function aiIsBlind() {
+    return DUELMINDS.aiIsBlind(state.mode, state.difficulty, state.online);
   }
 
   /** Le mode impose-t-il un chronomètre ? */
@@ -6263,7 +6429,7 @@ body.reduced-effects *::after {
     DUELMINDS.scene.pickDecor();     // un lieu différent à chaque partie
 
     state.session = DUELMINDS.match.createSession(state.mode, state.difficulty, {
-      blind: bulletsHidden(),          // symétrie : elle ne voit pas plus que toi
+      blind: aiIsBlind(),              // réciprocité, sauf en blitz extrême
       characterKey: state.botCharacter, // la silhouette d'en face annonce la couleur
     });
     DUELMINDS.match.startManche(state.session);
@@ -6329,10 +6495,22 @@ body.reduced-effects *::after {
       button.disabled = !canAct || !canDo(s.player, button.dataset.action);
     }
 
-    // Le bouton de tir annonce quand le coup traversera la protection.
-    $("shoot-note").textContent = isSuperShot(s.player)
-      ? t("action.super") : t("action.costOne");
-    $("btn-shoot").classList.toggle("super", isSuperShot(s.player));
+    /* Le bouton de tir annonce quand le coup traversera la protection — et,
+     * plus important, quand il est HORS DE PORTÉE.
+     *
+     * POURQUOI CE DÉTAIL COMPTE
+     * Un super tir traverse la protection ET la charge : face à lui, un
+     * duelliste sans balle est condamné quoi qu'il fasse. C'est assumé, mais
+     * ça ne doit pas se lire comme une mort arbitraire. En affichant « plus de
+     * balle » au lieu du coût habituel, le joueur comprend que la partie
+     * s'est jouée AVANT, quand il a laissé son barillet se vider. */
+    const armed = canDo(s.player, "shoot");
+    $("shoot-note").textContent =
+      !armed ? t("action.empty")
+      : isSuperShot(s.player) ? t("action.super")
+      : t("action.costOne");
+    $("btn-shoot").classList.toggle("super", armed && isSuperShot(s.player));
+    $("btn-shoot").classList.toggle("empty", !armed);
 
     const cost = defenceCost(s.player);
     $("defend-note").textContent =
@@ -6495,8 +6673,9 @@ body.reduced-effects *::after {
   function showReveal(turn) {
     const band = $("reveal");
     band.innerHTML = "";
-    band.appendChild(revealCard(t("duelist.opponent"), turn.actionB, turn.resultB, "from-left"));
-    band.appendChild(revealCard(t("duelist.you"), turn.actionA, turn.resultA, "from-right"));
+    // Même ordre que l'arène : toi à gauche, l'adversaire à droite.
+    band.appendChild(revealCard(t("duelist.you"), turn.actionA, turn.resultA, "from-left"));
+    band.appendChild(revealCard(t("duelist.opponent"), turn.actionB, turn.resultB, "from-right"));
 
     // Un seul effet par tour : le plus marquant.
     if (turn.resultA === "clash" && turn.resultB === "clash") {
@@ -6538,21 +6717,22 @@ body.reduced-effects *::after {
     const scene = DUELMINDS.scene;
     const zone = sceneZone();
     const groundY = scene.groundLine(zone.height);
-    const leftX = zone.width * 0.24;    // sous l'adversaire
-    const rightX = zone.width * 0.76;   // sous toi
+    const leftX = zone.width * 0.24;    // sous toi
+    const rightX = zone.width * 0.76;   // sous l'adversaire
 
     // Une mort secoue franchement, un clash à peine.
     if (turn.winner) {
       scene.shake(turn.resultA === "super_shot" || turn.resultB === "super_shot" ? 9 : 6);
-      scene.burst(turn.winner === "a" ? leftX : rightX, groundY);
+      // Le perdant soulève la poussière en tombant : « a » c'est toi, à gauche.
+      scene.burst(turn.winner === "a" ? rightX : leftX, groundY);
     } else if (turn.resultA === "clash") {
       scene.shake(3);
       scene.burst(zone.width * 0.5, groundY);
     }
 
     // Charger tasse le sol sous ses pieds : un peu de poussière, sans secousse.
-    if (turn.actionA === "charge") scene.burst(rightX, groundY);
-    if (turn.actionB === "charge") scene.burst(leftX, groundY);
+    if (turn.actionA === "charge") scene.burst(leftX, groundY);
+    if (turn.actionB === "charge") scene.burst(rightX, groundY);
   }
 
   function revealCard(who, action, result, animation) {
@@ -7483,8 +7663,10 @@ body.reduced-effects *::after {
        * On décale légèrement l'horloge de l'adversaire pour que les deux ne
        * respirent pas exactement en même temps — sinon la scène paraît
        * mécanique. */
-      drawPose("bot", $("bot-sprite"), state.botCharacter, "left", timestamp + 800);
-      drawPose("player", $("me-sprite"), state.character, "right", timestamp);
+      // TOI À GAUCHE, l'adversaire à droite. Voir la disposition en tête
+      // d'index.html : on se cherche du côté où commence la lecture.
+      drawPose("player", $("me-sprite"), state.character, "left", timestamp);
+      drawPose("bot", $("bot-sprite"), state.botCharacter, "right", timestamp + 800);
 
       // L'éclat s'estompe tout seul
       state.flash.player = Math.max(0, state.flash.player - 0.02);

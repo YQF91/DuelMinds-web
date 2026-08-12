@@ -85,6 +85,16 @@
                               en: "{name} attempts the impossible and collapses." },
     "combat.clash":         { fr: "Les balles se percutent en plein vol.",
                               en: "The bullets collide in mid-air." },
+
+    /* Interception d'un super tir. Le message est INDISPENSABLE : sans lui, le
+     * joueur voit son barillet passer de 5 à 2 sans explication et croit à un
+     * défaut. Il faut dire ce qui a été perdu, et pourquoi. */
+    "combat.superClashYou": { fr: "Ton super tir est intercepté en plein vol. Il te reste {n} balles.",
+                              en: "Your super shot is knocked out of the air. You keep {n} bullets." },
+    "combat.superClashFoe": { fr: "Le super tir de {name} est intercepté en plein vol. Il lui reste {n} balles.",
+                              en: "{name}'s super shot is knocked out of the air, leaving {n} bullets." },
+    "combat.superClashBoth":{ fr: "Deux super tirs s'annulent en plein vol. Chacun retombe à {n} balles.",
+                              en: "Two super shots cancel out in mid-air. Both drop to {n} bullets." },
     "combat.superShotYou":  { fr: "Tu traverses la protection.",
                               en: "You punch straight through the guard." },
     "combat.superShotFoe":  { fr: "{name} traverse la protection.",
@@ -105,6 +115,7 @@
     "action.free":          { fr: "gratuit",       en: "free" },
     "action.costOne":       { fr: "coûte 1 balle", en: "costs 1 bullet" },
     "action.costMany":      { fr: "coûte {n} balles", en: "costs {n} bullets" },
+    "action.empty":         { fr: "plus de balle",  en: "no bullet left" },
 
     /* --- Annonces entre manches et duels --- */
     "manche.won":           { fr: "Manche gagnée", en: "Round won" },

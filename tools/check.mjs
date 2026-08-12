@@ -256,6 +256,53 @@ try {
 }
 
 /* -----------------------------------------------------------------------------
+ * QUI VOIT LE BARILLET DE QUI ?
+ * -----------------------------------------------------------------------------
+ * La règle a une exception, et une exception se perd vite : partout où le
+ * joueur ne voit pas les balles adverses, l'IA ne voit pas les siennes —
+ * SAUF en blitz extrême, où l'avantage lui est laissé volontairement.
+ *
+ * Sans ce contrôle, un réglage ultérieur pourrait soit rétablir la symétrie
+ * partout (et vider le blitz extrême de son sens), soit étendre l'avantage
+ * ailleurs (et rendre le jeu malhonnête). Ni l'un ni l'autre ne se verrait en
+ * jouant : on ne peut pas observer ce que l'adversaire sait.
+ * -------------------------------------------------------------------------- */
+try {
+  const faults = [];
+
+  for (const mode of D.MODES) {
+    for (const difficulty of D.DIFFICULTIES) {
+      const hidden = D.bulletsHidden(mode.key, difficulty.key, false);
+      const blind = D.aiIsBlind(mode.key, difficulty.key, false);
+      const advantage = hidden && !blind;
+      const expected = mode.key === "blitz" && difficulty.key === "extreme";
+
+      if (advantage !== expected) {
+        faults.push(mode.key + "/" + difficulty.key +
+          (advantage ? " donne un avantage caché à l'IA"
+                     : " devrait en donner un et n'en donne pas"));
+      }
+      if (!hidden && blind) {
+        faults.push(mode.key + "/" + difficulty.key +
+          " aveugle l'IA alors que le joueur voit tout");
+      }
+    }
+  }
+
+  // Le duel en ligne cache toujours, des deux côtés.
+  if (!D.bulletsHidden("duel", "facile", true)) {
+    faults.push("le duel en ligne devrait toujours cacher les balles");
+  }
+
+  report(faults.length === 0,
+    faults.length === 0
+      ? "la réciprocité du barillet tient, avec sa seule exception (blitz extrême)"
+      : "VISIBILITÉ DES BALLES — " + faults.join(" | "));
+} catch (e) {
+  problems.push("VISIBILITÉ — " + e.message);
+}
+
+/* -----------------------------------------------------------------------------
  * LES FICHIERS DEMANDÉS EXISTENT-ILS, À LA CASSE PRÈS ?
  * -----------------------------------------------------------------------------
  * PIÈGE SPÉCIFIQUE À WINDOWS, ET IL A DÉJÀ MORDU.

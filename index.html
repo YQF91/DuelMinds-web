@@ -20,17 +20,20 @@
 
   LA DISPOSITION DU DUEL
   Les deux duellistes se font face HORIZONTALEMENT, comme dans un combat
-  Fire Emblem : l'adversaire à gauche, toi à droite, sur des plateformes, avec
+  Fire Emblem : TOI À GAUCHE, l'adversaire à droite, sur des plateformes, avec
   les informations de chacun dans un panneau sous son côté.
 
+  Pourquoi le joueur à gauche : on lit de gauche à droite, et on se cherche
+  spontanément du côté où commence la lecture. C'était l'inverse au départ.
+
       ┌──────────────────────────────────────┐
-      │  ADVERSAIRE          Manche      TOI │
+      │  TOI                 Manche  ADVERSAIRE │
       │                                      │
       │      🧍   ←  se font face  →   🧍    │
       │   ▓▓▓▓▓▓▓                  ▓▓▓▓▓▓▓   │
       │         [ RÉVÉLATION ]               │
       ├──────────────────┬───────────────────┤
-      │ balles ●●○○      │       ●●●○ balles │
+      │ balles ●●●○      │       ●●○○ balles │
       └──────────────────┴───────────────────┘
 
   Pour comprendre le projet, lire dans cet ordre :
@@ -138,26 +141,28 @@
            reliefs, sol et poussière. Aucune image, tout est calculé. -->
       <canvas class="backdrop" id="backdrop" aria-hidden="true"></canvas>
 
-      <!-- Bandeaux de nom, en haut de chaque côté -->
+      <!-- Bandeaux de nom, en haut de chaque côté.
+           TOI À GAUCHE, l'adversaire à droite : on lit de gauche à droite, et
+           on se cherche naturellement du côté où commence la lecture. -->
       <div class="nameplate left">
-        <span class="nameplate-name" id="bot-name">Adversaire</span>
-        <span class="score" id="score-bot"></span>
+        <span class="nameplate-name" id="me-name">Toi</span>
+        <span class="score" id="score-me"></span>
       </div>
       <div class="manche-badge" data-en-html="Round <b class='num' id='manche-number'>1</b>">Manche <b class="num" id="manche-number">1</b></div>
       <div class="nameplate right">
-        <span class="score" id="score-me"></span>
-        <span class="nameplate-name" id="me-name">Toi</span>
+        <span class="score" id="score-bot"></span>
+        <span class="nameplate-name" id="bot-name">Adversaire</span>
       </div>
 
-      <!-- ADVERSAIRE, à gauche -->
+      <!-- TOI, à gauche -->
       <div class="fighter left">
-        <canvas class="sprite" id="bot-sprite" width="256" height="256" aria-hidden="true"></canvas>
+        <canvas class="sprite" id="me-sprite" width="256" height="256" aria-hidden="true"></canvas>
         <div class="platform"></div>
       </div>
 
-      <!-- TOI, à droite -->
+      <!-- ADVERSAIRE, à droite -->
       <div class="fighter right">
-        <canvas class="sprite" id="me-sprite" width="256" height="256" aria-hidden="true"></canvas>
+        <canvas class="sprite" id="bot-sprite" width="256" height="256" aria-hidden="true"></canvas>
         <div class="platform"></div>
       </div>
 
@@ -178,14 +183,14 @@
     <!-- PANNEAUX D'INFORMATION, un par duelliste, sous son côté -->
     <div class="panels">
       <div class="panel">
-        <span class="panel-label" data-en="Opponent">Adversaire</span>
-        <span class="bullets" id="bot-bullets" title="Balles"></span>
-        <span class="guard" id="bot-guard"></span>
-      </div>
-      <div class="panel right">
         <span class="panel-label" data-en="You">Toi</span>
         <span class="bullets" id="me-bullets" title="Balles"></span>
         <span class="guard" id="me-guard"></span>
+      </div>
+      <div class="panel right">
+        <span class="panel-label" data-en="Opponent">Adversaire</span>
+        <span class="bullets" id="bot-bullets" title="Balles"></span>
+        <span class="guard" id="bot-guard"></span>
       </div>
     </div>
 
@@ -311,12 +316,29 @@
             tête. C'est le mode qui préfigure le PVP.</li>
       </ul>
 
+      <h3 data-en="The super shot">Le super tir</h3>
+      <p data-en-html="From <b>4 bullets</b>, your shot goes straight through: it kills against Guard just as it does against Charge. Its only answer is an enemy shot on the same turn — the bullets collide and nobody falls.">
+        À partir de <b>4 balles</b>, ton tir traverse tout : il tue aussi bien
+        contre Protéger que contre Charger. Sa seule parade est un tir adverse
+        au même tour — les balles se percutent et personne ne tombe.
+      </p>
+      <p data-en-html="An intercepted super shot does not leave you empty: you keep <b>2 bullets</b>. Which also means hoarding beyond 4 buys you nothing.">
+        Un super tir intercepté ne te laisse pas à sec : tu conserves
+        <b>2 balles</b>. Ce qui veut dire aussi qu'accumuler au-delà de 4
+        n'apporte rien de plus.
+      </p>
+      <p data-en-html="The consequence is harsh, and deliberate: facing a super shot with <b>no bullet</b>, nothing saves you. Watch the Shoot button — when it tells you the cylinder is empty, the duel was already lost earlier.">
+        La conséquence est rude, et assumée : face à un super tir, <b>sans
+        balle</b>, rien ne te sauve. Surveille le bouton Tirer — quand il
+        annonce que le barillet est vide, le duel s'est joué avant.
+      </p>
+
       <h3 data-en="Hidden information">L'information cachée</h3>
-      <p data-en-html="In <b>Blind</b> mode, and against the <b>Extreme</b> opponent whatever the mode — so also in <b>Blitz extreme</b>, where you must count in 2 seconds — the opposite cylinder is replaced by question marks. Track it yourself: it starts at 1 bullet, gains one on every charge, spends one on every shot, and one more from its 3<sup>rd</sup> consecutive guard.">
-        En mode <b>Aveugle</b>, et face à l'adversaire <b>Extrême</b> quel que
-        soit le mode — donc aussi en <b>Blitz extrême</b>, où il faut compter en
-        2 secondes —, le barillet d'en face est remplacé par des points
-        d'interrogation. À toi de suivre :
+      <p data-en-html="The opposite cylinder is replaced by question marks in <b>Blind</b> mode, against the <b>Extreme</b> opponent, in <b>Blitz on hard and extreme</b>, and always in an <b>online duel</b>. Track it yourself: it starts at 1 bullet, gains one on every charge, spends one on every shot, and one more from its 3<sup>rd</sup> consecutive guard.">
+        Le barillet d'en face est remplacé par des points d'interrogation en
+        mode <b>Aveugle</b>, face à l'adversaire <b>Extrême</b>, en
+        <b>Blitz difficile et extrême</b>, et toujours en <b>duel en ligne</b>.
+        À toi de suivre :
         il commence à 1 balle, en gagne une à chaque charge, en dépense une à
         chaque tir, et une de plus à partir de sa 3<sup>e</sup> protection
         d'affilée.
@@ -324,6 +346,12 @@
       <p data-en="The AI plays under the same terms: when you cannot see its bullets, it cannot see yours either and has to estimate them just as you do.">
         L'IA joue à la même enseigne : quand tu ne vois pas ses balles, elle ne
         voit pas les tiennes non plus et doit les estimer comme toi.
+      </p>
+      <p data-en-html="One exception, and it is deliberate: in <b>Blitz extreme</b> it sees your bullets and you do not see its own. That mode is meant to be unfair — two seconds to decide, blind, against something that knows.">
+        Une exception, et elle est voulue : en <b>Blitz extrême</b>, elle voit
+        tes balles et tu ne vois pas les siennes. Ce mode est fait pour être
+        injuste — deux secondes pour décider, à l'aveugle, contre quelqu'un qui
+        sait.
       </p>
 
       <h3 data-en="The characters">Les personnages</h3>

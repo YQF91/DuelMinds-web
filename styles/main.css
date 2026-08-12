@@ -615,7 +615,20 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
 }
 .action:not(:disabled):hover { background: #362c26; border-color: #4d4038; }
 .action:active:not(:disabled) { transform: scale(.96); }
-.action:disabled { opacity: .32; cursor: not-allowed; }
+/* Une action interdite reste LISIBLE.
+ 
+   Elle etait a .32 d'opacite, presque effacee. Or c'est souvent l'information
+   la plus importante de l'ecran : face a un super tir, un duelliste sans balle
+   est condamne quoi qu'il fasse, et il doit VOIR que Tirer lui est ferme.
+   Sinon la mort se lit comme arbitraire, alors qu'elle vient d'une gestion du
+   barillet. */
+.action:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Plus de balle du tout : on le dit franchement, en rouille. */
+.action.empty {
+  border-color: color-mix(in srgb, var(--rust) 45%, var(--line));
+}
+.action.empty small { color: var(--rust); }
 
 /* Le bouton de tir s'embrase quand le coup traversera la protection : c'est
    l'information la plus décisive du jeu, elle ne doit pas se rater. */

@@ -102,11 +102,15 @@
     timedOut: 0,   // nombre de fois où le temps a décidé à la place du joueur
   };
 
-  /** Le barillet adverse est-il caché ? Le mode OU la difficulté peuvent l'exiger. */
+  /* Le barillet adverse est-il caché ? Et l'IA est-elle privée du tien ?
+   * La règle vit dans rules.js — c'est une règle du jeu, pas un choix
+   * d'affichage — et l'interface se contente de la lire. */
   function bulletsHidden() {
-    const mode = MODES.find((m) => m.key === state.mode);
-    const difficulty = DIFFICULTIES.find((d) => d.key === state.difficulty);
-    return !!((mode && mode.hidesBullets) || (difficulty && difficulty.hidesBullets));
+    return DUELMINDS.bulletsHidden(state.mode, state.difficulty, state.online);
+  }
+
+  function aiIsBlind() {
+    return DUELMINDS.aiIsBlind(state.mode, state.difficulty, state.online);
   }
 
   /** Le mode impose-t-il un chronomètre ? */
@@ -397,7 +401,7 @@
     DUELMINDS.scene.pickDecor();     // un lieu différent à chaque partie
 
     state.session = DUELMINDS.match.createSession(state.mode, state.difficulty, {
-      blind: bulletsHidden(),          // symétrie : elle ne voit pas plus que toi
+      blind: aiIsBlind(),              // réciprocité, sauf en blitz extrême
       characterKey: state.botCharacter, // la silhouette d'en face annonce la couleur
     });
     DUELMINDS.match.startManche(state.session);
@@ -463,10 +467,22 @@
       button.disabled = !canAct || !canDo(s.player, button.dataset.action);
     }
 
-    // Le bouton de tir annonce quand le coup traversera la protection.
-    $("shoot-note").textContent = isSuperShot(s.player)
-      ? t("action.super") : t("action.costOne");
-    $("btn-shoot").classList.toggle("super", isSuperShot(s.player));
+    /* Le bouton de tir annonce quand le coup traversera la protection — et,
+     * plus important, quand il est HORS DE PORTÉE.
+     *
+     * POURQUOI CE DÉTAIL COMPTE
+     * Un super tir traverse la protection ET la charge : face à lui, un
+     * duelliste sans balle est condamné quoi qu'il fasse. C'est assumé, mais
+     * ça ne doit pas se lire comme une mort arbitraire. En affichant « plus de
+     * balle » au lieu du coût habituel, le joueur comprend que la partie
+     * s'est jouée AVANT, quand il a laissé son barillet se vider. */
+    const armed = canDo(s.player, "shoot");
+    $("shoot-note").textContent =
+      !armed ? t("action.empty")
+      : isSuperShot(s.player) ? t("action.super")
+      : t("action.costOne");
+    $("btn-shoot").classList.toggle("super", armed && isSuperShot(s.player));
+    $("btn-shoot").classList.toggle("empty", !armed);
 
     const cost = defenceCost(s.player);
     $("defend-note").textContent =
@@ -629,8 +645,9 @@
   function showReveal(turn) {
     const band = $("reveal");
     band.innerHTML = "";
-    band.appendChild(revealCard(t("duelist.opponent"), turn.actionB, turn.resultB, "from-left"));
-    band.appendChild(revealCard(t("duelist.you"), turn.actionA, turn.resultA, "from-right"));
+    // Même ordre que l'arène : toi à gauche, l'adversaire à droite.
+    band.appendChild(revealCard(t("duelist.you"), turn.actionA, turn.resultA, "from-left"));
+    band.appendChild(revealCard(t("duelist.opponent"), turn.actionB, turn.resultB, "from-right"));
 
     // Un seul effet par tour : le plus marquant.
     if (turn.resultA === "clash" && turn.resultB === "clash") {
@@ -672,21 +689,22 @@
     const scene = DUELMINDS.scene;
     const zone = sceneZone();
     const groundY = scene.groundLine(zone.height);
-    const leftX = zone.width * 0.24;    // sous l'adversaire
-    const rightX = zone.width * 0.76;   // sous toi
+    const leftX = zone.width * 0.24;    // sous toi
+    const rightX = zone.width * 0.76;   // sous l'adversaire
 
     // Une mort secoue franchement, un clash à peine.
     if (turn.winner) {
       scene.shake(turn.resultA === "super_shot" || turn.resultB === "super_shot" ? 9 : 6);
-      scene.burst(turn.winner === "a" ? leftX : rightX, groundY);
+      // Le perdant soulève la poussière en tombant : « a » c'est toi, à gauche.
+      scene.burst(turn.winner === "a" ? rightX : leftX, groundY);
     } else if (turn.resultA === "clash") {
       scene.shake(3);
       scene.burst(zone.width * 0.5, groundY);
     }
 
     // Charger tasse le sol sous ses pieds : un peu de poussière, sans secousse.
-    if (turn.actionA === "charge") scene.burst(rightX, groundY);
-    if (turn.actionB === "charge") scene.burst(leftX, groundY);
+    if (turn.actionA === "charge") scene.burst(leftX, groundY);
+    if (turn.actionB === "charge") scene.burst(rightX, groundY);
   }
 
   function revealCard(who, action, result, animation) {
@@ -1617,8 +1635,10 @@
        * On décale légèrement l'horloge de l'adversaire pour que les deux ne
        * respirent pas exactement en même temps — sinon la scène paraît
        * mécanique. */
-      drawPose("bot", $("bot-sprite"), state.botCharacter, "left", timestamp + 800);
-      drawPose("player", $("me-sprite"), state.character, "right", timestamp);
+      // TOI À GAUCHE, l'adversaire à droite. Voir la disposition en tête
+      // d'index.html : on se cherche du côté où commence la lecture.
+      drawPose("player", $("me-sprite"), state.character, "left", timestamp);
+      drawPose("bot", $("bot-sprite"), state.botCharacter, "right", timestamp + 800);
 
       // L'éclat s'estompe tout seul
       state.flash.player = Math.max(0, state.flash.player - 0.02);

@@ -38,8 +38,9 @@
   /* Le verdict d'un duelliste, conjugue selon qu'il s'agit du joueur ou de
    * l'adversaire. Sans ca on lit « Toi est touche » ou « You punches » : le
    * sujet impose sa conjugaison, il ne peut pas etre un simple trou. */
-  const verdict = (base, duelist) =>
-    t(base + (duelist.isBot ? "Foe" : "You"), { name: duelist.name });
+  const verdict = (base, duelist, params) =>
+    t(base + (duelist.isBot ? "Foe" : "You"),
+      Object.assign({ name: duelist.name }, params || {}));
   const { RULES } = DUELMINDS;
 
   /* ---------------------------------------------------------------------------
@@ -71,6 +72,10 @@
        * deviner les habitudes. Tronqué à RULES.HISTORY_LENGTH. */
       history: [],
 
+      /* Le dernier tir était-il un super tir ? Consulté par le verdict pour
+       * expliquer pourquoi le barillet retombe à 2 après une interception. */
+      firedSuperShot: false,
+
       // Statistiques de la partie en cours
       manchesWon: 0,
       totalShots: 0,
@@ -84,6 +89,7 @@
     duelist.bullets = RULES.START_BULLETS;
     duelist.consecutiveDefends = 0;
     duelist.isDefending = false;
+    duelist.firedSuperShot = false;
     duelist.history.length = 0;
   }
 
@@ -155,6 +161,7 @@
     if (!canDo(duelist, action)) return "death";
 
     if (action === "charge") {
+      duelist.firedSuperShot = false;
       duelist.bullets += 1;
       duelist.consecutiveDefends = 0; // charger casse la série de défenses
       duelist.isDefending = false;
@@ -166,19 +173,33 @@
     if (action === "shoot") {
       // Le statut de super tir se juge AVANT de dépenser la balle.
       const superShot = isSuperShot(duelist);
-      duelist.bullets -= RULES.SHOOT_COST;
+      const intercepted = opponentAction === "shoot";
+
+      /* Le tireur retient s'il vient de lâcher un super tir : le verdict s'en
+       * sert pour l'annoncer. Sans ça, le joueur verrait son barillet passer de
+       * 5 à 2 sans explication, et le prendrait pour un défaut. */
+      duelist.firedSuperShot = superShot;
+
+      if (superShot && intercepted) {
+        /* SUPER TIR INTERCEPTÉ. On AFFECTE le reste au lieu de soustraire :
+         * voir RULES.SUPER_SHOT_AFTER_CLASH pour le raisonnement. */
+        duelist.bullets = RULES.SUPER_SHOT_AFTER_CLASH;
+      } else {
+        duelist.bullets -= RULES.SHOOT_COST;
+      }
+
       duelist.consecutiveDefends = 0;
       duelist.isDefending = false;
       duelist.totalShots += 1;
       remember(duelist, "shoot");
 
-      // Deux tirs au même tour : les balles se percutent, personne ne meurt,
-      // mais les deux ont dépensé une balle.
-      if (opponentAction === "shoot") return "clash";
+      // Deux tirs au même tour : les balles se percutent, personne ne tombe.
+      if (intercepted) return "clash";
       return superShot ? "super_shot" : "success";
     }
 
     if (action === "defend") {
+      duelist.firedSuperShot = false;
       const cost = defenceCost(duelist);
       if (duelist.bullets < cost) return "death"; // incapable de payer
       duelist.bullets -= cost;
@@ -231,8 +252,23 @@
     if (resultA === "death") return { winner: "b", reason: verdict("combat.impossible", a) };
     if (resultB === "death") return { winner: "a", reason: verdict("combat.impossible", b) };
 
-    // 2. Les deux ont tiré : les balles se percutent en vol
+    /* 2. Les deux ont tiré : les balles se percutent en vol.
+     *
+     * On distingue trois cas, parce que le barillet ne se vide pas pareil et
+     * que le joueur doit comprendre pourquoi :
+     *   - deux tirs ordinaires   -> chacun a dépensé une balle
+     *   - un super intercepté    -> le tireur retombe à 2 balles
+     *   - deux supers            -> les deux retombent à 2 */
     if (resultA === "clash" && resultB === "clash") {
+      if (a.firedSuperShot && b.firedSuperShot) {
+        return { winner: null, reason: t("combat.superClashBoth",
+                                         { n: RULES.SUPER_SHOT_AFTER_CLASH }) };
+      }
+      if (a.firedSuperShot || b.firedSuperShot) {
+        const shooter = a.firedSuperShot ? a : b;
+        return { winner: null, reason: verdict("combat.superClash", shooter,
+                                               { n: RULES.SUPER_SHOT_AFTER_CLASH }) };
+      }
       return { winner: null, reason: t("combat.clash") };
     }
 

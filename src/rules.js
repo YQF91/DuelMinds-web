@@ -68,6 +68,22 @@
      * et le principal levier d'équilibrage du jeu. */
     SUPER_SHOT_BULLETS: 4,
 
+    /* CE QU'IL RESTE APRÈS UN SUPER TIR INTERCEPTÉ.
+     *
+     * Un super tir traverse tout — protection comme charge. Sa SEULE parade est
+     * un tir adverse au même tour : les deux balles se percutent.
+     *
+     * Quand ça arrive, le tireur ne retombe pas à zéro : il conserve ce nombre
+     * de balles. Ce n'est pas un cadeau, c'est ce qui garde le pari jouable.
+     * Retomber à zéro rendrait l'accumulation suicidaire — on aurait misé
+     * quatre tours pour finir désarmé face à quelqu'un d'armé. À 2, on perd la
+     * mise sans perdre la partie, et on peut relancer.
+     *
+     * C'est une AFFECTATION, pas une soustraction : qu'on ait tiré à 4 balles
+     * ou à 7, il en reste 2. Accumuler au-delà de 4 n'apporte donc rien de
+     * plus, ce qui évite qu'un joueur se terre indéfiniment à empiler. */
+    SUPER_SHOT_AFTER_CLASH: 2,
+
     // --- Mémoire ---
     HISTORY_LENGTH: 10,    // nombre d'actions conservées pour l'analyse de l'IA
 
@@ -265,6 +281,61 @@
     { key: "samourai",      name: "Samouraï",      blurb: "Chapeau de paille, katana au dos.",  ai: "neutre",   faces: "right",
       en: { name: "Samurai",     blurb: "Straw hat, katana across the back." } },
   ];
+
+  /* ---------------------------------------------------------------------------
+   * 6. QUI VOIT LE BARILLET DE QUI
+   * ---------------------------------------------------------------------------
+   * Deux questions distinctes, et il ne faut pas les confondre :
+   *   - le JOUEUR voit-il les balles adverses ?
+   *   - l'IA voit-elle celles du joueur ?
+   *
+   * La réponse est presque toujours la même des deux côtés : quand on cache
+   * quelque chose au joueur, on le cache aussi à la machine, sans quoi la
+   * difficulté ne viendrait pas du jeu mais d'un avantage déguisé.
+   *
+   * Une exception, assumée : le BLITZ EXTRÊME. Là, l'IA voit et pas toi. C'est
+   * le seul endroit du jeu où elle joue avec un avantage, et c'est le sens même
+   * de ce mode — deux secondes pour décider, à l'aveugle, contre quelqu'un qui
+   * sait. Il est fait pour être injuste.
+   *
+   * Ces deux fonctions vivent ICI, avec les autres règles, plutôt que dans
+   * l'interface : c'est une règle du jeu, pas une question d'affichage. Elle
+   * doit se lire d'un seul endroit.
+   * ------------------------------------------------------------------------ */
+
+  /**
+   * Le joueur voit-il le barillet adverse ?
+   * @param {string} mode        clé de mode
+   * @param {string} difficulty  clé de difficulté
+   * @param {boolean} [online]   duel entre deux joueurs
+   */
+  function bulletsHidden(mode, difficulty, online) {
+    // En ligne, TOUJOURS caché, des deux côtés : c'est ce qui prépare le classé.
+    if (online) return true;
+
+    const m = MODES.find((x) => x.key === mode);
+    const d = DIFFICULTIES.find((x) => x.key === difficulty);
+    if (m && m.hidesBullets) return true;      // mode Aveugle
+    if (d && d.hidesBullets) return true;      // adversaire Extrême
+
+    /* Le blitz cache aussi le barillet dès la difficulté « difficile » : à
+     * trois secondes par coup, compter de tête devient la vraie épreuve. */
+    return mode === "blitz" && (difficulty === "difficile" || difficulty === "extreme");
+  }
+
+  /**
+   * L'IA est-elle privée du barillet du joueur ?
+   * Vrai partout où le joueur est lui-même privé — SAUF en blitz extrême, où
+   * l'avantage lui est laissé volontairement. Voir le commentaire ci-dessus.
+   */
+  function aiIsBlind(mode, difficulty, online) {
+    if (!bulletsHidden(mode, difficulty, online)) return false;
+    if (mode === "blitz" && difficulty === "extreme") return false;
+    return true;
+  }
+
+  DUELMINDS.bulletsHidden = bulletsHidden;
+  DUELMINDS.aiIsBlind = aiIsBlind;
 
   DUELMINDS.RULES = RULES;
   DUELMINDS.CHARACTERS = CHARACTERS;
