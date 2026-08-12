@@ -128,6 +128,27 @@
     },
   ];
 
+  /* ---------------------------------------------------------------------------
+   * CHARGER N'EST PLUS TOUJOURS POSSIBLE
+   * ---------------------------------------------------------------------------
+   * Depuis que le barillet plafonne à RULES.MAX_BULLETS, charger est INTERDIT
+   * une fois plein — et une action interdite tue celui qui la tente.
+   *
+   * Les cascades ci-dessous concluent souvent « charger » sans se demander si
+   * c'est permis. Elles passent donc par ici. Le remplaçant naturel est le
+   * TIR : être plein, c'est précisément avoir de quoi traverser une protection,
+   * il n'y a plus rien à attendre.
+   * ------------------------------------------------------------------------ */
+  /* Nombre de fois où le filet de sortie a dû corriger une décision. Doit
+   * rester à zéro : voir la fin de `chooseAction`. */
+  let netCatches = 0;
+
+  function chargeOrShoot(self) {
+    if (canDo(self, "charge")) return "charge";
+    if (canDo(self, "shoot")) return "shoot";
+    return canDo(self, "defend") ? "defend" : "charge";
+  }
+
   /** Tire un caractère au hasard. */
   function randomPersonality() {
     return PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
@@ -220,11 +241,27 @@
       ? Object.assign({}, opponent, { bullets: estimateBullets(brain.opponentHistory) })
       : opponent;
 
+    let choice;
     switch (brain.difficulty) {
-      case "difficile": return decideHard(brain, self, seen);
-      case "extreme":   return decideExtreme(brain, self, seen);
-      default:          return decideEasy(self);
+      case "difficile": choice = decideHard(brain, self, seen); break;
+      case "extreme":   choice = decideExtreme(brain, self, seen); break;
+      default:          choice = decideEasy(self); break;
     }
+
+    /* FILET DE SÉCURITÉ. Une action interdite TUE celui qui la tente : c'est
+     * une règle du jeu, pas une erreur technique. L'IA ne doit donc jamais en
+     * proposer une, sous aucune combinaison de règles.
+     *
+     * Il COMPTE ses interventions. Un filet qui travaille est un défaut caché :
+     * sans ce compteur, un test ne pourrait pas distinguer « aucune cascade ne
+     * se trompe » de « le filet rattrape tout en silence ». `tools/check.mjs`
+     * exige que ce compteur reste à zéro.
+     *
+     * Il reste malgré tout, parce que le coût d'un oubli est une IA qui se
+     * suicide sous les yeux du joueur, sans rien expliquer. */
+    if (canDo(self, choice)) return choice;
+    netCatches += 1;
+    return legalActions(self)[0];
   }
 
   /* ---------------------------------------------------------------------------
@@ -275,14 +312,14 @@
        * se joue sur les probabilités, pas sur les règles. */
       if (count(lastTwo, "charge") >= 2 && canDo(self, "defend")) return "defend";
 
-      if (opponent.isDefending) return "charge";
+      if (opponent.isDefending) return chargeOrShoot(self);
 
       if (estimateBullets(history) >= 3 && canDo(self, "defend")) return "defend";
     }
 
     if (!opponent.isDefending && Math.random() < tuned(brain, TENDENCY.HARD_SHOOT, "shoot")) return "shoot";
 
-    const fallback = ["charge"];
+    const fallback = [chargeOrShoot(self)];
     if (canDo(self, "defend")) fallback.push("defend");
     return fallback[Math.floor(Math.random() * fallback.length)];
   }
@@ -407,7 +444,7 @@
     }
 
     // 4. Course à l'armement : ne pas se laisser distancer.
-    if (estimateBullets(history) > self.bullets + 1) return "charge";
+    if (estimateBullets(history) > self.bullets + 1) return chargeOrShoot(self);
 
     /* 5. Cible à découvert : on en profite.
      *
@@ -436,7 +473,7 @@
     }
 
     if (canDo(self, "defend") && Math.random() < tuned(brain, TENDENCY.EXTREME_DEFEND, "defend")) return "defend";
-    return "charge";
+    return chargeOrShoot(self);
   }
 
   /* ---------------------------------------------------------------------------
@@ -507,5 +544,6 @@
 
   DUELMINDS.ai = { makeBrain, resetBrainForManche, chooseAction, estimateBullets,
                    TENDENCY, PERSONALITIES, randomPersonality, personalityOf,
-                   personalityForCharacter };
+                   personalityForCharacter,
+                   netCatches: () => netCatches };
 })(typeof globalThis !== "undefined" ? globalThis : window);

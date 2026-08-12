@@ -67,12 +67,29 @@ check("un tir adverse au même tour l'annule", parried.result.winner === null);
 check("le tireur conserve exactement " + KEPT + " balles", parried.a.bullets === KEPT);
 check("l'intercepteur a dépensé une balle normalement", parried.b.bullets === 0);
 
-const rich = turn(7, "shoot", 1, "shoot");
-check("qu'on tire à 4 balles ou à 7, il en reste " + KEPT + " — c'est une " +
-      "affectation, pas une soustraction", rich.a.bullets === KEPT);
+/* --- Le plafond du barillet --- */
+check("charger est impossible barillet plein",
+      combat.canDo(Object.assign(combat.makeDuelist("X", false),
+                                 { bullets: RULES.MAX_BULLETS }), "charge") === false);
+check("charger reste possible juste en dessous",
+      combat.canDo(Object.assign(combat.makeDuelist("X", false),
+                                 { bullets: RULES.MAX_BULLETS - 1 }), "charge") === true);
+check("le plafond coïncide avec le seuil du super tir — atteindre le maximum, " +
+      "c'est aussi ne plus pouvoir temporiser",
+      RULES.MAX_BULLETS === RULES.SUPER_SHOT_BULLETS);
+
+/* Une charge de trop ne doit jamais faire déborder, même si une règle future
+ * laissait passer l'action. */
+const capped = combat.makeDuelist("X", false);
+capped.bullets = RULES.MAX_BULLETS;
+combat.resolveTurn(capped, combat.makeDuelist("Y", true), "charge", "defend");
+check("le barillet ne dépasse jamais " + RULES.MAX_BULLETS,
+      capped.bullets <= RULES.MAX_BULLETS);
 
 /* --- 5. Super contre super --- */
-const both = turn(SUPER + 1, "shoot", SUPER + 2, "shoot");
+/* Les deux au maximum : c'est le seul cas atteignable en jeu depuis que le
+ * barillet plafonne. */
+const both = turn(SUPER, "shoot", SUPER, "shoot");
 check("super contre super : personne ne tombe", both.result.winner === null);
 check("super contre super : les deux retombent à " + KEPT,
       both.a.bullets === KEPT && both.b.bullets === KEPT);

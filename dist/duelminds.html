@@ -1222,9 +1222,9 @@ body.reduced-effects *::after {
     <!-- LES ACTIONS. `data-action` fait le lien avec le moteur : ces valeurs
          doivent rester celles de DUELMINDS.ACTIONS dans rules.js. -->
     <div class="actions">
-      <button class="action" data-action="charge" type="button"
-              data-en-html="Charge<small>+ 1 bullet</small>">
-        Charger<small>+ 1 balle</small>
+      <button class="action" id="btn-charge" data-action="charge" type="button"
+              data-en-html="Charge<small id='charge-note'>+ 1 bullet</small>">
+        Charger<small id="charge-note">+ 1 balle</small>
       </button>
       <button class="action" id="btn-shoot" data-action="shoot" type="button"
               data-en-html="Shoot<small id='shoot-note'>costs 1 bullet</small>">
@@ -1347,10 +1347,14 @@ body.reduced-effects *::after {
         contre Protéger que contre Charger. Sa seule parade est un tir adverse
         au même tour — les balles se percutent et personne ne tombe.
       </p>
-      <p data-en-html="An intercepted super shot does not leave you empty: you keep <b>2 bullets</b>. Which also means hoarding beyond 4 buys you nothing.">
+      <p data-en-html="An intercepted super shot does not leave you empty: you keep <b>2 bullets</b>.">
         Un super tir intercepté ne te laisse pas à sec : tu conserves
-        <b>2 balles</b>. Ce qui veut dire aussi qu'accumuler au-delà de 4
-        n'apporte rien de plus.
+        <b>2 balles</b>.
+      </p>
+      <p data-en-html="The cylinder holds <b>4 bullets at most</b>: once full, Charge closes. Reaching 4 is therefore a decision, not a comfort — you are armed to the maximum, and you can no longer stall.">
+        Le barillet contient <b>4 balles au maximum</b> : une fois plein,
+        Charger se ferme. Atteindre 4 est donc une décision, pas un confort —
+        tu es armé au maximum, et tu ne peux plus temporiser.
       </p>
       <p data-en-html="The consequence is harsh, and deliberate: facing a super shot with <b>no bullet</b>, nothing saves you. Watch the Shoot button — when it tells you the cylinder is empty, the duel was already lost earlier.">
         La conséquence est rude, et assumée : face à un super tir, <b>sans
@@ -1666,6 +1670,8 @@ body.reduced-effects *::after {
     "action.costOne":       { fr: "coûte 1 balle", en: "costs 1 bullet" },
     "action.costMany":      { fr: "coûte {n} balles", en: "costs {n} bullets" },
     "action.empty":         { fr: "plus de balle",  en: "no bullet left" },
+    "action.gain":          { fr: "+ 1 balle",      en: "+ 1 bullet" },
+    "action.full":          { fr: "barillet plein", en: "cylinder full" },
 
     /* --- Annonces entre manches et duels --- */
     "manche.won":           { fr: "Manche gagnée", en: "Round won" },
@@ -1980,6 +1986,19 @@ body.reduced-effects *::after {
      * et le principal levier d'équilibrage du jeu. */
     SUPER_SHOT_BULLETS: 4,
 
+    /* PLAFOND DU BARILLET. Volontairement ÉGAL au seuil du super tir.
+     *
+     * Charger devient impossible une fois plein : le barillet ne va pas
+     * au-delà, et le jeu doit le dire au lieu de laisser accumuler dans le
+     * vide. Sans ce plafond, un joueur pouvait empiler indéfiniment sans que
+     * rien ne change — le super tir était déjà acquis à 4.
+     *
+     * Les deux valeurs sont égales et doivent le rester : le moment où l'on
+     * atteint le super tir est aussi celui où l'on ne peut plus charger. C'est
+     * ce qui fait du 4e tour de charge une décision — on est armé au maximum,
+     * il faut s'en servir ou se protéger, plus moyen de temporiser. */
+    MAX_BULLETS: 4,
+
     /* CE QU'IL RESTE APRÈS UN SUPER TIR INTERCEPTÉ.
      *
      * Un super tir traverse tout — protection comme charge. Sa SEULE parade est
@@ -1991,9 +2010,10 @@ body.reduced-effects *::after {
      * quatre tours pour finir désarmé face à quelqu'un d'armé. À 2, on perd la
      * mise sans perdre la partie, et on peut relancer.
      *
-     * C'est une AFFECTATION, pas une soustraction : qu'on ait tiré à 4 balles
-     * ou à 7, il en reste 2. Accumuler au-delà de 4 n'apporte donc rien de
-     * plus, ce qui évite qu'un joueur se terre indéfiniment à empiler. */
+     * C'est une AFFECTATION, pas une soustraction — et depuis que le barillet
+     * plafonne à MAX_BULLETS, cela revient toujours à retomber de 4 à 2. La
+     * formulation reste une affectation pour rester juste si le plafond
+     * changeait un jour. */
     SUPER_SHOT_AFTER_CLASH: 2,
 
     // --- Mémoire ---
@@ -2388,7 +2408,10 @@ body.reduced-effects *::after {
   function canDo(duelist, action) {
     switch (action) {
       case "charge":
-        return true; // toujours possible
+        /* Impossible barillet plein : voir RULES.MAX_BULLETS. C'est la seule
+         * situation où charger est interdit, et elle coïncide exactement avec
+         * le seuil du super tir. */
+        return duelist.bullets < RULES.MAX_BULLETS;
       case "shoot":
         return duelist.bullets >= RULES.SHOOT_COST;
       case "defend":
@@ -2425,7 +2448,9 @@ body.reduced-effects *::after {
 
     if (action === "charge") {
       duelist.firedSuperShot = false;
-      duelist.bullets += 1;
+      // Le plafond est déjà garanti par canDo ; on le borne quand même, pour
+      // qu'aucun réglage futur ne puisse le contourner en silence.
+      duelist.bullets = Math.min(RULES.MAX_BULLETS, duelist.bullets + 1);
       duelist.consecutiveDefends = 0; // charger casse la série de défenses
       duelist.isDefending = false;
       duelist.totalCharges += 1;
@@ -2693,6 +2718,27 @@ body.reduced-effects *::after {
     },
   ];
 
+  /* ---------------------------------------------------------------------------
+   * CHARGER N'EST PLUS TOUJOURS POSSIBLE
+   * ---------------------------------------------------------------------------
+   * Depuis que le barillet plafonne à RULES.MAX_BULLETS, charger est INTERDIT
+   * une fois plein — et une action interdite tue celui qui la tente.
+   *
+   * Les cascades ci-dessous concluent souvent « charger » sans se demander si
+   * c'est permis. Elles passent donc par ici. Le remplaçant naturel est le
+   * TIR : être plein, c'est précisément avoir de quoi traverser une protection,
+   * il n'y a plus rien à attendre.
+   * ------------------------------------------------------------------------ */
+  /* Nombre de fois où le filet de sortie a dû corriger une décision. Doit
+   * rester à zéro : voir la fin de `chooseAction`. */
+  let netCatches = 0;
+
+  function chargeOrShoot(self) {
+    if (canDo(self, "charge")) return "charge";
+    if (canDo(self, "shoot")) return "shoot";
+    return canDo(self, "defend") ? "defend" : "charge";
+  }
+
   /** Tire un caractère au hasard. */
   function randomPersonality() {
     return PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
@@ -2785,11 +2831,27 @@ body.reduced-effects *::after {
       ? Object.assign({}, opponent, { bullets: estimateBullets(brain.opponentHistory) })
       : opponent;
 
+    let choice;
     switch (brain.difficulty) {
-      case "difficile": return decideHard(brain, self, seen);
-      case "extreme":   return decideExtreme(brain, self, seen);
-      default:          return decideEasy(self);
+      case "difficile": choice = decideHard(brain, self, seen); break;
+      case "extreme":   choice = decideExtreme(brain, self, seen); break;
+      default:          choice = decideEasy(self); break;
     }
+
+    /* FILET DE SÉCURITÉ. Une action interdite TUE celui qui la tente : c'est
+     * une règle du jeu, pas une erreur technique. L'IA ne doit donc jamais en
+     * proposer une, sous aucune combinaison de règles.
+     *
+     * Il COMPTE ses interventions. Un filet qui travaille est un défaut caché :
+     * sans ce compteur, un test ne pourrait pas distinguer « aucune cascade ne
+     * se trompe » de « le filet rattrape tout en silence ». `tools/check.mjs`
+     * exige que ce compteur reste à zéro.
+     *
+     * Il reste malgré tout, parce que le coût d'un oubli est une IA qui se
+     * suicide sous les yeux du joueur, sans rien expliquer. */
+    if (canDo(self, choice)) return choice;
+    netCatches += 1;
+    return legalActions(self)[0];
   }
 
   /* ---------------------------------------------------------------------------
@@ -2840,14 +2902,14 @@ body.reduced-effects *::after {
        * se joue sur les probabilités, pas sur les règles. */
       if (count(lastTwo, "charge") >= 2 && canDo(self, "defend")) return "defend";
 
-      if (opponent.isDefending) return "charge";
+      if (opponent.isDefending) return chargeOrShoot(self);
 
       if (estimateBullets(history) >= 3 && canDo(self, "defend")) return "defend";
     }
 
     if (!opponent.isDefending && Math.random() < tuned(brain, TENDENCY.HARD_SHOOT, "shoot")) return "shoot";
 
-    const fallback = ["charge"];
+    const fallback = [chargeOrShoot(self)];
     if (canDo(self, "defend")) fallback.push("defend");
     return fallback[Math.floor(Math.random() * fallback.length)];
   }
@@ -2972,7 +3034,7 @@ body.reduced-effects *::after {
     }
 
     // 4. Course à l'armement : ne pas se laisser distancer.
-    if (estimateBullets(history) > self.bullets + 1) return "charge";
+    if (estimateBullets(history) > self.bullets + 1) return chargeOrShoot(self);
 
     /* 5. Cible à découvert : on en profite.
      *
@@ -3001,7 +3063,7 @@ body.reduced-effects *::after {
     }
 
     if (canDo(self, "defend") && Math.random() < tuned(brain, TENDENCY.EXTREME_DEFEND, "defend")) return "defend";
-    return "charge";
+    return chargeOrShoot(self);
   }
 
   /* ---------------------------------------------------------------------------
@@ -3072,7 +3134,8 @@ body.reduced-effects *::after {
 
   DUELMINDS.ai = { makeBrain, resetBrainForManche, chooseAction, estimateBullets,
                    TENDENCY, PERSONALITIES, randomPersonality, personalityOf,
-                   personalityForCharacter };
+                   personalityForCharacter,
+                   netCatches: () => netCatches };
 })(typeof globalThis !== "undefined" ? globalThis : window);
 
 /* ---------- src/match.js ---------- */
@@ -6504,6 +6567,14 @@ body.reduced-effects *::after {
      * ça ne doit pas se lire comme une mort arbitraire. En affichant « plus de
      * balle » au lieu du coût habituel, le joueur comprend que la partie
      * s'est jouée AVANT, quand il a laissé son barillet se vider. */
+    /* Charger est impossible barillet plein. On le DIT, au lieu de laisser un
+     * bouton éteint sans raison apparente : à 4 balles le joueur est au
+     * maximum, il doit comprendre qu'il n'a plus qu'à tirer ou se protéger.
+     * C'est aussi le moment où son tir traverse les protections. */
+    const full = !canDo(s.player, "charge");
+    $("charge-note").textContent = full ? t("action.full") : t("action.gain");
+    $("btn-charge").classList.toggle("empty", full);
+
     const armed = canDo(s.player, "shoot");
     $("shoot-note").textContent =
       !armed ? t("action.empty")

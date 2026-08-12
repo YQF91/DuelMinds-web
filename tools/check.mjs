@@ -256,6 +256,69 @@ try {
 }
 
 /* -----------------------------------------------------------------------------
+ * L'IA PROPOSE-T-ELLE PARFOIS UNE ACTION INTERDITE ?
+ * -----------------------------------------------------------------------------
+ * Une action interdite TUE celui qui la tente : c'est une règle du jeu, pas une
+ * erreur technique. Si l'IA en propose une, elle se suicide sous les yeux du
+ * joueur, sans rien expliquer — la pire panne possible, parce qu'elle ressemble
+ * à un comportement volontaire.
+ *
+ * Le risque est apparu en plafonnant le barillet : « charger » n'est plus
+ * toujours permis, alors que les cascades de décision concluaient souvent par
+ * là sans se poser la question. Un filet rattrape le cas dans `chooseAction`,
+ * mais un filet qui travaille est un défaut caché. On vérifie donc qu'il ne
+ * sert JAMAIS.
+ * -------------------------------------------------------------------------- */
+try {
+  let proposals = 0, illegal = 0, atMax = 0;
+
+  for (const difficulty of D.DIFFICULTIES.map((x) => x.key)) {
+    for (let round = 0; round < 400; round++) {
+      const self = D.combat.makeDuelist("IA", true);
+      const foe = D.combat.makeDuelist("J", false);
+      const brain = D.ai.makeBrain(difficulty, false);
+
+      for (let turn = 0; turn < 14; turn++) {
+        /* On pousse volontairement l'IA vers le barillet plein : c'est là que
+         * le piège se referme, et ça n'arrive pas si souvent au hasard. */
+        if (turn % 3 === 0) self.bullets = D.RULES.MAX_BULLETS;
+        if (self.bullets >= D.RULES.MAX_BULLETS) atMax += 1;
+
+        const action = D.ai.chooseAction(brain, self, foe);
+        proposals += 1;
+        if (!D.combat.canDo(self, action)) illegal += 1;
+
+        const foeAction = D.combat.legalActions(foe)[
+          Math.floor(Math.random() * D.combat.legalActions(foe).length)];
+        const result = D.combat.resolveTurn(self, foe, action, foeAction);
+        if (result.winner) {
+          D.combat.resetForManche(self);
+          D.combat.resetForManche(foe);
+        }
+      }
+    }
+  }
+
+  report(illegal === 0,
+    illegal === 0
+      ? proposals.toLocaleString("fr-FR") + " décisions d'IA, dont " +
+        atMax.toLocaleString("fr-FR") + " barillet plein : aucune action interdite"
+      : "IA SUICIDAIRE — " + illegal + " actions interdites proposées sur " + proposals);
+
+  /* Le test ci-dessus passe par `chooseAction`, donc par le filet : il ne peut
+   * pas voir une cascade fautive que le filet rattrape. C'est le compteur du
+   * filet qui le dit — et c'est LUI le vrai test. */
+  const caught = D.ai.netCatches();
+  report(caught === 0,
+    caught === 0
+      ? "le filet de sécurité de l'IA n'a jamais eu à intervenir"
+      : "CASCADE FAUTIVE — le filet a corrigé " + caught + " décisions : une " +
+        "branche conclut sur une action interdite, elle doit être réparée à la source");
+} catch (e) {
+  problems.push("IA — " + e.message);
+}
+
+/* -----------------------------------------------------------------------------
  * QUI VOIT LE BARILLET DE QUI ?
  * -----------------------------------------------------------------------------
  * La règle a une exception, et une exception se perd vite : partout où le

@@ -476,6 +476,14 @@
      * ça ne doit pas se lire comme une mort arbitraire. En affichant « plus de
      * balle » au lieu du coût habituel, le joueur comprend que la partie
      * s'est jouée AVANT, quand il a laissé son barillet se vider. */
+    /* Charger est impossible barillet plein. On le DIT, au lieu de laisser un
+     * bouton éteint sans raison apparente : à 4 balles le joueur est au
+     * maximum, il doit comprendre qu'il n'a plus qu'à tirer ou se protéger.
+     * C'est aussi le moment où son tir traverse les protections. */
+    const full = !canDo(s.player, "charge");
+    $("charge-note").textContent = full ? t("action.full") : t("action.gain");
+    $("btn-charge").classList.toggle("empty", full);
+
     const armed = canDo(s.player, "shoot");
     $("shoot-note").textContent =
       !armed ? t("action.empty")

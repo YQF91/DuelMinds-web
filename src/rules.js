@@ -68,6 +68,19 @@
      * et le principal levier d'équilibrage du jeu. */
     SUPER_SHOT_BULLETS: 4,
 
+    /* PLAFOND DU BARILLET. Volontairement ÉGAL au seuil du super tir.
+     *
+     * Charger devient impossible une fois plein : le barillet ne va pas
+     * au-delà, et le jeu doit le dire au lieu de laisser accumuler dans le
+     * vide. Sans ce plafond, un joueur pouvait empiler indéfiniment sans que
+     * rien ne change — le super tir était déjà acquis à 4.
+     *
+     * Les deux valeurs sont égales et doivent le rester : le moment où l'on
+     * atteint le super tir est aussi celui où l'on ne peut plus charger. C'est
+     * ce qui fait du 4e tour de charge une décision — on est armé au maximum,
+     * il faut s'en servir ou se protéger, plus moyen de temporiser. */
+    MAX_BULLETS: 4,
+
     /* CE QU'IL RESTE APRÈS UN SUPER TIR INTERCEPTÉ.
      *
      * Un super tir traverse tout — protection comme charge. Sa SEULE parade est
@@ -79,9 +92,10 @@
      * quatre tours pour finir désarmé face à quelqu'un d'armé. À 2, on perd la
      * mise sans perdre la partie, et on peut relancer.
      *
-     * C'est une AFFECTATION, pas une soustraction : qu'on ait tiré à 4 balles
-     * ou à 7, il en reste 2. Accumuler au-delà de 4 n'apporte donc rien de
-     * plus, ce qui évite qu'un joueur se terre indéfiniment à empiler. */
+     * C'est une AFFECTATION, pas une soustraction — et depuis que le barillet
+     * plafonne à MAX_BULLETS, cela revient toujours à retomber de 4 à 2. La
+     * formulation reste une affectation pour rester juste si le plafond
+     * changeait un jour. */
     SUPER_SHOT_AFTER_CLASH: 2,
 
     // --- Mémoire ---

@@ -30,6 +30,10 @@ for (const f of ["i18n.js", "rules.js", "combat.js", "ai.js"]) {
 const D = globalThis.DUELMINDS;
 const { RULES, combat, ai, ACTIONS, ACTION_LABEL } = D;
 
+/* 3 000 duels par confrontation. NE DESCENDS PAS BEAUCOUP PLUS BAS pour
+ * conclure : à 800, l'écart de comportement mesuré oscillait de 12,0 à 14,1
+ * d'un passage à l'autre, soit exactement de part et d'autre du seuil. On
+ * croirait à une régression là où il n'y a que du bruit. */
 const RUNS = Number(process.argv[2]) || 3000;
 const DIFFICULTY = "difficile"; // le niveau où les caractères pèsent le plus
 

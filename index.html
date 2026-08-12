@@ -197,9 +197,9 @@
     <!-- LES ACTIONS. `data-action` fait le lien avec le moteur : ces valeurs
          doivent rester celles de DUELMINDS.ACTIONS dans rules.js. -->
     <div class="actions">
-      <button class="action" data-action="charge" type="button"
-              data-en-html="Charge<small>+ 1 bullet</small>">
-        Charger<small>+ 1 balle</small>
+      <button class="action" id="btn-charge" data-action="charge" type="button"
+              data-en-html="Charge<small id='charge-note'>+ 1 bullet</small>">
+        Charger<small id="charge-note">+ 1 balle</small>
       </button>
       <button class="action" id="btn-shoot" data-action="shoot" type="button"
               data-en-html="Shoot<small id='shoot-note'>costs 1 bullet</small>">
@@ -322,10 +322,14 @@
         contre Protéger que contre Charger. Sa seule parade est un tir adverse
         au même tour — les balles se percutent et personne ne tombe.
       </p>
-      <p data-en-html="An intercepted super shot does not leave you empty: you keep <b>2 bullets</b>. Which also means hoarding beyond 4 buys you nothing.">
+      <p data-en-html="An intercepted super shot does not leave you empty: you keep <b>2 bullets</b>.">
         Un super tir intercepté ne te laisse pas à sec : tu conserves
-        <b>2 balles</b>. Ce qui veut dire aussi qu'accumuler au-delà de 4
-        n'apporte rien de plus.
+        <b>2 balles</b>.
+      </p>
+      <p data-en-html="The cylinder holds <b>4 bullets at most</b>: once full, Charge closes. Reaching 4 is therefore a decision, not a comfort — you are armed to the maximum, and you can no longer stall.">
+        Le barillet contient <b>4 balles au maximum</b> : une fois plein,
+        Charger se ferme. Atteindre 4 est donc une décision, pas un confort —
+        tu es armé au maximum, et tu ne peux plus temporiser.
       </p>
       <p data-en-html="The consequence is harsh, and deliberate: facing a super shot with <b>no bullet</b>, nothing saves you. Watch the Shoot button — when it tells you the cylinder is empty, the duel was already lost earlier.">
         La conséquence est rude, et assumée : face à un super tir, <b>sans

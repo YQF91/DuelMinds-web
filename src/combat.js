@@ -125,7 +125,10 @@
   function canDo(duelist, action) {
     switch (action) {
       case "charge":
-        return true; // toujours possible
+        /* Impossible barillet plein : voir RULES.MAX_BULLETS. C'est la seule
+         * situation où charger est interdit, et elle coïncide exactement avec
+         * le seuil du super tir. */
+        return duelist.bullets < RULES.MAX_BULLETS;
       case "shoot":
         return duelist.bullets >= RULES.SHOOT_COST;
       case "defend":
@@ -162,7 +165,9 @@
 
     if (action === "charge") {
       duelist.firedSuperShot = false;
-      duelist.bullets += 1;
+      // Le plafond est déjà garanti par canDo ; on le borne quand même, pour
+      // qu'aucun réglage futur ne puisse le contourner en silence.
+      duelist.bullets = Math.min(RULES.MAX_BULLETS, duelist.bullets + 1);
       duelist.consecutiveDefends = 0; // charger casse la série de défenses
       duelist.isDefending = false;
       duelist.totalCharges += 1;

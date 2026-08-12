@@ -116,6 +116,8 @@
     "action.costOne":       { fr: "coûte 1 balle", en: "costs 1 bullet" },
     "action.costMany":      { fr: "coûte {n} balles", en: "costs {n} bullets" },
     "action.empty":         { fr: "plus de balle",  en: "no bullet left" },
+    "action.gain":          { fr: "+ 1 balle",      en: "+ 1 bullet" },
+    "action.full":          { fr: "barillet plein", en: "cylinder full" },
 
     /* --- Annonces entre manches et duels --- */
     "manche.won":           { fr: "Manche gagnée", en: "Round won" },
