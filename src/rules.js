@@ -70,15 +70,17 @@
 
     /* PLAFOND DU BARILLET. Volontairement ÉGAL au seuil du super tir.
      *
-     * Charger devient impossible une fois plein : le barillet ne va pas
-     * au-delà, et le jeu doit le dire au lieu de laisser accumuler dans le
-     * vide. Sans ce plafond, un joueur pouvait empiler indéfiniment sans que
-     * rien ne change — le super tir était déjà acquis à 4.
+     * ATTENTION À LA NUANCE : charger reste TOUJOURS permis, même plein. Ça ne
+     * rapporte simplement plus rien. Ce n'est pas une action interdite, c'est
+     * une action sans effet — et la différence est de taille, puisque tenter
+     * une action interdite tue sur-le-champ.
      *
-     * Les deux valeurs sont égales et doivent le rester : le moment où l'on
-     * atteint le super tir est aussi celui où l'on ne peut plus charger. C'est
-     * ce qui fait du 4e tour de charge une décision — on est armé au maximum,
-     * il faut s'en servir ou se protéger, plus moyen de temporiser. */
+     * Les seules actions qui peuvent être interdites sont donc celles qui
+     * COÛTENT une balle : tirer, et se protéger au-delà du seuil gratuit.
+     *
+     * Charger plein reste utile dans un cas : ça remet à zéro le compteur de
+     * défenses enchaînées, sans rien dépenser. C'est aussi une façon de
+     * temporiser sans se découvrir. */
     MAX_BULLETS: 4,
 
     /* CE QU'IL RESTE APRÈS UN SUPER TIR INTERCEPTÉ.

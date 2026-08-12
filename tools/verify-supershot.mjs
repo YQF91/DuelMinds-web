@@ -67,24 +67,34 @@ check("un tir adverse au même tour l'annule", parried.result.winner === null);
 check("le tireur conserve exactement " + KEPT + " balles", parried.a.bullets === KEPT);
 check("l'intercepteur a dépensé une balle normalement", parried.b.bullets === 0);
 
-/* --- Le plafond du barillet --- */
-check("charger est impossible barillet plein",
+/* --- Le plafond du barillet ---
+ * Attention à la nuance, elle est essentielle : charger reste PERMIS barillet
+ * plein. C'est le GAIN qui est nul, pas l'action qui est interdite — et une
+ * action interdite, elle, tue celui qui la tente. */
+check("charger reste PERMIS barillet plein : ce n'est pas une condamnation",
       combat.canDo(Object.assign(combat.makeDuelist("X", false),
-                                 { bullets: RULES.MAX_BULLETS }), "charge") === false);
-check("charger reste possible juste en dessous",
-      combat.canDo(Object.assign(combat.makeDuelist("X", false),
-                                 { bullets: RULES.MAX_BULLETS - 1 }), "charge") === true);
-check("le plafond coïncide avec le seuil du super tir — atteindre le maximum, " +
-      "c'est aussi ne plus pouvoir temporiser",
-      RULES.MAX_BULLETS === RULES.SUPER_SHOT_BULLETS);
+                                 { bullets: RULES.MAX_BULLETS }), "charge") === true);
 
-/* Une charge de trop ne doit jamais faire déborder, même si une règle future
- * laissait passer l'action. */
 const capped = combat.makeDuelist("X", false);
 capped.bullets = RULES.MAX_BULLETS;
-combat.resolveTurn(capped, combat.makeDuelist("Y", true), "charge", "defend");
-check("le barillet ne dépasse jamais " + RULES.MAX_BULLETS,
-      capped.bullets <= RULES.MAX_BULLETS);
+const wasted = combat.resolveTurn(capped, combat.makeDuelist("Y", true), "charge", "defend");
+check("mais le barillet ne dépasse pas " + RULES.MAX_BULLETS,
+      capped.bullets === RULES.MAX_BULLETS);
+check("et charger plein ne tue pas — c'est un tour perdu, rien de plus",
+      wasted.winner === null);
+
+/* Ce que charger plein rapporte QUAND MÊME : le compteur de défenses
+ * enchaînées repart à zéro. C'est la raison pour laquelle on ne l'interdit
+ * pas au joueur. */
+const camper = combat.makeDuelist("X", false);
+camper.bullets = RULES.MAX_BULLETS;
+camper.consecutiveDefends = 3;
+combat.resolveTurn(camper, combat.makeDuelist("Y", true), "charge", "defend");
+check("charger plein remet à zéro les défenses enchaînées — c'est son usage",
+      camper.consecutiveDefends === 0);
+
+check("le plafond coïncide avec le seuil du super tir",
+      RULES.MAX_BULLETS === RULES.SUPER_SHOT_BULLETS);
 
 /* --- 5. Super contre super --- */
 /* Les deux au maximum : c'est le seul cas atteignable en jeu depuis que le

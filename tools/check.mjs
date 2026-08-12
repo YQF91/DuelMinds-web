@@ -270,7 +270,7 @@ try {
  * sert JAMAIS.
  * -------------------------------------------------------------------------- */
 try {
-  let proposals = 0, illegal = 0, atMax = 0;
+  let proposals = 0, illegal = 0, atMax = 0, wasted = 0;
 
   for (const difficulty of D.DIFFICULTIES.map((x) => x.key)) {
     for (let round = 0; round < 400; round++) {
@@ -287,6 +287,8 @@ try {
         const action = D.ai.chooseAction(brain, self, foe);
         proposals += 1;
         if (!D.combat.canDo(self, action)) illegal += 1;
+        // Charger plein est PERMIS mais ne rapporte rien : un tour perdu.
+        if (action === "charge" && self.bullets >= D.RULES.MAX_BULLETS) wasted += 1;
 
         const foeAction = D.combat.legalActions(foe)[
           Math.floor(Math.random() * D.combat.legalActions(foe).length)];
@@ -314,6 +316,17 @@ try {
       ? "le filet de sécurité de l'IA n'a jamais eu à intervenir"
       : "CASCADE FAUTIVE — le filet a corrigé " + caught + " décisions : une " +
         "branche conclut sur une action interdite, elle doit être réparée à la source");
+
+  /* L'IA NE DOIT PAS CHARGER DANS LE VIDE.
+   * Charger barillet plein est permis — un joueur peut le vouloir, ne serait-ce
+   * que pour remettre à zéro ses défenses enchaînées. Mais une machine qui perd
+   * un tour sans rien gagner se voit tout de suite, et donne l'impression d'un
+   * adversaire stupide. Voir `sensibleActions` dans ai.js. */
+  report(wasted === 0,
+    wasted === 0
+      ? "l'IA n'a jamais chargé un barillet déjà plein"
+      : "IA QUI SE GASPILLE — " + wasted + " charges inutiles sur " +
+        atMax.toLocaleString("fr-FR") + " tours barillet plein");
 } catch (e) {
   problems.push("IA — " + e.message);
 }

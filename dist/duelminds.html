@@ -641,11 +641,18 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    barillet. */
 .action:disabled { opacity: .55; cursor: not-allowed; }
 
-/* Plus de balle du tout : on le dit franchement, en rouille. */
+/* Plus de balle du tout : on le dit franchement, en rouille. Le bouton est
+   alors DÉSACTIVÉ — tirer est impossible. */
 .action.empty {
   border-color: color-mix(in srgb, var(--rust) 45%, var(--line));
 }
 .action.empty small { color: var(--rust); }
+
+/* Barillet plein : charger reste PERMIS mais ne rapporte plus rien. On avertit
+   sans interdire — le bouton fonctionne toujours, et charger garde deux usages
+   réels : remettre à zéro les défenses enchaînées, et temporiser à couvert.
+   D'où un traitement discret, et surtout pas la rouille de l'interdit. */
+.action.muted small { color: var(--dim); }
 
 /* Le bouton de tir s'embrase quand le coup traversera la protection : c'est
    l'information la plus décisive du jeu, elle ne doit pas se rater. */
@@ -1351,10 +1358,10 @@ body.reduced-effects *::after {
         Un super tir intercepté ne te laisse pas à sec : tu conserves
         <b>2 balles</b>.
       </p>
-      <p data-en-html="The cylinder holds <b>4 bullets at most</b>: once full, Charge closes. Reaching 4 is therefore a decision, not a comfort — you are armed to the maximum, and you can no longer stall.">
-        Le barillet contient <b>4 balles au maximum</b> : une fois plein,
-        Charger se ferme. Atteindre 4 est donc une décision, pas un confort —
-        tu es armé au maximum, et tu ne peux plus temporiser.
+      <p data-en-html="The cylinder holds <b>4 bullets at most</b>. Charging when full is still allowed — it simply gains nothing. It remains useful for one thing: it resets your consecutive-guard counter without spending anything.">
+        Le barillet contient <b>4 balles au maximum</b>. Charger une fois plein
+        reste permis — ça ne rapporte simplement rien. Ça garde un usage : le
+        compteur de protections enchaînées repart à zéro, sans rien dépenser.
       </p>
       <p data-en-html="The consequence is harsh, and deliberate: facing a super shot with <b>no bullet</b>, nothing saves you. Watch the Shoot button — when it tells you the cylinder is empty, the duel was already lost earlier.">
         La conséquence est rude, et assumée : face à un super tir, <b>sans
@@ -1988,15 +1995,17 @@ body.reduced-effects *::after {
 
     /* PLAFOND DU BARILLET. Volontairement ÉGAL au seuil du super tir.
      *
-     * Charger devient impossible une fois plein : le barillet ne va pas
-     * au-delà, et le jeu doit le dire au lieu de laisser accumuler dans le
-     * vide. Sans ce plafond, un joueur pouvait empiler indéfiniment sans que
-     * rien ne change — le super tir était déjà acquis à 4.
+     * ATTENTION À LA NUANCE : charger reste TOUJOURS permis, même plein. Ça ne
+     * rapporte simplement plus rien. Ce n'est pas une action interdite, c'est
+     * une action sans effet — et la différence est de taille, puisque tenter
+     * une action interdite tue sur-le-champ.
      *
-     * Les deux valeurs sont égales et doivent le rester : le moment où l'on
-     * atteint le super tir est aussi celui où l'on ne peut plus charger. C'est
-     * ce qui fait du 4e tour de charge une décision — on est armé au maximum,
-     * il faut s'en servir ou se protéger, plus moyen de temporiser. */
+     * Les seules actions qui peuvent être interdites sont donc celles qui
+     * COÛTENT une balle : tirer, et se protéger au-delà du seuil gratuit.
+     *
+     * Charger plein reste utile dans un cas : ça remet à zéro le compteur de
+     * défenses enchaînées, sans rien dépenser. C'est aussi une façon de
+     * temporiser sans se découvrir. */
     MAX_BULLETS: 4,
 
     /* CE QU'IL RESTE APRÈS UN SUPER TIR INTERCEPTÉ.
@@ -2408,10 +2417,11 @@ body.reduced-effects *::after {
   function canDo(duelist, action) {
     switch (action) {
       case "charge":
-        /* Impossible barillet plein : voir RULES.MAX_BULLETS. C'est la seule
-         * situation où charger est interdit, et elle coïncide exactement avec
-         * le seuil du super tir. */
-        return duelist.bullets < RULES.MAX_BULLETS;
+        /* TOUJOURS permis, même barillet plein. Le gain est alors nul — voir
+         * RULES.MAX_BULLETS — mais l'action reste légale, et c'est essentiel :
+         * une action ILLÉGALE tue celui qui la tente. Charger dans le vide ne
+         * doit pas être une condamnation, juste un tour perdu. */
+        return true;
       case "shoot":
         return duelist.bullets >= RULES.SHOOT_COST;
       case "defend":
@@ -2448,8 +2458,9 @@ body.reduced-effects *::after {
 
     if (action === "charge") {
       duelist.firedSuperShot = false;
-      // Le plafond est déjà garanti par canDo ; on le borne quand même, pour
-      // qu'aucun réglage futur ne puisse le contourner en silence.
+      /* LE PLAFOND EST ICI, et nulle part ailleurs. Charger reste permis
+       * barillet plein : c'est le GAIN qui est nul, pas l'action qui est
+       * interdite. */
       duelist.bullets = Math.min(RULES.MAX_BULLETS, duelist.bullets + 1);
       duelist.consecutiveDefends = 0; // charger casse la série de défenses
       duelist.isDefending = false;
@@ -2718,25 +2729,43 @@ body.reduced-effects *::after {
     },
   ];
 
-  /* ---------------------------------------------------------------------------
-   * CHARGER N'EST PLUS TOUJOURS POSSIBLE
-   * ---------------------------------------------------------------------------
-   * Depuis que le barillet plafonne à RULES.MAX_BULLETS, charger est INTERDIT
-   * une fois plein — et une action interdite tue celui qui la tente.
-   *
-   * Les cascades ci-dessous concluent souvent « charger » sans se demander si
-   * c'est permis. Elles passent donc par ici. Le remplaçant naturel est le
-   * TIR : être plein, c'est précisément avoir de quoi traverser une protection,
-   * il n'y a plus rien à attendre.
-   * ------------------------------------------------------------------------ */
   /* Nombre de fois où le filet de sortie a dû corriger une décision. Doit
    * rester à zéro : voir la fin de `chooseAction`. */
   let netCatches = 0;
 
+  /* ---------------------------------------------------------------------------
+   * L'IA NE CHARGE PAS DANS LE VIDE
+   * ---------------------------------------------------------------------------
+   * Charger barillet plein reste PERMIS — le gain est simplement nul. Un joueur
+   * a le droit de le faire : ne serait-ce que pour remettre à zéro son compteur
+   * de défenses enchaînées, ou pour temporiser sans se découvrir.
+   *
+   * Mais pour une IA, ça n'a aucun sens : elle perdrait un tour sans rien
+   * obtenir, et ça se verrait. Les cascades ci-dessous concluent souvent
+   * « charger » sans regarder le barillet ; elles passent donc par ici.
+   *
+   * Le remplaçant naturel est le TIR : être plein, c'est précisément avoir de
+   * quoi traverser une protection, il n'y a plus rien à attendre.
+   *
+   * Ce n'est PAS une question de légalité — charger ne tue jamais, quelle que
+   * soit la situation. C'est une question de qualité de jeu.
+   * ------------------------------------------------------------------------ */
   function chargeOrShoot(self) {
-    if (canDo(self, "charge")) return "charge";
+    if (self.bullets < RULES.MAX_BULLETS) return "charge";
     if (canDo(self, "shoot")) return "shoot";
     return canDo(self, "defend") ? "defend" : "charge";
+  }
+
+  /**
+   * Les actions qu'une IA peut raisonnablement envisager.
+   * Comme `legalActions`, mais sans la charge inutile quand le barillet est
+   * déjà plein. Jamais vide : à 4 balles, tirer est forcément possible.
+   */
+  function sensibleActions(self) {
+    const options = legalActions(self);
+    if (self.bullets < RULES.MAX_BULLETS) return options;
+    const useful = options.filter((a) => a !== "charge");
+    return useful.length ? useful : options;
   }
 
   /** Tire un caractère au hasard. */
@@ -2858,7 +2887,9 @@ body.reduced-effects *::after {
    * FACILE — le hasard, avec un penchant pour la prudence
    * ------------------------------------------------------------------------ */
   function decideEasy(self) {
-    const options = legalActions(self);
+    // Même au hasard, on ne charge pas un barillet déjà plein : voir
+    // `sensibleActions`. Ça reste permis pour le joueur, pas pour la machine.
+    const options = sensibleActions(self);
 
     // Charger compte double : l'IA facile accumule plutôt que de foncer, ce
     // qui la rend inoffensive mais pas complètement absurde.
@@ -6567,13 +6598,16 @@ body.reduced-effects *::after {
      * ça ne doit pas se lire comme une mort arbitraire. En affichant « plus de
      * balle » au lieu du coût habituel, le joueur comprend que la partie
      * s'est jouée AVANT, quand il a laissé son barillet se vider. */
-    /* Charger est impossible barillet plein. On le DIT, au lieu de laisser un
-     * bouton éteint sans raison apparente : à 4 balles le joueur est au
-     * maximum, il doit comprendre qu'il n'a plus qu'à tirer ou se protéger.
-     * C'est aussi le moment où son tir traverse les protections. */
-    const full = !canDo(s.player, "charge");
+    /* Charger reste PERMIS barillet plein — le gain est simplement nul. Le
+     * bouton n'est donc pas désactivé : on se contente de prévenir.
+     *
+     * Ce n'est pas un détail. Charger à 4 balles a encore deux usages : ça
+     * remet à zéro le compteur de défenses enchaînées, et ça permet de
+     * temporiser sans se découvrir. Interdire le bouton retirerait au joueur
+     * un choix légitime. */
+    const full = s.player.bullets >= RULES.MAX_BULLETS;
     $("charge-note").textContent = full ? t("action.full") : t("action.gain");
-    $("btn-charge").classList.toggle("empty", full);
+    $("btn-charge").classList.toggle("muted", full);
 
     const armed = canDo(s.player, "shoot");
     $("shoot-note").textContent =

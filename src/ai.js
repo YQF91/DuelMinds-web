@@ -128,25 +128,43 @@
     },
   ];
 
-  /* ---------------------------------------------------------------------------
-   * CHARGER N'EST PLUS TOUJOURS POSSIBLE
-   * ---------------------------------------------------------------------------
-   * Depuis que le barillet plafonne à RULES.MAX_BULLETS, charger est INTERDIT
-   * une fois plein — et une action interdite tue celui qui la tente.
-   *
-   * Les cascades ci-dessous concluent souvent « charger » sans se demander si
-   * c'est permis. Elles passent donc par ici. Le remplaçant naturel est le
-   * TIR : être plein, c'est précisément avoir de quoi traverser une protection,
-   * il n'y a plus rien à attendre.
-   * ------------------------------------------------------------------------ */
   /* Nombre de fois où le filet de sortie a dû corriger une décision. Doit
    * rester à zéro : voir la fin de `chooseAction`. */
   let netCatches = 0;
 
+  /* ---------------------------------------------------------------------------
+   * L'IA NE CHARGE PAS DANS LE VIDE
+   * ---------------------------------------------------------------------------
+   * Charger barillet plein reste PERMIS — le gain est simplement nul. Un joueur
+   * a le droit de le faire : ne serait-ce que pour remettre à zéro son compteur
+   * de défenses enchaînées, ou pour temporiser sans se découvrir.
+   *
+   * Mais pour une IA, ça n'a aucun sens : elle perdrait un tour sans rien
+   * obtenir, et ça se verrait. Les cascades ci-dessous concluent souvent
+   * « charger » sans regarder le barillet ; elles passent donc par ici.
+   *
+   * Le remplaçant naturel est le TIR : être plein, c'est précisément avoir de
+   * quoi traverser une protection, il n'y a plus rien à attendre.
+   *
+   * Ce n'est PAS une question de légalité — charger ne tue jamais, quelle que
+   * soit la situation. C'est une question de qualité de jeu.
+   * ------------------------------------------------------------------------ */
   function chargeOrShoot(self) {
-    if (canDo(self, "charge")) return "charge";
+    if (self.bullets < RULES.MAX_BULLETS) return "charge";
     if (canDo(self, "shoot")) return "shoot";
     return canDo(self, "defend") ? "defend" : "charge";
+  }
+
+  /**
+   * Les actions qu'une IA peut raisonnablement envisager.
+   * Comme `legalActions`, mais sans la charge inutile quand le barillet est
+   * déjà plein. Jamais vide : à 4 balles, tirer est forcément possible.
+   */
+  function sensibleActions(self) {
+    const options = legalActions(self);
+    if (self.bullets < RULES.MAX_BULLETS) return options;
+    const useful = options.filter((a) => a !== "charge");
+    return useful.length ? useful : options;
   }
 
   /** Tire un caractère au hasard. */
@@ -268,7 +286,9 @@
    * FACILE — le hasard, avec un penchant pour la prudence
    * ------------------------------------------------------------------------ */
   function decideEasy(self) {
-    const options = legalActions(self);
+    // Même au hasard, on ne charge pas un barillet déjà plein : voir
+    // `sensibleActions`. Ça reste permis pour le joueur, pas pour la machine.
+    const options = sensibleActions(self);
 
     // Charger compte double : l'IA facile accumule plutôt que de foncer, ce
     // qui la rend inoffensive mais pas complètement absurde.

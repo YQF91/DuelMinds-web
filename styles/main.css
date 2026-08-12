@@ -624,11 +624,18 @@ h2 { font-size: 21px; letter-spacing: .09em; text-transform: uppercase; }
    barillet. */
 .action:disabled { opacity: .55; cursor: not-allowed; }
 
-/* Plus de balle du tout : on le dit franchement, en rouille. */
+/* Plus de balle du tout : on le dit franchement, en rouille. Le bouton est
+   alors DÉSACTIVÉ — tirer est impossible. */
 .action.empty {
   border-color: color-mix(in srgb, var(--rust) 45%, var(--line));
 }
 .action.empty small { color: var(--rust); }
+
+/* Barillet plein : charger reste PERMIS mais ne rapporte plus rien. On avertit
+   sans interdire — le bouton fonctionne toujours, et charger garde deux usages
+   réels : remettre à zéro les défenses enchaînées, et temporiser à couvert.
+   D'où un traitement discret, et surtout pas la rouille de l'interdit. */
+.action.muted small { color: var(--dim); }
 
 /* Le bouton de tir s'embrase quand le coup traversera la protection : c'est
    l'information la plus décisive du jeu, elle ne doit pas se rater. */
